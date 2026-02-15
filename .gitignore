@@ -1,0 +1,31 @@
+# Node modules (if you ever use npm/yarn)
+node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build / distribution folders
+dist/
+build/
+
+# Local environment / API keys
+.env
+.env.local
+.env.*.local
+
+# VSCode settings
+.vscode/
+
+# Mac / Linux swap files
+*.swp
+*~
+
+# Temporary files
+*.tmp
+
+# Optional: cache folders
+.cache/
