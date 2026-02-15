@@ -1,57 +1,53 @@
-const chatContainer = document.getElementById("chat");
-const userInput = document.getElementById("userInput");
-const sendBtn = document.getElementById("sendBtn");
+import { OpenRouter } from "@openrouter/sdk";
 
-// Append messages
-function appendMessage(content, sender = "user") {
-  const msg = document.createElement("div");
-  msg.className = "ai-message" + (sender === "user" ? " user-message" : "");
-  msg.innerHTML = `
-    <div class="ai-avatar">${sender === "user" ? "🧑" : "🤖"}</div>
-    <div class="ai-bubble">${content}</div>
-  `;
-  chatContainer.appendChild(msg);
+// Initialize OpenRouter with API key from environment
+const openRouter = new OpenRouter({
+  apiKey: process.env.Key, // Make sure .env has Key=<your_key>
+});
+
+// Select DOM elements
+const inputField = document.querySelector("#user-input");
+const sendBtn = document.querySelector("#send-btn");
+const chatContainer = document.querySelector("#chat-container");
+
+// Function to append messages to chat
+function appendMessage(text, sender = "user") {
+  const messageEl = document.createElement("div");
+  messageEl.className = `chat-message ${sender}-message`;
+  messageEl.textContent = text;
+  chatContainer.appendChild(messageEl);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Ask a question via REST
-async function askQuestion(question) {
-  appendMessage(question, "user");
-  appendMessage("...", "bot"); // Placeholder
-  const botMsg = chatContainer.querySelector(".ai-message:last-child .ai-bubble");
+// Ask Trinity and get response
+async function askTrinity(question) {
+  appendMessage(question, "user"); // Show user message
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.Key || "<YOUR_KEY_HERE>"}`
-      },
-      body: JSON.stringify({
-        model: "arcee-ai/trinity-large-preview:free",
-        messages: [{ role: "user", content: question }]
-      })
+    const completion = await openRouter.chat.send({
+      model: "arcee-ai/trinity-large-preview:free",
+      messages: [
+        { role: "user", content: question }
+      ],
+      stream: true, // set true if you want streaming
     });
 
-    const data = await res.json();
-    botMsg.textContent = data.choices[0].message.content;
-
+    const answer = completion.choices[0].message.content;
+    appendMessage(answer, "bot"); // Show Trinity response
   } catch (err) {
-    botMsg.textContent = "Error: " + err.message;
+    console.error("Error:", err);
+    appendMessage("Oops! Something went wrong.", "bot");
   }
 }
 
 // Event listeners
 sendBtn.addEventListener("click", () => {
-  const question = userInput.value.trim();
+  const question = inputField.value.trim();
   if (!question) return;
-  userInput.value = "";
-  askQuestion(question);
+  inputField.value = "";
+  askTrinity(question);
 });
 
-userInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendBtn.click();
-  }
+inputField.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendBtn.click();
 });
