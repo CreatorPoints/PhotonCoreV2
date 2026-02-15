@@ -1,6 +1,6 @@
 /* ========================================
    PHOTON CORE — ai.js
-   AI Chat, Memory, Sessions, Streaming
+   AI Chat via OpenRouter, Memory, Sessions
    ======================================== */
 
 // === SHARED MEMORIES (Firestore) ===
@@ -159,7 +159,7 @@ function renderChatHistory() {
 
 function clearChatUI() {
     if (!dom.aiChat) return;
-    dom.aiChat.innerHTML = `<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Shared group chat. 📂 File tools. 🧠 Auto-memory. ⚡ 85+ models.</p></div></div>`;
+    dom.aiChat.innerHTML = `<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Shared group chat. 📂 File tools. 🧠 Auto-memory. ⚡ Powered by OpenRouter.</p></div></div>`;
 }
 
 // === FILE ATTACHMENT ===
@@ -191,7 +191,7 @@ function clearAttachment() {
     if (dom.aiAttachmentPreview) dom.aiAttachmentPreview.classList.add('hidden');
 }
 
-// === AI SEND (Main) ===
+// === AI SEND (OpenRouter) ===
 async function sendAiMessage() {
     if (!dom.aiInput) return;
     const msg = dom.aiInput.value.trim();
@@ -266,26 +266,37 @@ async function sendAiMessage() {
         hist[hist.length - 1] = { role: 'user', content: '[' + username + ']: ' + displayMsg + savedCtx };
         const messages = [{ role: 'system', content: sysPr }, ...hist];
 
-        // Check if AI wants to write a file
+        // Check if user wants to write a file
         const writeOp = !fileOp && msg.match(/(?:save|write|create)\s+(?:this\s+)?(?:as|to)\s+['""]?([a-zA-Z0-9_\-\.]+)['""]?/i);
 
-        const response = await puter.ai.chat(messages, { model: modelId, stream: true });
+        // ===== OPENROUTER STREAMING =====
         let fullText = '';
         const { div, target, cursor } = createStreamBubble(modelName);
-        for await (const part of response) {
-            const chunk = part?.text || '';
-            if (chunk) {
-                fullText += chunk;
-                target.insertBefore(document.createTextNode(chunk), cursor);
-                dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
+
+        try {
+            const stream = openRouterChatStream(messages, modelId);
+            for await (const chunk of stream) {
+                if (chunk) {
+                    fullText += chunk;
+                    target.insertBefore(document.createTextNode(chunk), cursor);
+                    dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
+                }
             }
+        } catch (streamErr) {
+            // Fallback to non-streaming if stream fails
+            console.warn('Stream failed, falling back:', streamErr);
+            fullText = await openRouterChatSimple(messages, modelId);
+            target.textContent = fullText;
         }
+
         cursor.remove();
         target.innerHTML = formatAi(fullText);
+
         const tag = document.createElement('span');
         tag.className = 'ai-model-tag';
         tag.textContent = (md?.logo || '⚡') + ' ' + modelName;
         div.querySelector('.ai-bubble').appendChild(tag);
+
         if (toolResult) {
             const tr = document.createElement('div');
             tr.className = 'tool-result';
@@ -308,17 +319,9 @@ async function sendAiMessage() {
         await saveCurrentChat();
 
     } catch (e) {
-        console.error(e);
-        try {
-            const resp = await puter.ai.chat(msg, { model: modelId });
-            const text = parseResponse(resp, modelId);
-            appendStatic(text + (toolResult ? '\n\n📂 ' + toolResult : ''), 'ai', modelName, modelName);
-            state.currentChatMessages.push({ text, sender: 'ai', author: modelName, modelName, timestamp: new Date().toISOString() });
-            await saveCurrentChat();
-        } catch (e2) {
-            appendStatic('Failed. Try another model!', 'ai', modelName, modelName);
-            showToast('Failed.', 'error');
-        }
+        console.error('AI Error:', e);
+        appendStatic('❌ Error: ' + (e.message || 'Failed. Try another model!'), 'ai', modelName, modelName);
+        showToast('AI failed: ' + (e.message || 'Unknown error'), 'error');
     }
 
     state.isTyping = false;
