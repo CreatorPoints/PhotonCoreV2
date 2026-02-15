@@ -3,19 +3,12 @@
    Firebase init, OpenRouter AI Models, State, Utilities
    ======================================== */
 
-// ====== SAFE ENV LOAD ======
-// env.js sets window.ENV — if it didn't load, create empty fallback
-if (typeof ENV === 'undefined') var ENV = {};
-
-// Read API key from env.js (gitignored)
-const OPENROUTER_API_KEY = ENV.OPENROUTER_API_KEY || '';
+// ====== OPENROUTER API KEY ======
+const OPENROUTER_API_KEY = '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';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_SITE_NAME = 'Photon Core';
 const OPENROUTER_SITE_URL = window.location.origin;
 
-if (!OPENROUTER_API_KEY) {
-    console.warn('⚠️ OpenRouter API key not found. Create env.js with your key.');
-}
 
 // Firebase Config
 const firebaseConfig = {
