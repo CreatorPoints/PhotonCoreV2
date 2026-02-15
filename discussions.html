@@ -54,24 +54,38 @@
             </header>
 
             <div class="content-area">
-                <!-- Discussions -->
                 <section id="tab-discussions" class="tab-content active">
-                    <div class="tab-header"><h2>💬 Discussions</h2><p>Talk about games, ideas, projects — shared with all members in real-time.</p></div>
+                    <div class="tab-header">
+                        <h2>💬 Discussions</h2>
+                        <p>Talk about games, ideas, projects — shared with all members in real-time.</p>
+                    </div>
                     <div class="discussion-container">
                         <div class="discussion-compose">
                             <input type="text" id="discussion-title" placeholder="Topic title" class="input">
                             <textarea id="discussion-body" placeholder="Share your thoughts..." class="textarea" rows="3"></textarea>
                             <div class="compose-actions">
                                 <select id="discussion-category" class="select">
-                                    <option value="general">💭 General</option><option value="game-design">🎮 Game Design</option><option value="art">🎨 Art & Assets</option><option value="code">💻 Code & Tech</option><option value="marketing">📢 Marketing</option><option value="bugs">🐛 Bugs & Issues</option>
+                                    <option value="general">💭 General</option>
+                                    <option value="game-design">🎮 Game Design</option>
+                                    <option value="art">🎨 Art & Assets</option>
+                                    <option value="code">💻 Code & Tech</option>
+                                    <option value="marketing">📢 Marketing</option>
+                                    <option value="bugs">🐛 Bugs & Issues</option>
                                 </select>
                                 <button id="btn-post-discussion" class="btn btn-primary">Post</button>
                             </div>
                         </div>
                         <div class="discussion-filters">
-                            <button class="filter-btn active" data-filter="all">All</button><button class="filter-btn" data-filter="general">💭</button><button class="filter-btn" data-filter="game-design">🎮</button><button class="filter-btn" data-filter="art">🎨</button><button class="filter-btn" data-filter="code">💻</button><button class="filter-btn" data-filter="bugs">🐛</button>
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="general">💭</button>
+                            <button class="filter-btn" data-filter="game-design">🎮</button>
+                            <button class="filter-btn" data-filter="art">🎨</button>
+                            <button class="filter-btn" data-filter="code">💻</button>
+                            <button class="filter-btn" data-filter="bugs">🐛</button>
                         </div>
-                        <div id="discussions-list" class="discussions-list"><div class="empty-state"><span class="empty-icon">💬</span><p>No discussions yet.</p></div></div>
+                        <div id="discussions-list" class="discussions-list">
+                            <div class="empty-state"><span class="empty-icon">💬</span><p>No discussions yet.</p></div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -79,7 +93,7 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
-    
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
@@ -88,4 +102,5 @@
     <script src="ai.js"></script>
     <script src="ui.js"></script>
     <script src="boot.js"></script>
+</body>
 </html>

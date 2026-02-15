@@ -54,7 +54,6 @@
             </header>
 
             <div class="content-area">
-                <!-- Dashboard -->
                 <section id="tab-dashboard" class="tab-content active">
                     <div class="welcome-banner">
                         <div class="welcome-text">
@@ -70,8 +69,18 @@
                         <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-info"><span class="stat-number" id="stat-online">0</span><span class="stat-label">Online Now</span></div></div>
                     </div>
                     <div class="dashboard-grid">
-                        <div class="card"><h3>📌 Quick Actions</h3><div class="quick-actions"><button class="quick-btn" onclick="window.location.href='discussions.html'">New Discussion</button><button class="quick-btn" onclick="window.location.href='files.html'">Upload File</button><button class="quick-btn" onclick="window.location.href='ai.html'">Ask AI</button></div></div>
-                        <div class="card"><h3>🕒 Recent Activity</h3><div id="recent-activity" class="activity-list"><p class="empty-state">No activity yet.</p></div></div>
+                        <div class="card">
+                            <h3>📌 Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button class="quick-btn" onclick="window.location.href='discussions.html'">New Discussion</button>
+                                <button class="quick-btn" onclick="window.location.href='files.html'">Upload File</button>
+                                <button class="quick-btn" onclick="window.location.href='ai.html'">Ask AI</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>🕒 Recent Activity</h3>
+                            <div id="recent-activity" class="activity-list"><p class="empty-state">No activity yet.</p></div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -79,6 +88,7 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
@@ -87,4 +97,5 @@
     <script src="ai.js"></script>
     <script src="ui.js"></script>
     <script src="boot.js"></script>
+</body>
 </html>

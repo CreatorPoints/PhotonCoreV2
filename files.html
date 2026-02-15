@@ -54,20 +54,29 @@
             </header>
 
             <div class="content-area">
-                <!-- Files -->
                 <section id="tab-files" class="tab-content active">
-                    <div class="tab-header"><h2>📁 File Storage</h2><p>Your personal cloud files. AI can read, write, and manage these.</p></div>
+                    <div class="tab-header">
+                        <h2>📁 File Storage</h2>
+                        <p>Your personal cloud files. AI can read, write, and manage these.</p>
+                    </div>
                     <div class="files-container">
                         <div class="upload-zone" id="upload-zone">
-                            <div class="upload-icon">📤</div><h3>Drop files here or click to upload</h3><p>Stored in your Puter cloud</p>
+                            <div class="upload-icon">📤</div>
+                            <h3>Drop files here or click to upload</h3>
+                            <p>Stored in your Puter cloud</p>
                             <input type="file" id="file-input" multiple hidden>
                             <button id="btn-browse" class="btn btn-primary">Browse Files</button>
                         </div>
                         <div class="files-toolbar">
                             <div class="files-path"><span>📂</span><span id="current-path">/PhotonCore/files</span></div>
-                            <div class="files-actions"><button id="btn-new-folder" class="btn btn-secondary">📁 New Folder</button><button id="btn-refresh-files" class="btn btn-secondary">🔄 Refresh</button></div>
+                            <div class="files-actions">
+                                <button id="btn-new-folder" class="btn btn-secondary">📁 New Folder</button>
+                                <button id="btn-refresh-files" class="btn btn-secondary">🔄 Refresh</button>
+                            </div>
                         </div>
-                        <div id="files-list" class="files-grid"><div class="empty-state"><span class="empty-icon">📂</span><p>No files.</p></div></div>
+                        <div id="files-list" class="files-grid">
+                            <div class="empty-state"><span class="empty-icon">📂</span><p>No files.</p></div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -75,7 +84,7 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
-   
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>

@@ -55,12 +55,22 @@
 
             <div class="content-area">
                 <section id="tab-ai" class="tab-content active">
-                    <div class="tab-header"><h2>🤖 AI Assistant</h2><p>Powered by OpenRouter. Shared group chat. File tools. Smart memory.</p></div>
+                    <div class="tab-header">
+                        <h2>🤖 AI Assistant</h2>
+                        <p>Powered by OpenRouter. Shared group chat. File tools. Smart memory.</p>
+                    </div>
                     <div class="ai-layout">
                         <div class="chat-history-panel">
-                            <div class="chat-history-header"><h3>🕒 History</h3><button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button></div>
-                            <div id="chat-history-list" class="chat-history-list"><div class="empty-state small"><p>No chats</p></div></div>
-                            <div class="chat-history-footer"><span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span></div>
+                            <div class="chat-history-header">
+                                <h3>🕒 History</h3>
+                                <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
+                            </div>
+                            <div id="chat-history-list" class="chat-history-list">
+                                <div class="empty-state small"><p>No chats</p></div>
+                            </div>
+                            <div class="chat-history-footer">
+                                <span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span>
+                            </div>
                         </div>
                         <div class="ai-container">
                             <div class="ai-model-selector">
@@ -69,7 +79,6 @@
                                     <span class="model-active-badge" id="model-active-badge">GPT-4o</span>
                                 </div>
                                 <select id="ai-model-select" class="select model-dropdown">
-
                                     <optgroup label="🟢 OpenAI — GPT-5">
                                         <option value="openai/gpt-5.2">GPT-5.2 (Latest)</option>
                                         <option value="openai/gpt-5.2-chatgpt">GPT-5.2 Chat</option>
@@ -77,7 +86,6 @@
                                         <option value="openai/gpt-5">GPT-5</option>
                                         <option value="openai/gpt-5-mini">GPT-5 Mini</option>
                                     </optgroup>
-
                                     <optgroup label="🟢 OpenAI — GPT-4">
                                         <option value="openai/gpt-4.1">GPT-4.1</option>
                                         <option value="openai/gpt-4o" selected>GPT-4o</option>
@@ -85,7 +93,6 @@
                                         <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
                                         <option value="openai/gpt-4.1-nano">GPT-4.1 Nano</option>
                                     </optgroup>
-
                                     <optgroup label="🟢 OpenAI — Reasoning">
                                         <option value="openai/o4-mini">o4-Mini</option>
                                         <option value="openai/o3">o3</option>
@@ -93,11 +100,9 @@
                                         <option value="openai/o1">o1</option>
                                         <option value="openai/o1-pro">o1-Pro</option>
                                     </optgroup>
-
                                     <optgroup label="🟢 OpenAI — Codex">
                                         <option value="openai/codex-mini">Codex Mini</option>
                                     </optgroup>
-
                                     <optgroup label="🟣 Anthropic — Claude">
                                         <option value="anthropic/claude-opus-4">Claude Opus 4</option>
                                         <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
@@ -106,21 +111,18 @@
                                         <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
                                         <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
                                     </optgroup>
-
                                     <optgroup label="🔵 Google — Gemini">
                                         <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
                                         <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash</option>
                                         <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
                                         <option value="google/gemini-2.5-flash-lite-preview">Gemini 2.5 Flash Lite</option>
                                     </optgroup>
-
                                     <optgroup label="⚫ xAI — Grok">
                                         <option value="x-ai/grok-4">Grok 4</option>
                                         <option value="x-ai/grok-3">Grok 3</option>
                                         <option value="x-ai/grok-3-mini">Grok 3 Mini</option>
                                         <option value="x-ai/grok-3-fast">Grok 3 Fast</option>
                                     </optgroup>
-
                                     <optgroup label="🟠 Meta — LLaMA">
                                         <option value="meta-llama/llama-4-maverick">LLaMA 4 Maverick</option>
                                         <option value="meta-llama/llama-4-scout">LLaMA 4 Scout</option>
@@ -128,26 +130,22 @@
                                         <option value="meta-llama/llama-3.1-405b-instruct">LLaMA 3.1 405B</option>
                                         <option value="meta-llama/llama-3.1-8b-instruct">LLaMA 3.1 8B</option>
                                     </optgroup>
-
                                     <optgroup label="🔷 DeepSeek">
                                         <option value="deepseek/deepseek-r1">DeepSeek R1</option>
                                         <option value="deepseek/deepseek-chat">DeepSeek V3</option>
                                         <option value="deepseek/deepseek-r1-0528">DeepSeek R1 0528</option>
                                     </optgroup>
-
                                     <optgroup label="🟤 Qwen">
                                         <option value="qwen/qwen3-235b-a22b">Qwen3 235B</option>
                                         <option value="qwen/qwen3-32b">Qwen3 32B</option>
                                         <option value="qwen/qwen3-30b-a3b">Qwen3 30B MoE</option>
                                     </optgroup>
-
                                     <optgroup label="🟡 Mistral">
                                         <option value="mistralai/mistral-large-2411">Mistral Large</option>
                                         <option value="mistralai/mistral-medium-3">Mistral Medium</option>
                                         <option value="mistralai/mistral-small-3.2">Mistral Small</option>
                                         <option value="mistralai/codestral-2501">Codestral</option>
                                     </optgroup>
-
                                     <optgroup label="🆓 Free Models">
                                         <option value="google/gemma-3-27b-it:free">Gemma 3 27B (Free)</option>
                                         <option value="meta-llama/llama-3.1-8b-instruct:free">LLaMA 3.1 8B (Free)</option>
@@ -155,25 +153,39 @@
                                         <option value="qwen/qwen3-32b:free">Qwen3 32B (Free)</option>
                                         <option value="mistralai/mistral-small-3.2:free">Mistral Small (Free)</option>
                                     </optgroup>
-
                                 </select>
-                                <div class="model-info-bar"><span class="model-info-icon">💡</span><span class="model-info-text" id="model-info-text">Multimodal.</span></div>
+                                <div class="model-info-bar">
+                                    <span class="model-info-icon">💡</span>
+                                    <span class="model-info-text" id="model-info-text">Multimodal.</span>
+                                </div>
                             </div>
 
                             <div class="memory-tip-banner" id="memory-tip-banner">
                                 <div class="tip-icon">🧠</div>
-                                <div class="tip-content"><strong>AI Memory + File Tools</strong><p>AI <strong>auto-remembers</strong> important info. It can also <strong>read, write, list & delete</strong> files from your cloud. Try: <span class="tip-keyword">"list my files"</span> or <span class="tip-keyword">"save this code as main.py"</span></p></div>
+                                <div class="tip-content">
+                                    <strong>AI Memory + File Tools</strong>
+                                    <p>AI <strong>auto-remembers</strong> important info. It can also <strong>read, write, list & delete</strong> files from your cloud. Try: <span class="tip-keyword">"list my files"</span> or <span class="tip-keyword">"save this code as main.py"</span></p>
+                                </div>
                                 <button class="tip-dismiss" id="btn-dismiss-tip">✕</button>
                             </div>
 
                             <div class="memory-panel">
-                                <div class="memory-header"><span>🧠 Shared Memory (<span id="memory-count">0</span>)</span><div class="memory-actions"><button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button><button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button></div></div>
+                                <div class="memory-header">
+                                    <span>🧠 Shared Memory (<span id="memory-count">0</span>)</span>
+                                    <div class="memory-actions">
+                                        <button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button>
+                                        <button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button>
+                                    </div>
+                                </div>
                                 <div class="memory-list hidden" id="memory-list"></div>
                             </div>
 
                             <div class="bot-identity-bar">
                                 <div class="bot-logo" id="bot-logo">🟢</div>
-                                <div class="bot-info"><span class="bot-name" id="bot-name">GPT-4o</span><span class="bot-provider" id="bot-provider">by OpenAI</span></div>
+                                <div class="bot-info">
+                                    <span class="bot-name" id="bot-name">GPT-4o</span>
+                                    <span class="bot-provider" id="bot-provider">by OpenAI</span>
+                                </div>
                                 <span class="bot-badge" id="bot-badge">Fast</span>
                             </div>
 
@@ -194,16 +206,23 @@
                             </div>
 
                             <div class="ai-chat" id="ai-chat">
-                                <div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble">
-                                    <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
-                                    <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
-                                    <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                                    <p>⚡ Powered by <strong>OpenRouter</strong> — 50+ AI models!</p>
-                                </div></div>
+                                <div class="ai-message ai-welcome">
+                                    <div class="ai-avatar">🤖</div>
+                                    <div class="ai-bubble">
+                                        <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
+                                        <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
+                                        <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
+                                        <p>⚡ Powered by <strong>OpenRouter</strong> — 50+ AI models!</p>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="ai-attachment-preview hidden" id="ai-attachment-preview">
-                                <div class="attachment-info"><span class="attachment-icon" id="attachment-icon">📎</span><span class="attachment-name" id="attachment-name">file.txt</span><span class="attachment-size" id="attachment-size">0 KB</span></div>
+                                <div class="attachment-info">
+                                    <span class="attachment-icon" id="attachment-icon">📎</span>
+                                    <span class="attachment-name" id="attachment-name">file.txt</span>
+                                    <span class="attachment-size" id="attachment-size">0 KB</span>
+                                </div>
                                 <button class="attachment-remove" id="btn-remove-attachment">✕</button>
                             </div>
 
@@ -211,7 +230,10 @@
                                 <button class="btn-icon ai-attach-btn" id="btn-ai-attach" title="Attach file">📎</button>
                                 <input type="file" id="ai-file-input" hidden>
                                 <textarea id="ai-input" placeholder="Ask AI, manage files, or chat with the team..." class="textarea" rows="2"></textarea>
-                                <button id="btn-ai-send" class="btn btn-primary"><span id="ai-send-text">Send ⚡</span><span id="ai-loading" class="hidden">Thinking...</span></button>
+                                <button id="btn-ai-send" class="btn btn-primary">
+                                    <span id="ai-send-text">Send ⚡</span>
+                                    <span id="ai-loading" class="hidden">Thinking...</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -220,7 +242,8 @@
         </main>
     </div>
 
-  
+    <div id="toast-container" class="toast-container"></div>
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
