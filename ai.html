@@ -57,7 +57,7 @@
                 <section id="tab-ai" class="tab-content active">
                     <div class="tab-header">
                         <h2>🤖 AI Assistant</h2>
-                        <p>Powered by OpenRouter. Shared group chat. File tools. Smart memory.</p>
+                        <p>Powered by Arcee AI Trinity. Shared group chat. File tools. Smart memory.</p>
                     </div>
                     <div class="ai-layout">
                         <div class="chat-history-panel">
@@ -75,88 +75,15 @@
                         <div class="ai-container">
                             <div class="ai-model-selector">
                                 <div class="model-selector-header">
-                                    <span class="model-selector-label">🧠 Choose AI Model:</span>
-                                    <span class="model-active-badge" id="model-active-badge">GPT-4o</span>
+                                    <span class="model-selector-label">🧠 AI Model:</span>
+                                    <span class="model-active-badge" id="model-active-badge">Trinity Large</span>
                                 </div>
                                 <select id="ai-model-select" class="select model-dropdown">
-                                    <optgroup label="🟢 OpenAI — GPT-5">
-                                        <option value="openai/gpt-5.2">GPT-5.2 (Latest)</option>
-                                        <option value="openai/gpt-5.2-chatgpt">GPT-5.2 Chat</option>
-                                        <option value="openai/gpt-5.1">GPT-5.1</option>
-                                        <option value="openai/gpt-5">GPT-5</option>
-                                        <option value="openai/gpt-5-mini">GPT-5 Mini</option>
-                                    </optgroup>
-                                    <optgroup label="🟢 OpenAI — GPT-4">
-                                        <option value="openai/gpt-4.1">GPT-4.1</option>
-                                        <option value="openai/gpt-4o" selected>GPT-4o</option>
-                                        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-                                        <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
-                                        <option value="openai/gpt-4.1-nano">GPT-4.1 Nano</option>
-                                    </optgroup>
-                                    <optgroup label="🟢 OpenAI — Reasoning">
-                                        <option value="openai/o4-mini">o4-Mini</option>
-                                        <option value="openai/o3">o3</option>
-                                        <option value="openai/o3-mini">o3-Mini</option>
-                                        <option value="openai/o1">o1</option>
-                                        <option value="openai/o1-pro">o1-Pro</option>
-                                    </optgroup>
-                                    <optgroup label="🟢 OpenAI — Codex">
-                                        <option value="openai/codex-mini">Codex Mini</option>
-                                    </optgroup>
-                                    <optgroup label="🟣 Anthropic — Claude">
-                                        <option value="anthropic/claude-opus-4">Claude Opus 4</option>
-                                        <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
-                                        <option value="anthropic/claude-haiku-4">Claude Haiku 4</option>
-                                        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                                        <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
-                                        <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
-                                    </optgroup>
-                                    <optgroup label="🔵 Google — Gemini">
-                                        <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
-                                        <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash</option>
-                                        <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
-                                        <option value="google/gemini-2.5-flash-lite-preview">Gemini 2.5 Flash Lite</option>
-                                    </optgroup>
-                                    <optgroup label="⚫ xAI — Grok">
-                                        <option value="x-ai/grok-4">Grok 4</option>
-                                        <option value="x-ai/grok-3">Grok 3</option>
-                                        <option value="x-ai/grok-3-mini">Grok 3 Mini</option>
-                                        <option value="x-ai/grok-3-fast">Grok 3 Fast</option>
-                                    </optgroup>
-                                    <optgroup label="🟠 Meta — LLaMA">
-                                        <option value="meta-llama/llama-4-maverick">LLaMA 4 Maverick</option>
-                                        <option value="meta-llama/llama-4-scout">LLaMA 4 Scout</option>
-                                        <option value="meta-llama/llama-3.3-70b-instruct">LLaMA 3.3 70B</option>
-                                        <option value="meta-llama/llama-3.1-405b-instruct">LLaMA 3.1 405B</option>
-                                        <option value="meta-llama/llama-3.1-8b-instruct">LLaMA 3.1 8B</option>
-                                    </optgroup>
-                                    <optgroup label="🔷 DeepSeek">
-                                        <option value="deepseek/deepseek-r1">DeepSeek R1</option>
-                                        <option value="deepseek/deepseek-chat">DeepSeek V3</option>
-                                        <option value="deepseek/deepseek-r1-0528">DeepSeek R1 0528</option>
-                                    </optgroup>
-                                    <optgroup label="🟤 Qwen">
-                                        <option value="qwen/qwen3-235b-a22b">Qwen3 235B</option>
-                                        <option value="qwen/qwen3-32b">Qwen3 32B</option>
-                                        <option value="qwen/qwen3-30b-a3b">Qwen3 30B MoE</option>
-                                    </optgroup>
-                                    <optgroup label="🟡 Mistral">
-                                        <option value="mistralai/mistral-large-2411">Mistral Large</option>
-                                        <option value="mistralai/mistral-medium-3">Mistral Medium</option>
-                                        <option value="mistralai/mistral-small-3.2">Mistral Small</option>
-                                        <option value="mistralai/codestral-2501">Codestral</option>
-                                    </optgroup>
-                                    <optgroup label="🆓 Free Models">
-                                        <option value="google/gemma-3-27b-it:free">Gemma 3 27B (Free)</option>
-                                        <option value="meta-llama/llama-3.1-8b-instruct:free">LLaMA 3.1 8B (Free)</option>
-                                        <option value="deepseek/deepseek-chat:free">DeepSeek V3 (Free)</option>
-                                        <option value="qwen/qwen3-32b:free">Qwen3 32B (Free)</option>
-                                        <option value="mistralai/mistral-small-3.2:free">Mistral Small (Free)</option>
-                                    </optgroup>
+                                    <option value="arcee-ai/trinity-large-preview:free" selected>🆓 Trinity Large (Free)</option>
                                 </select>
                                 <div class="model-info-bar">
                                     <span class="model-info-icon">💡</span>
-                                    <span class="model-info-text" id="model-info-text">Multimodal.</span>
+                                    <span class="model-info-text" id="model-info-text">Free powerful model by Arcee AI.</span>
                                 </div>
                             </div>
 
@@ -181,17 +108,17 @@
                             </div>
 
                             <div class="bot-identity-bar">
-                                <div class="bot-logo" id="bot-logo">🟢</div>
+                                <div class="bot-logo" id="bot-logo">🆓</div>
                                 <div class="bot-info">
-                                    <span class="bot-name" id="bot-name">GPT-4o</span>
-                                    <span class="bot-provider" id="bot-provider">by OpenAI</span>
+                                    <span class="bot-name" id="bot-name">Trinity Large</span>
+                                    <span class="bot-provider" id="bot-provider">by Arcee AI</span>
                                 </div>
-                                <span class="bot-badge" id="bot-badge">Fast</span>
+                                <span class="bot-badge" id="bot-badge">Free</span>
                             </div>
 
                             <div class="group-chat-indicator">
                                 <span class="group-icon">👥</span>
-                                <span class="group-text">Shared Group Chat — Real-time via Firebase • Powered by OpenRouter</span>
+                                <span class="group-text">Shared Group Chat — Real-time via Firebase</span>
                                 <div class="typing-indicator hidden" id="typing-indicator">
                                     <span class="typing-user" id="typing-user">AI</span><span> is typing</span>
                                     <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
@@ -212,7 +139,7 @@
                                         <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
                                         <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
                                         <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                                        <p>⚡ Powered by <strong>OpenRouter</strong> — 50+ AI models!</p>
+                                        <p>🆓 Powered by <strong>Arcee AI Trinity Large</strong> — Free!</p>
                                     </div>
                                 </div>
                             </div>

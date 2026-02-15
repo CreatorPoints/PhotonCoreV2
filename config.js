@@ -23,59 +23,16 @@ const db = firebase.firestore();
 const rtdb = firebase.database();
 
 const AI_MODELS = {
-    'openai/gpt-5.2':{name:'GPT-5.2',provider:'OpenAI',logo:'🟢',badge:'Latest',desc:'Most advanced OpenAI.'},
-    'openai/gpt-5.2-chatgpt':{name:'GPT-5.2 Chat',provider:'OpenAI',logo:'🟢',badge:'Chat',desc:'Chat optimized.'},
-    'openai/gpt-5.1':{name:'GPT-5.1',provider:'OpenAI',logo:'🟢',badge:'Previous',desc:'Previous gen.'},
-    'openai/gpt-5':{name:'GPT-5',provider:'OpenAI',logo:'🟢',badge:'Base',desc:'GPT-5 base.'},
-    'openai/gpt-5-mini':{name:'GPT-5 Mini',provider:'OpenAI',logo:'🟢',badge:'Light',desc:'Lightweight.'},
-    'openai/gpt-4.1':{name:'GPT-4.1',provider:'OpenAI',logo:'🟢',badge:'Stable',desc:'Stable.'},
-    'openai/gpt-4o':{name:'GPT-4o',provider:'OpenAI',logo:'🟢',badge:'Fast',desc:'Multimodal.'},
-    'openai/gpt-4o-mini':{name:'GPT-4o Mini',provider:'OpenAI',logo:'🟢',badge:'Mini',desc:'Light.'},
-    'openai/gpt-4.1-mini':{name:'GPT-4.1 Mini',provider:'OpenAI',logo:'🟢',badge:'Mini',desc:'Fast mini.'},
-    'openai/gpt-4.1-nano':{name:'GPT-4.1 Nano',provider:'OpenAI',logo:'🟢',badge:'Nano',desc:'Ultra fast.'},
-    'openai/o4-mini':{name:'o4-Mini',provider:'OpenAI',logo:'🟢',badge:'Reasoning',desc:'Latest reasoning.'},
-    'openai/o3':{name:'o3',provider:'OpenAI',logo:'🟢',badge:'Reasoning',desc:'Advanced.'},
-    'openai/o3-mini':{name:'o3-Mini',provider:'OpenAI',logo:'🟢',badge:'Light',desc:'Lighter reasoning.'},
-    'openai/o1':{name:'o1',provider:'OpenAI',logo:'🟢',badge:'Reasoning',desc:'Original reasoning.'},
-    'openai/o1-pro':{name:'o1-Pro',provider:'OpenAI',logo:'🟢',badge:'Pro',desc:'Pro reasoning.'},
-    'openai/codex-mini':{name:'Codex Mini',provider:'OpenAI',logo:'🟢',badge:'Code',desc:'Fast code.'},
-    'anthropic/claude-opus-4':{name:'Claude Opus 4',provider:'Anthropic',logo:'🟣',badge:'Best',desc:'Most capable.'},
-    'anthropic/claude-sonnet-4':{name:'Claude Sonnet 4',provider:'Anthropic',logo:'🟣',badge:'Balanced',desc:'Balanced.'},
-    'anthropic/claude-haiku-4':{name:'Claude Haiku 4',provider:'Anthropic',logo:'🟣',badge:'Fast',desc:'Ultra fast.'},
-    'anthropic/claude-3.5-sonnet':{name:'Claude 3.5 Sonnet',provider:'Anthropic',logo:'🟣',badge:'Writing',desc:'Writing & code.'},
-    'anthropic/claude-3.5-haiku':{name:'Claude 3.5 Haiku',provider:'Anthropic',logo:'🟣',badge:'Fast',desc:'Fast.'},
-    'anthropic/claude-3-opus':{name:'Claude 3 Opus',provider:'Anthropic',logo:'🟣',badge:'V3',desc:'V3 Opus.'},
-    'google/gemini-2.5-pro-preview':{name:'Gemini 2.5 Pro',provider:'Google',logo:'🔵',badge:'Latest',desc:'Latest Google.'},
-    'google/gemini-2.5-flash-preview':{name:'Gemini 2.5 Flash',provider:'Google',logo:'🔵',badge:'Flash',desc:'Fast.'},
-    'google/gemini-2.0-flash-001':{name:'Gemini 2.0 Flash',provider:'Google',logo:'🔵',badge:'Stable',desc:'Stable.'},
-    'google/gemini-2.5-flash-lite-preview':{name:'Gemini 2.5 Flash Lite',provider:'Google',logo:'🔵',badge:'Lite',desc:'Lightest.'},
-    'x-ai/grok-4':{name:'Grok 4',provider:'xAI',logo:'⚫',badge:'Latest',desc:'Latest Grok.'},
-    'x-ai/grok-3':{name:'Grok 3',provider:'xAI',logo:'⚫',badge:'V3',desc:'Grok 3.'},
-    'x-ai/grok-3-mini':{name:'Grok 3 Mini',provider:'xAI',logo:'⚫',badge:'Mini',desc:'Mini.'},
-    'x-ai/grok-3-fast':{name:'Grok 3 Fast',provider:'xAI',logo:'⚫',badge:'Fast',desc:'Fast.'},
-    'meta-llama/llama-4-maverick':{name:'LLaMA 4 Maverick',provider:'Meta',logo:'🟠',badge:'Latest',desc:'Most powerful.'},
-    'meta-llama/llama-4-scout':{name:'LLaMA 4 Scout',provider:'Meta',logo:'🟠',badge:'Vision',desc:'Vision.'},
-    'meta-llama/llama-3.3-70b-instruct':{name:'LLaMA 3.3 70B',provider:'Meta',logo:'🟠',badge:'70B',desc:'Large.'},
-    'meta-llama/llama-3.1-405b-instruct':{name:'LLaMA 3.1 405B',provider:'Meta',logo:'🟠',badge:'Massive',desc:'Largest.'},
-    'meta-llama/llama-3.1-8b-instruct':{name:'LLaMA 3.1 8B',provider:'Meta',logo:'🟠',badge:'Fast',desc:'Fast.'},
-    'deepseek/deepseek-r1':{name:'DeepSeek R1',provider:'DeepSeek',logo:'🔷',badge:'Reasoning',desc:'Reasoning.'},
-    'deepseek/deepseek-chat':{name:'DeepSeek V3',provider:'DeepSeek',logo:'🔷',badge:'Chat',desc:'Fast chat.'},
-    'deepseek/deepseek-r1-0528':{name:'DeepSeek R1 0528',provider:'DeepSeek',logo:'🔷',badge:'Latest',desc:'Latest reasoning.'},
-    'qwen/qwen3-235b-a22b':{name:'Qwen3 235B',provider:'Qwen',logo:'🟤',badge:'Massive',desc:'Largest Qwen.'},
-    'qwen/qwen3-32b':{name:'Qwen3 32B',provider:'Qwen',logo:'🟤',badge:'32B',desc:'Medium.'},
-    'qwen/qwen3-30b-a3b':{name:'Qwen3 30B',provider:'Qwen',logo:'🟤',badge:'MoE',desc:'MoE model.'},
-    'mistralai/mistral-large-2411':{name:'Mistral Large',provider:'Mistral',logo:'🟡',badge:'Large',desc:'Largest Mistral.'},
-    'mistralai/mistral-medium-3':{name:'Mistral Medium',provider:'Mistral',logo:'🟡',badge:'Medium',desc:'Balanced.'},
-    'mistralai/mistral-small-3.2':{name:'Mistral Small',provider:'Mistral',logo:'🟡',badge:'Fast',desc:'Fast.'},
-    'mistralai/codestral-2501':{name:'Codestral',provider:'Mistral',logo:'🟡',badge:'Code',desc:'Code gen.'},
-    'google/gemma-3-27b-it:free':{name:'Gemma 3 27B',provider:'Google',logo:'🆓',badge:'Free',desc:'Free Google.'},
-    'meta-llama/llama-3.1-8b-instruct:free':{name:'LLaMA 3.1 8B',provider:'Meta',logo:'🆓',badge:'Free',desc:'Free Meta.'},
-    'deepseek/deepseek-chat:free':{name:'DeepSeek V3',provider:'DeepSeek',logo:'🆓',badge:'Free',desc:'Free DeepSeek.'},
-    'qwen/qwen3-32b:free':{name:'Qwen3 32B',provider:'Qwen',logo:'🆓',badge:'Free',desc:'Free Qwen.'},
-    'mistralai/mistral-small-3.2:free':{name:'Mistral Small',provider:'Mistral',logo:'🆓',badge:'Free',desc:'Free Mistral.'}
+    'arcee-ai/trinity-large-preview:free': {
+        name: 'Trinity Large',
+        provider: 'Arcee AI',
+        logo: '🆓',
+        badge: 'Free',
+        desc: 'Free powerful model by Arcee AI.'
+    }
 };
 
-const DEFAULT_MODEL = 'openai/gpt-4o';
+const DEFAULT_MODEL = 'arcee-ai/trinity-large-preview:free';
 
 const state = {
     user:null,discussions:[],files:[],aiQueryCount:0,currentFilter:'all',
