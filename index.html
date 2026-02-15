@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photon AI Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- OpenRouter SDK -->
+  <script type="module" src="ai.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-text">Photon AI</div>
+      </div>
+      <div class="sidebar-nav" id="chat-history"></div>
+    </div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main content -->
+    <div class="main-content">
+      <div class="top-header">
+        <h2>Chat with AI</h2>
+      </div>
+      <div class="content-area">
+        <div class="ai-chat" id="chat-area">
+          <!-- AI and user messages will appear here -->
+        </div>
+        <div class="ai-input-area">
+          <textarea class="textarea" id="user-input" placeholder="Type a message..."></textarea>
+          <button class="btn btn-primary" id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
