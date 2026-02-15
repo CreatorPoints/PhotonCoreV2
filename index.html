@@ -1,28 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photon AI Chat</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photon Core — Photon Studios Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app">
-    <div class="main-content">
-      <div class="content-area">
-        <div class="ai-container">
-          <div class="ai-chat" id="chat">
-            <!-- Messages will appear here -->
-          </div>
-          <div class="ai-input-area">
-            <textarea id="userInput" class="textarea" placeholder="Ask me anything..."></textarea>
-            <button id="sendBtn" class="btn btn-primary">Send</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <script type="module" src="script.js"></script>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <div class="logo-icon">⚡</div>
+                <h1>Photon Core</h1>
+                <p>Photon Studios Internal Hub</p>
+            </div>
+            <button id="btn-sign-in" class="btn btn-primary btn-large">Sign In with Puter</button>
+            <p class="auth-note">Authorized members only — Photon Studios</p>
+        </div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+        <!-- JS Modules (order matters) -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="presence.js"></script>
+    <script src="discussions.js"></script>
+    <script src="files.js"></script>
+    <script src="ai.js"></script>
+    <script src="ui.js"></script>
+    <script src="boot.js"></script>
 </body>
 </html>

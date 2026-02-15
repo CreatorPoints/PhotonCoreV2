@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Photon Core</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="app" class="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">⚡</div>
+                <span class="logo-text">Photon Core</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item active" data-tab="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+                <a href="discussions.html" class="nav-item" data-tab="discussions"><span class="nav-icon">💬</span><span class="nav-label">Discussions</span></a>
+                <a href="files.html" class="nav-item" data-tab="files"><span class="nav-icon">📁</span><span class="nav-label">Files</span></a>
+                <a href="ai.html" class="nav-item" data-tab="ai"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+                <a href="members.html" class="nav-item" data-tab="members"><span class="nav-icon">👥</span><span class="nav-label">Members</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-details">
+                        <span class="user-name" id="user-name">Loading...</span>
+                        <span class="user-role">Member</span>
+                    </div>
+                </div>
+                <button id="btn-sign-out" class="btn-icon" title="Sign Out">🚪</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
+                    <h2 id="page-title">Dashboard</h2>
+                </div>
+                <div class="header-right">
+                    <div class="online-count-badge">
+                        <span class="status-dot online"></span>
+                        <span id="online-count">0</span> online
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Dashboard -->
+                <section id="tab-dashboard" class="tab-content active">
+                    <div class="welcome-banner">
+                        <div class="welcome-text">
+                            <h2>Welcome back, <span id="welcome-name">Member</span>! 👋</h2>
+                            <p>Here's what's happening at Photon Studios today.</p>
+                        </div>
+                        <div class="welcome-art">⚡</div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-icon">💬</div><div class="stat-info"><span class="stat-number" id="stat-discussions">0</span><span class="stat-label">Discussions</span></div></div>
+                        <div class="stat-card"><div class="stat-icon">📁</div><div class="stat-info"><span class="stat-number" id="stat-files">0</span><span class="stat-label">Files Stored</span></div></div>
+                        <div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-info"><span class="stat-number" id="stat-ai">0</span><span class="stat-label">AI Queries</span></div></div>
+                        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-info"><span class="stat-number" id="stat-online">0</span><span class="stat-label">Online Now</span></div></div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="card"><h3>📌 Quick Actions</h3><div class="quick-actions"><button class="quick-btn" onclick="window.location.href='discussions.html'">New Discussion</button><button class="quick-btn" onclick="window.location.href='files.html'">Upload File</button><button class="quick-btn" onclick="window.location.href='ai.html'">Ask AI</button></div></div>
+                        <div class="card"><h3>🕒 Recent Activity</h3><div id="recent-activity" class="activity-list"><p class="empty-state">No activity yet.</p></div></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+        <!-- JS Modules (order matters) -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="presence.js"></script>
+    <script src="discussions.js"></script>
+    <script src="files.js"></script>
+    <script src="ai.js"></script>
+    <script src="ui.js"></script>
+    <script src="boot.js"></script>
+</body>
+</html>

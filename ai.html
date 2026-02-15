@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant — Photon Core</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="app" class="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">⚡</div>
+                <span class="logo-text">Photon Core</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item" data-tab="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+                <a href="discussions.html" class="nav-item" data-tab="discussions"><span class="nav-icon">💬</span><span class="nav-label">Discussions</span></a>
+                <a href="files.html" class="nav-item" data-tab="files"><span class="nav-icon">📁</span><span class="nav-label">Files</span></a>
+                <a href="ai.html" class="nav-item active" data-tab="ai"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+                <a href="members.html" class="nav-item" data-tab="members"><span class="nav-icon">👥</span><span class="nav-label">Members</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-details">
+                        <span class="user-name" id="user-name">Loading...</span>
+                        <span class="user-role">Member</span>
+                    </div>
+                </div>
+                <button id="btn-sign-out" class="btn-icon" title="Sign Out">🚪</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
+                    <h2 id="page-title">AI Assistant</h2>
+                </div>
+                <div class="header-right">
+                    <div class="online-count-badge">
+                        <span class="status-dot online"></span>
+                        <span id="online-count">0</span> online
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- AI -->
+                <section id="tab-ai" class="tab-content active">
+                    <div class="tab-header"><h2>🤖 AI Assistant</h2><p>85+ models. Shared group chat. File tools. Smart memory.</p></div>
+                    <div class="ai-layout">
+                        <div class="chat-history-panel">
+                            <div class="chat-history-header"><h3>🕒 History</h3><button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button></div>
+                            <div id="chat-history-list" class="chat-history-list"><div class="empty-state small"><p>No chats</p></div></div>
+                            <div class="chat-history-footer"><span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span></div>
+                        </div>
+                        <div class="ai-container">
+                            <div class="ai-model-selector">
+                                <div class="model-selector-header">
+                                    <span class="model-selector-label">🧠 Choose AI Model:</span>
+                                    <span class="model-active-badge" id="model-active-badge">GPT-5.2</span>
+                                </div>
+                                <select id="ai-model-select" class="select model-dropdown">
+                                    <optgroup label="🟢 OpenAI — GPT-5">
+                                        <option value="gpt-5.2" selected>GPT-5.2 (Latest)</option>
+                                        <option value="gpt-5.2-chat">GPT-5.2 Chat</option>
+                                        <option value="gpt-5.1">GPT-5.1</option>
+                                        <option value="gpt-5">GPT-5</option>
+                                        <option value="gpt-5-mini">GPT-5 Mini</option>
+                                        <option value="gpt-5-nano">GPT-5 Nano</option>
+                                    </optgroup>
+                                    <optgroup label="🟢 OpenAI — GPT-4">
+                                        <option value="gpt-4.5-preview">GPT-4.5 Preview</option>
+                                        <option value="gpt-4.1">GPT-4.1</option>
+                                        <option value="gpt-4o">GPT-4o</option>
+                                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                    </optgroup>
+                                    <optgroup label="🟢 OpenAI — Reasoning">
+                                        <option value="o4-mini">o4-Mini</option>
+                                        <option value="o3">o3</option>
+                                        <option value="o3-mini">o3-Mini</option>
+                                        <option value="o1">o1</option>
+                                        <option value="o1-pro">o1-Pro</option>
+                                    </optgroup>
+                                    <optgroup label="🟢 OpenAI — Codex">
+                                        <option value="openai/gpt-5.2-codex">GPT-5.2 Codex</option>
+                                        <option value="openai/gpt-5.1-codex">GPT-5.1 Codex</option>
+                                        <option value="openai/gpt-5.1-codex-max">Codex Max</option>
+                                        <option value="openai/codex-mini">Codex Mini</option>
+                                    </optgroup>
+                                    <optgroup label="🟣 Anthropic — Claude">
+                                        <option value="claude-opus-4-6">Claude Opus 4.6</option>
+                                        <option value="claude-opus-4-5">Claude Opus 4.5</option>
+                                        <option value="claude-opus-4">Claude Opus 4</option>
+                                        <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+                                        <option value="claude-sonnet-4">Claude Sonnet 4</option>
+                                        <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+                                    </optgroup>
+                                    <optgroup label="🔵 Google — Gemini">
+                                        <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
+                                        <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
+                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                    </optgroup>
+                                    <optgroup label="⚫ xAI — Grok">
+                                        <option value="x-ai/grok-4-1-fast">Grok 4.1 Fast</option>
+                                        <option value="x-ai/grok-4">Grok 4</option>
+                                        <option value="x-ai/grok-code-fast-1">Grok Code</option>
+                                        <option value="x-ai/grok-3">Grok 3</option>
+                                        <option value="x-ai/grok-3-mini">Grok 3 Mini</option>
+                                    </optgroup>
+                                    <optgroup label="🟠 Meta — LLaMA">
+                                        <option value="meta-llama/llama-4-maverick">LLaMA 4 Maverick</option>
+                                        <option value="meta-llama/llama-4-scout">LLaMA 4 Scout</option>
+                                        <option value="meta-llama/llama-3.3-70b-instruct">LLaMA 3.3 70B</option>
+                                        <option value="meta-llama/llama-3.1-405b-instruct">LLaMA 3.1 405B</option>
+                                        <option value="meta-llama/llama-3.1-8b-instruct">LLaMA 3.1 8B</option>
+                                    </optgroup>
+                                </select>
+                                <div class="model-info-bar"><span class="model-info-icon">💡</span><span class="model-info-text" id="model-info-text">Latest and most powerful OpenAI model.</span></div>
+                            </div>
+
+                            <div class="memory-tip-banner" id="memory-tip-banner">
+                                <div class="tip-icon">🧠</div>
+                                <div class="tip-content"><strong>AI Memory + File Tools</strong><p>AI <strong>auto-remembers</strong> important info. It can also <strong>read, write, list & delete</strong> files from your cloud. Try: <span class="tip-keyword">"list my files"</span> or <span class="tip-keyword">"save this code as main.py"</span></p></div>
+                                <button class="tip-dismiss" id="btn-dismiss-tip">✕</button>
+                            </div>
+
+                            <div class="memory-panel">
+                                <div class="memory-header"><span>🧠 Shared Memory (<span id="memory-count">0</span>)</span><div class="memory-actions"><button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button><button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button></div></div>
+                                <div class="memory-list hidden" id="memory-list"></div>
+                            </div>
+
+                            <div class="bot-identity-bar">
+                                <div class="bot-logo" id="bot-logo">🟢</div>
+                                <div class="bot-info"><span class="bot-name" id="bot-name">GPT-5.2</span><span class="bot-provider" id="bot-provider">by OpenAI</span></div>
+                                <span class="bot-badge" id="bot-badge">Latest</span>
+                            </div>
+
+                            <div class="group-chat-indicator">
+                                <span class="group-icon">👥</span>
+                                <span class="group-text">Shared Group Chat — Real-time via Firebase</span>
+                                <div class="typing-indicator hidden" id="typing-indicator">
+                                    <span class="typing-user" id="typing-user">AI</span><span> is typing</span>
+                                    <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                                </div>
+                            </div>
+
+                            <div class="ai-presets">
+                                <button class="preset-btn" data-prompt="Generate a unique indie game concept">🎮 Game Idea</button>
+                                <button class="preset-btn" data-prompt="List my cloud files">📂 List Files</button>
+                                <button class="preset-btn" data-prompt="Write a GDD outline and save it as gdd.md">📄 GDD</button>
+                                <button class="preset-btn" data-prompt="Write NPC dialogue for a fantasy RPG">🗣️ Dialogue</button>
+                            </div>
+
+                            <div class="ai-chat" id="ai-chat">
+                                <div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble">
+                                    <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
+                                    <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
+                                    <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
+                                    <p>⚡ <strong>85+ AI models</strong> at your service!</p>
+                                </div></div>
+                            </div>
+
+                            <div class="ai-attachment-preview hidden" id="ai-attachment-preview">
+                                <div class="attachment-info"><span class="attachment-icon" id="attachment-icon">📎</span><span class="attachment-name" id="attachment-name">file.txt</span><span class="attachment-size" id="attachment-size">0 KB</span></div>
+                                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
+                            </div>
+
+                            <div class="ai-input-area">
+                                <button class="btn-icon ai-attach-btn" id="btn-ai-attach" title="Attach file">📎</button>
+                                <input type="file" id="ai-file-input" hidden>
+                                <textarea id="ai-input" placeholder="Ask AI, manage files, or chat with the team..." class="textarea" rows="2"></textarea>
+                                <button id="btn-ai-send" class="btn btn-primary"><span id="ai-send-text">Send ⚡</span><span id="ai-loading" class="hidden">Thinking...</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+        <!-- JS Modules (order matters) -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="presence.js"></script>
+    <script src="discussions.js"></script>
+    <script src="files.js"></script>
+    <script src="ai.js"></script>
+    <script src="ui.js"></script>
+    <script src="boot.js"></script>
+</body>
+</html>
