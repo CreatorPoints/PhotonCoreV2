@@ -3,11 +3,16 @@
    Firebase init, OpenRouter AI Models, State, Utilities
    ======================================== */
 
-// ====== YOUR OPENROUTER API KEY ======
-const OPENROUTER_API_KEY = 'YOUR_API_KEY_HERE';  // <-- Paste your key
+// ====== API KEY FROM env.js (gitignored) ======
+const OPENROUTER_API_KEY = typeof ENV !== 'undefined' ? ENV.OPENROUTER_API_KEY : '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_SITE_NAME = 'Photon Core';
 const OPENROUTER_SITE_URL = window.location.origin;
+
+// Warn if key is missing
+if (!OPENROUTER_API_KEY) {
+    console.warn('⚠️ OpenRouter API key not found! Create env.js with your key.');
+}
 
 // Firebase Config
 const firebaseConfig = {
@@ -209,6 +214,10 @@ function formatAi(t) {
 
 // === OPENROUTER API HELPER ===
 async function openRouterChat(messages, modelId, stream = false) {
+    if (!OPENROUTER_API_KEY) {
+        throw new Error('API key missing! Create env.js with your OpenRouter key.');
+    }
+
     const response = await fetch(OPENROUTER_BASE_URL, {
         method: 'POST',
         headers: {
