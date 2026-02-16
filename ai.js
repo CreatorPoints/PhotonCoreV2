@@ -1,5 +1,6 @@
 /* ========================================
    PHOTON CORE — ai.js
+   AI Chat with Real-Time Sync
    ======================================== */
 
 function listenMemories(){db.collection('memories').orderBy('timestamp','desc').limit(100).onSnapshot(snap=>{state.memories=[];snap.forEach(doc=>state.memories.push({id:doc.id,...doc.data()}));renderMemories()})}
@@ -16,29 +17,171 @@ function listenActivity(){db.collection('activity').orderBy('timestamp','desc').
 async function addActivity(msg){await db.collection('activity').add({message:msg,timestamp:new Date().toISOString()}).catch(()=>{})}
 function renderActivity(list){if(!dom.recentActivity)return;if(!list?.length){dom.recentActivity.innerHTML='<p class="empty-state">No activity.</p>';return}dom.recentActivity.innerHTML=list.slice(0,10).map(a=>'<div class="activity-item"><span>'+esc(a.message)+'</span><span class="activity-time">'+fmtDate(a.timestamp)+'</span></div>').join('')}
 
-function listenChatSessions(){db.collection('chatSessions').orderBy('updatedAt','desc').limit(50).onSnapshot(snap=>{state.chatSessions=[];snap.forEach(doc=>state.chatSessions.push({id:doc.id,...doc.data()}));renderChatHistory();if(!state.currentChatId&&state.chatSessions.length)loadChat(state.chatSessions[0].id)})}
-async function createNewChat(){const ref=await db.collection('chatSessions').add({title:'New Chat',model:state.selectedModel,messages:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:state.user?.username});state.currentChatId=ref.id;state.currentChatMessages=[];clearChatUI();showToast('New chat! 💬','success')}
-function loadChat(id){const c=state.chatSessions.find(x=>x.id===id);if(!c)return;state.currentChatId=id;state.currentChatMessages=c.messages||[];clearChatUI();c.messages.forEach(m=>appendStatic(m.text,m.sender,m.modelName,m.author,m.memorySaved,m.fileName));renderChatHistory()}
-async function saveCurrentChat(){if(!state.currentChatId)return;const data={messages:state.currentChatMessages,updatedAt:new Date().toISOString(),model:state.selectedModel};const first=state.currentChatMessages.find(m=>m.sender==='user');if(first)data.title=first.text.substring(0,50);await db.collection('chatSessions').doc(state.currentChatId).update(data).catch(()=>{})}
-async function deleteChat(id){if(!confirm('Delete?'))return;await db.collection('chatSessions').doc(id).delete();if(state.currentChatId===id){state.currentChatId=null;state.currentChatMessages=[];clearChatUI()}showToast('Deleted.','info')}
-function renderChatHistory(){if(!dom.chatHistoryList)return;if(!state.chatSessions.length){dom.chatHistoryList.innerHTML='<div class="empty-state small"><p>No chats</p></div>';return}dom.chatHistoryList.innerHTML=state.chatSessions.map(c=>'<div class="chat-history-item '+(c.id===state.currentChatId?'active':'')+'" onclick="loadChat(\''+c.id+'\')"><div class="chat-history-item-title">'+esc(c.title||'Chat')+'</div><div class="chat-history-item-meta"><span class="chat-history-item-date">'+fmtDate(c.updatedAt)+'</span><span class="chat-history-item-model">'+(AI_MODELS[c.model]?.name||c.model)+'</span><button class="chat-history-item-delete" onclick="event.stopPropagation();deleteChat(\''+c.id+'\')">🗑️</button></div></div>').join('')}
-function clearChatUI(){if(!dom.aiChat)return;dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by Google Gemini.</p></div></div>'}
+// === CHAT SESSIONS — REAL-TIME ===
 
+// Track active chat listener so we can unsubscribe
+let activeChatUnsubscribe = null;
+
+function listenChatSessions(){
+    db.collection('chatSessions').orderBy('updatedAt','desc').limit(50).onSnapshot(snap=>{
+        state.chatSessions=[];
+        snap.forEach(doc=>state.chatSessions.push({id:doc.id,...doc.data()}));
+        renderChatHistory();
+        // Auto-load first chat if none selected
+        if(!state.currentChatId&&state.chatSessions.length){
+            loadChat(state.chatSessions[0].id);
+        }
+    });
+}
+
+async function createNewChat(){
+    const ref=await db.collection('chatSessions').add({
+        title:'New Chat',model:state.selectedModel,messages:[],
+        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+        createdBy:state.user?.username
+    });
+    loadChat(ref.id);
+    showToast('New chat! 💬','success');
+}
+
+function loadChat(id){
+    // Unsubscribe from previous chat listener
+    if(activeChatUnsubscribe){
+        activeChatUnsubscribe();
+        activeChatUnsubscribe=null;
+    }
+
+    state.currentChatId=id;
+    renderChatHistory();
+
+    // Start real-time listener on this specific chat
+    activeChatUnsubscribe=db.collection('chatSessions').doc(id).onSnapshot(doc=>{
+        if(!doc.exists)return;
+        const data=doc.data();
+        const newMessages=data.messages||[];
+
+        // Only re-render if message count changed (avoid re-render during own typing)
+        if(newMessages.length!==state.currentChatMessages.length||
+           (newMessages.length>0&&state.currentChatMessages.length>0&&
+            newMessages[newMessages.length-1].timestamp!==state.currentChatMessages[state.currentChatMessages.length-1].timestamp)){
+
+            // Check if we should auto-scroll (user is at bottom)
+            const shouldScroll=dom.aiChat?(dom.aiChat.scrollTop+dom.aiChat.clientHeight>=dom.aiChat.scrollHeight-100):true;
+
+            state.currentChatMessages=newMessages;
+
+            // Only re-render if not currently typing (to avoid disrupting stream)
+            if(!state.isTyping){
+                clearChatUI();
+                newMessages.forEach(m=>appendStatic(m.text,m.sender,m.modelName,m.author,m.memorySaved,m.fileName));
+                if(shouldScroll&&dom.aiChat){
+                    dom.aiChat.scrollTop=dom.aiChat.scrollHeight;
+                }
+            }
+        }
+    });
+}
+
+async function saveCurrentChat(){
+    if(!state.currentChatId)return;
+    const data={
+        messages:state.currentChatMessages,
+        updatedAt:new Date().toISOString(),
+        model:state.selectedModel
+    };
+    const first=state.currentChatMessages.find(m=>m.sender==='user');
+    if(first)data.title=first.text.substring(0,50);
+    await db.collection('chatSessions').doc(state.currentChatId).update(data).catch(()=>{});
+}
+
+async function deleteChat(id){
+    if(!confirm('Delete?'))return;
+    // If deleting active chat, unsubscribe
+    if(state.currentChatId===id){
+        if(activeChatUnsubscribe){activeChatUnsubscribe();activeChatUnsubscribe=null}
+        state.currentChatId=null;
+        state.currentChatMessages=[];
+        clearChatUI();
+    }
+    await db.collection('chatSessions').doc(id).delete();
+    showToast('Deleted.','info');
+}
+
+function renderChatHistory(){
+    if(!dom.chatHistoryList)return;
+    if(!state.chatSessions.length){
+        dom.chatHistoryList.innerHTML='<div class="empty-state small"><p>No chats</p></div>';
+        return;
+    }
+    dom.chatHistoryList.innerHTML=state.chatSessions.map(c=>
+        '<div class="chat-history-item '+(c.id===state.currentChatId?'active':'')+'" onclick="loadChat(\''+c.id+'\')">' +
+        '<div class="chat-history-item-title">'+esc(c.title||'Chat')+'</div>' +
+        '<div class="chat-history-item-meta">' +
+        '<span class="chat-history-item-date">'+fmtDate(c.updatedAt)+'</span>' +
+        '<span class="chat-history-item-model">'+(AI_MODELS[c.model]?.name||c.model)+'</span>' +
+        '<button class="chat-history-item-delete" onclick="event.stopPropagation();deleteChat(\''+c.id+'\')">🗑️</button>' +
+        '</div></div>'
+    ).join('');
+}
+
+function clearChatUI(){
+    if(!dom.aiChat)return;
+    dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by Google Gemini.</p></div></div>';
+}
+
+// === FILE ATTACHMENT ===
 async function handleFileAttach(e){const file=e.target.files[0];if(!file)return;state.attachedFile=file;state.attachedFileName=file.name;try{if(file.type.startsWith('text/')||file.name.match(/\.(js|ts|py|cs|cpp|html|css|json|xml|md|txt|csv|yaml|yml|log|sh|gd)$/i))state.attachedFileContent=await file.text();else state.attachedFileContent='[File: '+file.name+']'}catch(err){state.attachedFileContent='[File: '+file.name+']'}if(dom.attachmentIcon)dom.attachmentIcon.textContent=fileIcon(file.name,false);if(dom.attachmentName)dom.attachmentName.textContent=file.name;if(dom.attachmentSize)dom.attachmentSize.textContent=fmtSize(file.size);if(dom.aiAttachmentPreview)dom.aiAttachmentPreview.classList.remove('hidden');if(dom.aiFileInput)dom.aiFileInput.value='';showToast('📎 '+file.name+' attached','info')}
 function clearAttachment(){state.attachedFile=null;state.attachedFileContent=null;state.attachedFileName='';if(dom.aiAttachmentPreview)dom.aiAttachmentPreview.classList.add('hidden')}
 
+// === AI SEND ===
 async function sendAiMessage(){
     if(!dom.aiInput)return;const msg=dom.aiInput.value.trim();if(!msg&&!state.attachedFile)return;if(state.isTyping)return;
     const modelId=state.selectedModel,md=AI_MODELS[modelId],modelName=md?.name||modelId,username=state.user?.username||'Anon';
+
+    // Auto-create chat if none exists
+    if(!state.currentChatId){
+        const ref=await db.collection('chatSessions').add({
+            title:'New Chat',model:state.selectedModel,messages:[],
+            createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+            createdBy:username
+        });
+        state.currentChatId=ref.id;
+        // Start listening
+        loadChat(ref.id);
+        // Small delay to let listener attach
+        await new Promise(r=>setTimeout(r,100));
+    }
+
     let memorySaved=false;if(msg&&shouldRemember(msg)){await addMemory(extractMemory(msg),username);memorySaved=true}
     let displayMsg=msg,fileCtx='',fileName='';
     if(state.attachedFile){fileName=state.attachedFileName;displayMsg=msg||'Analyze: '+fileName;if(state.attachedFileContent&&state.attachedFileContent.length<50000)fileCtx='\n\n--- FILE: '+fileName+' ---\n'+state.attachedFileContent+'\n--- END ---\n';else fileCtx='\n\n[Attached: '+fileName+']';
     const l=msg.toLowerCase();if(l.includes('save to cloud')||l.includes('store this')){try{await puter.fs.write('PhotonCore/files/'+fileName,new Blob([await state.attachedFile.arrayBuffer()],{type:state.attachedFile.type}),{dedupeName:false,overwrite:true});showToast('☁️ Saved!','success');loadFiles()}catch(e){showToast('Save failed.','error')}}}
-    state.currentChatMessages.push({text:displayMsg,sender:'user',author:username,modelName:'',memorySaved,fileName,timestamp:new Date().toISOString()});
-    appendStatic(displayMsg,'user','',username,memorySaved,fileName);dom.aiInput.value='';const savedCtx=fileCtx;clearAttachment();
+
+    // Add user message and save immediately so others see it
+    const userMsg={text:displayMsg,sender:'user',author:username,modelName:'',memorySaved,fileName,timestamp:new Date().toISOString()};
+    state.currentChatMessages.push(userMsg);
+    appendStatic(displayMsg,'user','',username,memorySaved,fileName);
+    await saveCurrentChat(); // <-- Save NOW so other users see the message instantly
+
+    dom.aiInput.value='';const savedCtx=fileCtx;clearAttachment();
+
     const fileOp=detectFileOperation(msg);let toolResult='';
     if(fileOp){if(fileOp.op==='list')toolResult=await aiListFiles();else if(fileOp.op==='read')toolResult=await aiReadFile(fileOp.name);else if(fileOp.op==='delete')toolResult=await aiDeleteFile(fileOp.name)}
-    state.isTyping=true;if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');if(dom.typingUser)dom.typingUser.textContent=modelName;if(dom.aiSendText)dom.aiSendText.classList.add('hidden');if(dom.aiLoading)dom.aiLoading.classList.remove('hidden');if(dom.btnAiSend)dom.btnAiSend.disabled=true;
+
+    state.isTyping=true;
+    if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');
+    if(dom.typingUser)dom.typingUser.textContent=modelName;
+    if(dom.aiSendText)dom.aiSendText.classList.add('hidden');
+    if(dom.aiLoading)dom.aiLoading.classList.remove('hidden');
+    if(dom.btnAiSend)dom.btnAiSend.disabled=true;
+
+    // Set typing status in Firebase RTDB so others see "AI is typing"
+    if(state.currentChatId){
+        rtdb.ref('typing/'+state.currentChatId).set({
+            user:username,model:modelName,typing:true,timestamp:firebase.database.ServerValue.TIMESTAMP
+        }).catch(()=>{});
+    }
+
     try{
         let sysPr='You are a helpful AI for Photon Studios (indie game dev team). Group chat. Be friendly.'+getMemoryContext();
         if(toolResult)sysPr+='\n\nFILE RESULT:\n'+toolResult+'\n\nReport naturally.';
@@ -47,7 +190,6 @@ async function sendAiMessage(){
         const messages=[{role:'system',content:sysPr},...hist];
         const writeOp=!fileOp&&msg.match(/(?:save|write|create)\s+(?:this\s+)?(?:as|to)\s+['""]?([a-zA-Z0-9_\-\.]+)['""]?/i);
 
-        // === GEMINI STREAMING ===
         let fullText='';const{div,target,cursor}=createStreamBubble(modelName);
         try{
             const stream=geminiChatStream(messages,modelId);
@@ -65,11 +207,33 @@ async function sendAiMessage(){
         if(toolResult){const tr=document.createElement('div');tr.className='tool-result';tr.textContent='📂 '+toolResult.substring(0,200);div.querySelector('.ai-bubble').appendChild(tr)}
         dom.aiChat.scrollTop=dom.aiChat.scrollHeight;
         if(writeOp){const result=await aiWriteFile(writeOp[1],fullText);showToast(result,'success')}
-        state.currentChatMessages.push({text:fullText,sender:'ai',author:modelName,modelName,timestamp:new Date().toISOString()});
+
+        // Add AI response and save immediately
+        const aiMsg={text:fullText,sender:'ai',author:modelName,modelName,timestamp:new Date().toISOString()};
+        state.currentChatMessages.push(aiMsg);
         state.aiQueryCount++;if(dom.statAi)dom.statAi.textContent=state.aiQueryCount;
-        addActivity('🤖 '+username+' → '+modelName);await saveCurrentChat();
-    }catch(e){console.error('AI Error:',e);appendStatic('❌ '+(e.message||'Failed.'),'ai',modelName,modelName);showToast('AI failed.','error')}
-    state.isTyping=false;if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');if(dom.aiSendText)dom.aiSendText.classList.remove('hidden');if(dom.aiLoading)dom.aiLoading.classList.add('hidden');if(dom.btnAiSend)dom.btnAiSend.disabled=false;
+        addActivity('🤖 '+username+' → '+modelName);
+        await saveCurrentChat(); // <-- Save NOW so other users see AI response instantly
+
+    }catch(e){
+        console.error('AI Error:',e);
+        appendStatic('❌ '+(e.message||'Failed.'),'ai',modelName,modelName);
+        showToast('AI failed.','error');
+        // Save error message too
+        state.currentChatMessages.push({text:'❌ '+(e.message||'Failed.'),sender:'ai',author:modelName,modelName,timestamp:new Date().toISOString()});
+        await saveCurrentChat();
+    }
+
+    // Clear typing status
+    if(state.currentChatId){
+        rtdb.ref('typing/'+state.currentChatId).remove().catch(()=>{});
+    }
+
+    state.isTyping=false;
+    if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');
+    if(dom.aiSendText)dom.aiSendText.classList.remove('hidden');
+    if(dom.aiLoading)dom.aiLoading.classList.add('hidden');
+    if(dom.btnAiSend)dom.btnAiSend.disabled=false;
 }
 
 function createStreamBubble(name){const div=document.createElement('div');div.className='ai-message';const md=AI_MODELS[state.selectedModel];div.innerHTML='<div class="ai-avatar">'+(md?.logo||'🤖')+'</div><div class="ai-bubble"><div class="ai-message-author">'+esc(name)+'</div><p class="tw-target"></p></div>';dom.aiChat.appendChild(div);const target=div.querySelector('.tw-target');const cursor=document.createElement('span');cursor.className='typewriter-cursor';target.appendChild(cursor);dom.aiChat.scrollTop=dom.aiChat.scrollHeight;return{div,target,cursor}}
