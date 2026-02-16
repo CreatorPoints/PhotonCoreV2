@@ -57,7 +57,7 @@
                 <section id="tab-ai" class="tab-content active">
                     <div class="tab-header">
                         <h2>🤖 AI Assistant</h2>
-                        <p>Powered by Google Gemini. Shared group chat. File tools. Smart memory.</p>
+                        <p>Powered by Google Gemini & Gemma. Shared group chat. File tools. Smart memory.</p>
                     </div>
                     <div class="ai-layout">
                         <div class="chat-history-panel">
@@ -79,16 +79,32 @@
                                     <span class="model-active-badge" id="model-active-badge">Gemini 2.5 Flash</span>
                                 </div>
                                 <select id="ai-model-select" class="select model-dropdown">
-                                    <optgroup label="🔵 Google Gemini">
-                                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Fast)</option>
-                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Most Capable)</option>
+                                    <optgroup label="🔵 Gemini 3 (Newest)">
+                                        <option value="gemini-3-pro">Gemini 3 Pro (Most Capable)</option>
+                                        <option value="gemini-3-flash">Gemini 3 Flash (Fast)</option>
+                                    </optgroup>
+                                    <optgroup label="🔵 Gemini 2.5">
+                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Reasoning)</option>
+                                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Default)</option>
+                                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                    </optgroup>
+                                    <optgroup label="🔵 Gemini 2.0">
                                         <option value="gemini-2.0-flash">Gemini 2.0 Flash (Stable)</option>
-                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Lightest)</option>
+                                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                                        <option value="gemini-2.0-pro-exp">Gemini 2.0 Pro Exp</option>
+                                    </optgroup>
+                                    <optgroup label="🟢 Gemma 3 (Open Models)">
+                                        <option value="gemma-3-27b">Gemma 3 27B (Largest)</option>
+                                        <option value="gemma-3-12b">Gemma 3 12B</option>
+                                        <option value="gemma-3-4b">Gemma 3 4B</option>
+                                        <option value="gemma-3-2b">Gemma 3 2B</option>
+                                        <option value="gemma-3-1b">Gemma 3 1B (Smallest)</option>
                                     </optgroup>
                                 </select>
                                 <div class="model-info-bar">
                                     <span class="model-info-icon">💡</span>
-                                    <span class="model-info-text" id="model-info-text">Fast and smart. Great for most tasks.</span>
+                                    <span class="model-info-text" id="model-info-text">Fast and smart. Great default.</span>
                                 </div>
                             </div>
 
@@ -113,12 +129,12 @@
                             </div>
 
                             <div class="bot-identity-bar">
-                                <div class="bot-logo" id="bot-logo">🔵</div>
+                                <div class="bot-logo" id="bot-logo">⚡</div>
                                 <div class="bot-info">
                                     <span class="bot-name" id="bot-name">Gemini 2.5 Flash</span>
                                     <span class="bot-provider" id="bot-provider">by Google</span>
                                 </div>
-                                <span class="bot-badge" id="bot-badge">Fast</span>
+                                <span class="bot-badge" id="bot-badge">Flash</span>
                             </div>
 
                             <div class="group-chat-indicator">
@@ -144,7 +160,7 @@
                                         <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
                                         <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
                                         <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                                        <p>🔵 Powered by <strong>Google Gemini</strong>!</p>
+                                        <p>🔵 Powered by <strong>Google Gemini</strong> — 14 models available!</p>
                                     </div>
                                 </div>
                             </div>
