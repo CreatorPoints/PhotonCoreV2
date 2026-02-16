@@ -22,7 +22,7 @@ function loadChat(id){const c=state.chatSessions.find(x=>x.id===id);if(!c)return
 async function saveCurrentChat(){if(!state.currentChatId)return;const data={messages:state.currentChatMessages,updatedAt:new Date().toISOString(),model:state.selectedModel};const first=state.currentChatMessages.find(m=>m.sender==='user');if(first)data.title=first.text.substring(0,50);await db.collection('chatSessions').doc(state.currentChatId).update(data).catch(()=>{})}
 async function deleteChat(id){if(!confirm('Delete?'))return;await db.collection('chatSessions').doc(id).delete();if(state.currentChatId===id){state.currentChatId=null;state.currentChatMessages=[];clearChatUI()}showToast('Deleted.','info')}
 function renderChatHistory(){if(!dom.chatHistoryList)return;if(!state.chatSessions.length){dom.chatHistoryList.innerHTML='<div class="empty-state small"><p>No chats</p></div>';return}dom.chatHistoryList.innerHTML=state.chatSessions.map(c=>'<div class="chat-history-item '+(c.id===state.currentChatId?'active':'')+'" onclick="loadChat(\''+c.id+'\')"><div class="chat-history-item-title">'+esc(c.title||'Chat')+'</div><div class="chat-history-item-meta"><span class="chat-history-item-date">'+fmtDate(c.updatedAt)+'</span><span class="chat-history-item-model">'+(AI_MODELS[c.model]?.name||c.model)+'</span><button class="chat-history-item-delete" onclick="event.stopPropagation();deleteChat(\''+c.id+'\')">🗑️</button></div></div>').join('')}
-function clearChatUI(){if(!dom.aiChat)return;dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by OpenRouter.</p></div></div>'}
+function clearChatUI(){if(!dom.aiChat)return;dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by Google Gemini.</p></div></div>'}
 
 async function handleFileAttach(e){const file=e.target.files[0];if(!file)return;state.attachedFile=file;state.attachedFileName=file.name;try{if(file.type.startsWith('text/')||file.name.match(/\.(js|ts|py|cs|cpp|html|css|json|xml|md|txt|csv|yaml|yml|log|sh|gd)$/i))state.attachedFileContent=await file.text();else state.attachedFileContent='[File: '+file.name+']'}catch(err){state.attachedFileContent='[File: '+file.name+']'}if(dom.attachmentIcon)dom.attachmentIcon.textContent=fileIcon(file.name,false);if(dom.attachmentName)dom.attachmentName.textContent=file.name;if(dom.attachmentSize)dom.attachmentSize.textContent=fmtSize(file.size);if(dom.aiAttachmentPreview)dom.aiAttachmentPreview.classList.remove('hidden');if(dom.aiFileInput)dom.aiFileInput.value='';showToast('📎 '+file.name+' attached','info')}
 function clearAttachment(){state.attachedFile=null;state.attachedFileContent=null;state.attachedFileName='';if(dom.aiAttachmentPreview)dom.aiAttachmentPreview.classList.add('hidden')}
@@ -46,20 +46,32 @@ async function sendAiMessage(){
         hist[hist.length-1]={role:'user',content:'['+username+']: '+displayMsg+savedCtx};
         const messages=[{role:'system',content:sysPr},...hist];
         const writeOp=!fileOp&&msg.match(/(?:save|write|create)\s+(?:this\s+)?(?:as|to)\s+['""]?([a-zA-Z0-9_\-\.]+)['""]?/i);
+
+        // === GEMINI STREAMING ===
         let fullText='';const{div,target,cursor}=createStreamBubble(modelName);
-        try{const stream=openRouterChatStream(messages,modelId);for await(const chunk of stream){if(chunk){fullText+=chunk;target.insertBefore(document.createTextNode(chunk),cursor);dom.aiChat.scrollTop=dom.aiChat.scrollHeight}}}catch(se){console.warn('Stream fallback:',se);fullText=await openRouterChatSimple(messages,modelId);target.textContent=fullText}
+        try{
+            const stream=geminiChatStream(messages,modelId);
+            for await(const chunk of stream){
+                if(chunk){fullText+=chunk;target.insertBefore(document.createTextNode(chunk),cursor);dom.aiChat.scrollTop=dom.aiChat.scrollHeight}
+            }
+        }catch(se){
+            console.warn('Stream fallback:',se);
+            fullText=await geminiChat(messages,modelId);
+            target.textContent=fullText;
+        }
+
         cursor.remove();target.innerHTML=formatAi(fullText);
-        const tag=document.createElement('span');tag.className='ai-model-tag';tag.textContent=(md?.logo||'⚡')+' '+modelName;div.querySelector('.ai-bubble').appendChild(tag);
+        const tag=document.createElement('span');tag.className='ai-model-tag';tag.textContent=(md?.logo||'🔵')+' '+modelName;div.querySelector('.ai-bubble').appendChild(tag);
         if(toolResult){const tr=document.createElement('div');tr.className='tool-result';tr.textContent='📂 '+toolResult.substring(0,200);div.querySelector('.ai-bubble').appendChild(tr)}
         dom.aiChat.scrollTop=dom.aiChat.scrollHeight;
         if(writeOp){const result=await aiWriteFile(writeOp[1],fullText);showToast(result,'success')}
         state.currentChatMessages.push({text:fullText,sender:'ai',author:modelName,modelName,timestamp:new Date().toISOString()});
         state.aiQueryCount++;if(dom.statAi)dom.statAi.textContent=state.aiQueryCount;
         addActivity('🤖 '+username+' → '+modelName);await saveCurrentChat();
-    }catch(e){console.error('AI Error:',e);appendStatic('❌ '+( e.message||'Failed.'),'ai',modelName,modelName);showToast('AI failed.','error')}
+    }catch(e){console.error('AI Error:',e);appendStatic('❌ '+(e.message||'Failed.'),'ai',modelName,modelName);showToast('AI failed.','error')}
     state.isTyping=false;if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');if(dom.aiSendText)dom.aiSendText.classList.remove('hidden');if(dom.aiLoading)dom.aiLoading.classList.add('hidden');if(dom.btnAiSend)dom.btnAiSend.disabled=false;
 }
 
 function createStreamBubble(name){const div=document.createElement('div');div.className='ai-message';const md=AI_MODELS[state.selectedModel];div.innerHTML='<div class="ai-avatar">'+(md?.logo||'🤖')+'</div><div class="ai-bubble"><div class="ai-message-author">'+esc(name)+'</div><p class="tw-target"></p></div>';dom.aiChat.appendChild(div);const target=div.querySelector('.tw-target');const cursor=document.createElement('span');cursor.className='typewriter-cursor';target.appendChild(cursor);dom.aiChat.scrollTop=dom.aiChat.scrollHeight;return{div,target,cursor}}
 
-function appendStatic(text,sender,modelName='',author='',memorySaved=false,fileName=''){if(!dom.aiChat)return;const div=document.createElement('div');div.className='ai-message '+(sender==='user'?'user-message':'');const md=sender==='ai'?AI_MODELS[state.selectedModel]:null;const av=sender==='user'?(author||'??').substring(0,2).toUpperCase():(md?.logo||'🤖');div.innerHTML='<div class="ai-avatar">'+av+'</div><div class="ai-bubble">'+(author?'<div class="ai-message-author">'+(sender==='user'?'👤 ':'')+esc(author)+'</div>':'')+(fileName?'<div class="ai-file-bubble"><span>'+fileIcon(fileName,false)+'</span> '+esc(fileName)+'</div>':'')+(sender==='ai'?formatAi(text):esc(text))+(sender==='ai'&&modelName?'<span class="ai-model-tag">'+(md?.logo||'⚡')+' '+modelName+'</span>':'')+(memorySaved?'<span class="memory-saved-indicator">🧠 Saved</span>':'')+'</div>';dom.aiChat.appendChild(div);dom.aiChat.scrollTop=dom.aiChat.scrollHeight}
+function appendStatic(text,sender,modelName='',author='',memorySaved=false,fileName=''){if(!dom.aiChat)return;const div=document.createElement('div');div.className='ai-message '+(sender==='user'?'user-message':'');const md=sender==='ai'?AI_MODELS[state.selectedModel]:null;const av=sender==='user'?(author||'??').substring(0,2).toUpperCase():(md?.logo||'🤖');div.innerHTML='<div class="ai-avatar">'+av+'</div><div class="ai-bubble">'+(author?'<div class="ai-message-author">'+(sender==='user'?'👤 ':'')+esc(author)+'</div>':'')+(fileName?'<div class="ai-file-bubble"><span>'+fileIcon(fileName,false)+'</span> '+esc(fileName)+'</div>':'')+(sender==='ai'?formatAi(text):esc(text))+(sender==='ai'&&modelName?'<span class="ai-model-tag">'+(md?.logo||'🔵')+' '+modelName+'</span>':'')+(memorySaved?'<span class="memory-saved-indicator">🧠 Saved</span>':'')+'</div>';dom.aiChat.appendChild(div);dom.aiChat.scrollTop=dom.aiChat.scrollHeight}
