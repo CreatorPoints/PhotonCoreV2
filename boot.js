@@ -2,8 +2,37 @@
    PHOTON CORE — boot.js
    ======================================== */
 
+function createParticles(){
+    const c=document.getElementById('particles');if(!c)return;
+    for(let i=0;i<30;i++){const p=document.createElement('div');p.style.cssText='position:absolute;width:'+(Math.random()*4+1)+'px;height:'+(Math.random()*4+1)+'px;background:rgba(108,92,231,'+(Math.random()*.5+.1)+');border-radius:50%;top:'+(Math.random()*100)+'%;left:'+(Math.random()*100)+'%;animation:pf '+(Math.random()*10+5)+'s ease-in-out infinite '+(Math.random()*5)+'s';c.appendChild(p)}
+    document.head.appendChild(Object.assign(document.createElement('style'),{textContent:'@keyframes pf{0%,100%{transform:translate(0,0);opacity:.5}50%{transform:translate('+(Math.random()*60-30)+'px,'+(Math.random()*60-30)+'px);opacity:.3}}'}));
+}
+
+// Listen for typing indicators from other users
+function setupTypingListener(){
+    rtdb.ref('typing').on('value',snap=>{
+        const typing=snap.val();
+        if(!typing||!dom.typingIndicator)return;
+
+        // Find if anyone is typing in current chat
+        const currentTyping=state.currentChatId?typing[state.currentChatId]:null;
+
+        if(currentTyping&&currentTyping.typing&&currentTyping.user!==state.user?.username){
+            // Someone else is typing
+            if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');
+            if(dom.typingUser)dom.typingUser.textContent=currentTyping.user+' via '+currentTyping.model;
+        }else if(!state.isTyping){
+            // Nobody typing (and we're not typing either)
+            if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
     initDom();createParticles();initAuth();
+
+    // Start typing listener
+    setupTypingListener();
 
     if(dom.btnSignIn)dom.btnSignIn.addEventListener('click',()=>{sessionStorage.setItem('photon_just_signed_in','true');handleSignIn()});
     if(dom.btnSignOut)dom.btnSignOut.addEventListener('click',async()=>{const uid=state.user?.username;if(uid)try{rtdb.ref('presence/'+uid).set({online:false,lastSeen:firebase.database.ServerValue.TIMESTAMP})}catch(e){}try{await puter.auth.signOut()}catch(e){}state.user=null;window.location.href='index.html'});
