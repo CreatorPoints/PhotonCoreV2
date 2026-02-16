@@ -57,7 +57,7 @@
                 <section id="tab-ai" class="tab-content active">
                     <div class="tab-header">
                         <h2>🤖 AI Assistant</h2>
-                        <p>Powered by Arcee AI Trinity. Shared group chat. File tools. Smart memory.</p>
+                        <p>Powered by Google Gemini. Shared group chat. File tools. Smart memory.</p>
                     </div>
                     <div class="ai-layout">
                         <div class="chat-history-panel">
@@ -76,14 +76,19 @@
                             <div class="ai-model-selector">
                                 <div class="model-selector-header">
                                     <span class="model-selector-label">🧠 AI Model:</span>
-                                    <span class="model-active-badge" id="model-active-badge">Trinity Large</span>
+                                    <span class="model-active-badge" id="model-active-badge">Gemini 2.5 Flash</span>
                                 </div>
                                 <select id="ai-model-select" class="select model-dropdown">
-                                    <option value="arcee-ai/trinity-large-preview:free" selected>🆓 Trinity Large (Free)</option>
+                                    <optgroup label="🔵 Google Gemini">
+                                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Fast)</option>
+                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Most Capable)</option>
+                                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Stable)</option>
+                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Lightest)</option>
+                                    </optgroup>
                                 </select>
                                 <div class="model-info-bar">
                                     <span class="model-info-icon">💡</span>
-                                    <span class="model-info-text" id="model-info-text">Free powerful model by Arcee AI.</span>
+                                    <span class="model-info-text" id="model-info-text">Fast and smart. Great for most tasks.</span>
                                 </div>
                             </div>
 
@@ -108,12 +113,12 @@
                             </div>
 
                             <div class="bot-identity-bar">
-                                <div class="bot-logo" id="bot-logo">🆓</div>
+                                <div class="bot-logo" id="bot-logo">🔵</div>
                                 <div class="bot-info">
-                                    <span class="bot-name" id="bot-name">Trinity Large</span>
-                                    <span class="bot-provider" id="bot-provider">by Arcee AI</span>
+                                    <span class="bot-name" id="bot-name">Gemini 2.5 Flash</span>
+                                    <span class="bot-provider" id="bot-provider">by Google</span>
                                 </div>
-                                <span class="bot-badge" id="bot-badge">Free</span>
+                                <span class="bot-badge" id="bot-badge">Fast</span>
                             </div>
 
                             <div class="group-chat-indicator">
@@ -139,7 +144,7 @@
                                         <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
                                         <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
                                         <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                                        <p>🆓 Powered by <strong>Arcee AI Trinity Large</strong> — Free!</p>
+                                        <p>🔵 Powered by <strong>Google Gemini</strong>!</p>
                                     </div>
                                 </div>
                             </div>
