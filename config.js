@@ -2,7 +2,7 @@
    PHOTON CORE — config.js
    ======================================== */
 
-const GEMINI_API_KEY = 'PASTE-YOUR-GOOGLE-AI-STUDIO-KEY-HERE';
+const GEMINI_API_KEY = 'AIzaSyBm5Eo-KBpq7mXRLruApCykA9vLJPFoE6U';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 const firebaseConfig = {
