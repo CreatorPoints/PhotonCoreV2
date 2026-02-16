@@ -2,10 +2,8 @@
    PHOTON CORE — config.js
    ======================================== */
 
-const OPENROUTER_API_KEY = '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';
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_SITE_NAME = 'Photon Core';
-const OPENROUTER_SITE_URL = window.location.origin;
+const GEMINI_API_KEY = 'PASTE-YOUR-GOOGLE-AI-STUDIO-KEY-HERE';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUNuQNPgQ8P8PPTworUPZ1NFcTAUd2ueU",
@@ -23,16 +21,37 @@ const db = firebase.firestore();
 const rtdb = firebase.database();
 
 const AI_MODELS = {
-    'arcee-ai/trinity-large-preview:free': {
-        name: 'Trinity Large',
-        provider: 'Arcee AI',
-        logo: '🆓',
-        badge: 'Free',
-        desc: 'Free powerful model by Arcee AI.'
+    'gemini-2.5-flash': {
+        name: 'Gemini 2.5 Flash',
+        provider: 'Google',
+        logo: '🔵',
+        badge: 'Fast',
+        desc: 'Fast and smart. Great for most tasks.'
+    },
+    'gemini-2.5-pro': {
+        name: 'Gemini 2.5 Pro',
+        provider: 'Google',
+        logo: '🔵',
+        badge: 'Pro',
+        desc: 'Most capable Gemini model.'
+    },
+    'gemini-2.0-flash': {
+        name: 'Gemini 2.0 Flash',
+        provider: 'Google',
+        logo: '🔵',
+        badge: 'Stable',
+        desc: 'Stable and reliable.'
+    },
+    'gemini-2.0-flash-lite': {
+        name: 'Gemini 2.0 Flash Lite',
+        provider: 'Google',
+        logo: '🔵',
+        badge: 'Lite',
+        desc: 'Lightest and fastest.'
     }
 };
 
-const DEFAULT_MODEL = 'arcee-ai/trinity-large-preview:free';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 const state = {
     user:null,discussions:[],files:[],aiQueryCount:0,currentFilter:'all',
@@ -74,16 +93,117 @@ function fmtSize(b){if(!b)return'0 B';const s=['B','KB','MB','GB'];const i=Math.
 function fileIcon(n,d){if(d)return'📁';const e=n.split('.').pop().toLowerCase();return{png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',mp3:'🎵',wav:'🎵',ogg:'🎵',mp4:'🎬',pdf:'📄',doc:'📝',docx:'📝',txt:'📝',zip:'📦',rar:'📦',js:'💻',ts:'💻',py:'💻',cs:'💻',cpp:'💻',html:'🌐',css:'🎨',json:'⚙️',md:'📝',gd:'🎮',godot:'🎮',unity:'🎮',blend:'🎨',psd:'🎨'}[e]||'📄'}
 function formatAi(t){let f=esc(t);f=f.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');f=f.replace(/\*(.*?)\*/g,'<em>$1</em>');f=f.replace(/`(.*?)`/g,'<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');f=f.replace(/\n/g,'<br>');return'<p>'+f+'</p>'}
 
-async function openRouterChat(messages,modelId,stream=false){
-    if(!OPENROUTER_API_KEY||OPENROUTER_API_KEY==='PASTE-YOUR-KEY-HERE'){throw new Error('Set your OpenRouter API key in config.js')}
-    const r=await fetch(OPENROUTER_BASE_URL,{method:'POST',headers:{'Authorization':'Bearer '+OPENROUTER_API_KEY,'Content-Type':'application/json','HTTP-Referer':OPENROUTER_SITE_URL,'X-Title':OPENROUTER_SITE_NAME},body:JSON.stringify({model:modelId,messages:messages,stream:stream})});
-    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err?.error?.message||'API error: '+r.status)}
-    return r;
+// === GEMINI API HELPERS ===
+
+// Convert OpenAI-style messages to Gemini format
+function toGeminiMessages(messages) {
+    let systemInstruction = '';
+    const contents = [];
+
+    for (const msg of messages) {
+        if (msg.role === 'system') {
+            systemInstruction = msg.content;
+            continue;
+        }
+        contents.push({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        });
+    }
+
+    // Gemini needs alternating user/model — merge consecutive same-role
+    const merged = [];
+    for (const c of contents) {
+        if (merged.length > 0 && merged[merged.length - 1].role === c.role) {
+            merged[merged.length - 1].parts[0].text += '\n' + c.parts[0].text;
+        } else {
+            merged.push(c);
+        }
+    }
+
+    // Must start with user
+    if (merged.length > 0 && merged[0].role === 'model') {
+        merged.unshift({ role: 'user', parts: [{ text: '(start)' }] });
+    }
+
+    return { systemInstruction, contents: merged };
 }
-async function openRouterChatSimple(messages,modelId){const r=await openRouterChat(messages,modelId,false);const d=await r.json();return d?.choices?.[0]?.message?.content||'No response.'}
-async function* openRouterChatStream(messages,modelId){
-    const r=await openRouterChat(messages,modelId,true);const reader=r.body.getReader();const decoder=new TextDecoder();let buffer='';
-    while(true){const{done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop()||'';
-    for(const line of lines){const trimmed=line.trim();if(!trimmed||!trimmed.startsWith('data: '))continue;const data=trimmed.slice(6);if(data==='[DONE]')return;
-    try{const parsed=JSON.parse(data);const content=parsed?.choices?.[0]?.delta?.content;if(content)yield content}catch(e){}}}
+
+async function geminiChat(messages, modelId) {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE-YOUR-GOOGLE-AI-STUDIO-KEY-HERE') {
+        throw new Error('Set your Gemini API key in config.js');
+    }
+
+    const { systemInstruction, contents } = toGeminiMessages(messages);
+    const url = GEMINI_BASE_URL + modelId + ':generateContent?key=' + GEMINI_API_KEY;
+
+    const body = { contents };
+    if (systemInstruction) {
+        body.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err?.error?.message || 'Gemini API error: ' + r.status);
+    }
+
+    const data = await r.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
+}
+
+async function* geminiChatStream(messages, modelId) {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE-YOUR-GOOGLE-AI-STUDIO-KEY-HERE') {
+        throw new Error('Set your Gemini API key in config.js');
+    }
+
+    const { systemInstruction, contents } = toGeminiMessages(messages);
+    const url = GEMINI_BASE_URL + modelId + ':streamGenerateContent?alt=sse&key=' + GEMINI_API_KEY;
+
+    const body = { contents };
+    if (systemInstruction) {
+        body.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err?.error?.message || 'Gemini API error: ' + r.status);
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') return;
+
+            try {
+                const parsed = JSON.parse(data);
+                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) yield text;
+            } catch (e) {}
+        }
+    }
 }
