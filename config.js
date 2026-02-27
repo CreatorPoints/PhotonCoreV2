@@ -2,7 +2,7 @@
    PHOTON CORE — config.js
    ======================================== */
 
-const GEMINI_API_KEY = 'AIzaSyBm5Eo-KBpq7mXRLruApCykA9vLJPFoE6U';
+
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 const firebaseConfig = {
@@ -184,34 +184,123 @@ function fmtSize(b){if(!b)return'0 B';const s=['B','KB','MB','GB'];const i=Math.
 function fileIcon(n,d){if(d)return'📁';const e=n.split('.').pop().toLowerCase();return{png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',mp3:'🎵',wav:'🎵',ogg:'🎵',mp4:'🎬',pdf:'📄',doc:'📝',docx:'📝',txt:'📝',zip:'📦',rar:'📦',js:'💻',ts:'💻',py:'💻',cs:'💻',cpp:'💻',html:'🌐',css:'🎨',json:'⚙️',md:'📝',gd:'🎮',godot:'🎮',unity:'🎮',blend:'🎨',psd:'🎨'}[e]||'📄'}
 function formatAi(t){let f=esc(t);f=f.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');f=f.replace(/\*(.*?)\*/g,'<em>$1</em>');f=f.replace(/`(.*?)`/g,'<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');f=f.replace(/\n/g,'<br>');return'<p>'+f+'</p>'}
 
-// === GEMINI API ===
+// === GEMINI API (SECURE VIA NETLIFY FUNCTION) ===
+
 function toGeminiMessages(messages){
-    let systemInstruction='';const contents=[];
-    for(const msg of messages){if(msg.role==='system'){systemInstruction=msg.content;continue}contents.push({role:msg.role==='assistant'?'model':'user',parts:[{text:msg.content}]})}
-    const merged=[];for(const c of contents){if(merged.length>0&&merged[merged.length-1].role===c.role){merged[merged.length-1].parts[0].text+='\n'+c.parts[0].text}else{merged.push(c)}}
-    if(merged.length>0&&merged[0].role==='model'){merged.unshift({role:'user',parts:[{text:'(start)'}]})}
-    return{systemInstruction,contents:merged};
+    let systemInstruction='';
+    const contents=[];
+
+    for(const msg of messages){
+        if(msg.role==='system'){
+            systemInstruction=msg.content;
+            continue;
+        }
+
+        contents.push({
+            role: msg.role==='assistant' ? 'model' : 'user',
+            parts:[{ text: msg.content }]
+        });
+    }
+
+    // merge consecutive same-role messages
+    const merged=[];
+    for(const c of contents){
+        if(merged.length>0 && merged[merged.length-1].role===c.role){
+            merged[merged.length-1].parts[0].text += '\n'+c.parts[0].text;
+        }else{
+            merged.push(c);
+        }
+    }
+
+    if(merged.length>0 && merged[0].role==='model'){
+        merged.unshift({ role:'user', parts:[{ text:'(start)' }] });
+    }
+
+    return { systemInstruction, contents: merged };
 }
 
-async function geminiChat(messages,modelId){
-    if(!GEMINI_API_KEY||GEMINI_API_KEY==='PASTE-YOUR-KEY-HERE'){throw new Error('Set your Gemini API key in config.js')}
-    const{systemInstruction,contents}=toGeminiMessages(messages);
-    const url=GEMINI_BASE_URL+modelId+':generateContent?key='+GEMINI_API_KEY;
-    const body={contents};if(systemInstruction)body.systemInstruction={parts:[{text:systemInstruction}]};
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err?.error?.message||'Gemini error: '+r.status)}
-    const data=await r.json();return data?.candidates?.[0]?.content?.parts?.[0]?.text||'No response.';
+
+// ===== NON-STREAMING =====
+async function geminiChat(messages, modelId){
+
+    const { systemInstruction, contents } = toGeminiMessages(messages);
+
+    const body = { contents };
+    if(systemInstruction){
+        body.systemInstruction = { parts:[{ text: systemInstruction }] };
+    }
+
+    const r = await fetch("/.netlify/functions/gemini", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+            messages: body,
+            modelId,
+            stream: false
+        })
+    });
+
+    if(!r.ok){
+        const err = await r.text().catch(()=> '');
+        throw new Error("Server error: "+r.status+" "+err);
+    }
+
+    const data = await r.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
 }
 
-async function* geminiChatStream(messages,modelId){
-    if(!GEMINI_API_KEY||GEMINI_API_KEY==='PASTE-YOUR-KEY-HERE'){throw new Error('Set your Gemini API key in config.js')}
-    const{systemInstruction,contents}=toGeminiMessages(messages);
-    const url=GEMINI_BASE_URL+modelId+':streamGenerateContent?alt=sse&key='+GEMINI_API_KEY;
-    const body={contents};if(systemInstruction)body.systemInstruction={parts:[{text:systemInstruction}]};
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err?.error?.message||'Gemini error: '+r.status)}
-    const reader=r.body.getReader();const decoder=new TextDecoder();let buffer='';
-    while(true){const{done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop()||'';
-    for(const line of lines){const trimmed=line.trim();if(!trimmed||!trimmed.startsWith('data: '))continue;const data=trimmed.slice(6);if(data==='[DONE]')return;
-    try{const parsed=JSON.parse(data);const text=parsed?.candidates?.[0]?.content?.parts?.[0]?.text;if(text)yield text}catch(e){}}}
+
+
+// ===== STREAMING =====
+async function* geminiChatStream(messages, modelId){
+
+    const { systemInstruction, contents } = toGeminiMessages(messages);
+
+    const body = { contents };
+    if(systemInstruction){
+        body.systemInstruction = { parts:[{ text: systemInstruction }] };
+    }
+
+    const r = await fetch("/.netlify/functions/gemini", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+            messages: body,
+            modelId,
+            stream: true
+        })
+    });
+
+    if(!r.ok){
+        const err = await r.text().catch(()=> '');
+        throw new Error("Server error: "+r.status+" "+err);
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+
+        buffer += decoder.decode(value, { stream:true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for(const line of lines){
+            const trimmed = line.trim();
+            if(!trimmed || !trimmed.startsWith('data: ')) continue;
+
+            const data = trimmed.slice(6);
+            if(data === '[DONE]') return;
+
+            try{
+                const parsed = JSON.parse(data);
+                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if(text) yield text;
+            }catch{}
+        }
+    }
 }
