@@ -165,8 +165,45 @@ async function sendAiMessage(){
 
     dom.aiInput.value='';const savedCtx=fileCtx;clearAttachment();
 
-    const fileOp=detectFileOperation(msg);let toolResult='';
-    if(fileOp){if(fileOp.op==='list')toolResult=await aiListFiles();else if(fileOp.op==='read')toolResult=await aiReadFile(fileOp.name);else if(fileOp.op==='delete')toolResult=await aiDeleteFile(fileOp.name)}
+   const fileOp = detectFileOperation(msg);
+
+if (fileOp) {
+
+    let result = '';
+
+    if (fileOp.op === 'list')
+        result = await aiListFiles();
+
+    else if (fileOp.op === 'read')
+        result = await aiReadFile(fileOp.name);
+
+    else if (fileOp.op === 'delete')
+        result = await aiDeleteFile(fileOp.name);
+
+    else if (fileOp.op === 'write') {
+        // Optional: extract content better later
+        result = await aiWriteFile(fileOp.name, msg);
+    }
+
+    // Append AI response immediately
+    const aiMsg = {
+        text: result,
+        sender: 'ai',
+        author: modelName,
+        modelName,
+        timestamp: new Date().toISOString()
+    };
+
+    state.currentChatMessages.push(aiMsg);
+    appendStatic(result, 'ai', modelName, modelName);
+    await saveCurrentChat();
+
+    addActivity('📂 ' + username + ' used cloud');
+    state.aiQueryCount++;
+    if (dom.statAi) dom.statAi.textContent = state.aiQueryCount;
+
+    return; // 🚨 THIS STOPS GEMINI FROM RUNNING
+}
 
     state.isTyping=true;
     if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');
