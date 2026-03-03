@@ -59,31 +59,32 @@
 
             <div class="content-area">
                 <section id="tab-ai" class="tab-content active">
-                    <div class="tab-header">
-                        <h2>🤖 AI Assistant</h2>
-                        <p>Powered by Google Gemini & Gemma. Shared group chat. File tools. Smart memory.</p>
-                    </div>
-                    <div class="ai-layout">
-                        <div class="chat-history-panel">
-                            <div class="chat-history-header">
-                                <h3>🕒 History</h3>
-                                <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
-                            </div>
-                            <div id="chat-history-list" class="chat-history-list">
-                                <div class="empty-state small"><p>No chats</p></div>
-                            </div>
-                            <div class="chat-history-footer">
-                                <span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span>
-                            </div>
-                        </div>
-                        <div class="ai-container">
-                            <div class="ai-model-selector">
-    <div class="model-selector-header">
-        <span class="model-selector-label">🧠 AI Model:</span>
-        <span class="model-active-badge" id="model-active-badge">OpenRouter Free</span>
+    <div class="tab-header">
+        <h2>🤖 AI Assistant</h2>
+        <p>Powered entirely by OpenRouter. Multi-model AI. Shared group chat. File tools. Smart memory.</p>
     </div>
 
-<div class="ai-model-selector">
+    <div class="ai-layout">
+
+        <!-- LEFT HISTORY PANEL -->
+        <div class="chat-history-panel">
+            <div class="chat-history-header">
+                <h3>🕒 History</h3>
+                <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
+            </div>
+            <div id="chat-history-list" class="chat-history-list">
+                <div class="empty-state small"><p>No chats</p></div>
+            </div>
+            <div class="chat-history-footer">
+                <span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span>
+            </div>
+        </div>
+
+        <!-- MAIN AI PANEL -->
+        <div class="ai-container">
+
+            <!-- MODEL SELECTOR -->
+   <div class="ai-model-selector">
     <div class="model-selector-header">
         <span class="model-selector-label">🧠 AI Model:</span>
         <span class="model-active-badge" id="model-active-badge">Select Random</span>
@@ -217,84 +218,105 @@
     </div>
 </div>
 
-                            <div class="memory-tip-banner" id="memory-tip-banner">
-                                <div class="tip-icon">🧠</div>
-                                <div class="tip-content">
-                                    <strong>AI Memory + File Tools</strong>
-                                    <p>AI <strong>auto-remembers</strong> important info. It can also <strong>read, write, list & delete</strong> files from your cloud. Try: <span class="tip-keyword">"list my files"</span> or <span class="tip-keyword">"save this code as main.py"</span></p>
-                                </div>
-                                <button class="tip-dismiss" id="btn-dismiss-tip">✕</button>
-                            </div>
 
-                            <div class="memory-panel">
-                                <div class="memory-header">
-                                    <span>🧠 Shared Memory (<span id="memory-count">0</span>)</span>
-                                    <div class="memory-actions">
-                                        <button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button>
-                                        <button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button>
-                                    </div>
-                                </div>
-                                <div class="memory-list hidden" id="memory-list"></div>
-                            </div>
+            <!-- MEMORY TIP -->
+            <div class="memory-tip-banner" id="memory-tip-banner">
+                <div class="tip-icon">🧠</div>
+                <div class="tip-content">
+                    <strong>AI Memory + File Tools</strong>
+                    <p>
+                        AI <strong>auto-remembers</strong> important info.
+                        It can also <strong>read, write, list & delete</strong> files from your cloud.
+                        Try: <span class="tip-keyword">"list my files"</span>
+                        or <span class="tip-keyword">"save this code as main.py"</span>
+                    </p>
+                </div>
+                <button class="tip-dismiss" id="btn-dismiss-tip">✕</button>
+            </div>
 
-                            <div class="bot-identity-bar">
-                                <div class="bot-logo" id="bot-logo">⚡</div>
-                                <div class="bot-info">
-                                    <span class="bot-name" id="bot-name">Gemini 2.5 Flash</span>
-                                    <span class="bot-provider" id="bot-provider">by Google</span>
-                                </div>
-                                <span class="bot-badge" id="bot-badge">Flash</span>
-                            </div>
-
-                            <div class="group-chat-indicator">
-                                <span class="group-icon">👥</span>
-                                <span class="group-text">Shared Group Chat — Real-time via Firebase</span>
-                                <div class="typing-indicator hidden" id="typing-indicator">
-                                    <span class="typing-user" id="typing-user">AI</span><span> is typing</span>
-                                    <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
-                                </div>
-                            </div>
-
-                            <div class="ai-presets">
-                                <button class="preset-btn" data-prompt="Generate a unique indie game concept">🎮 Game Idea</button>
-                                <button class="preset-btn" data-prompt="List my cloud files">📂 List Files</button>
-                                <button class="preset-btn" data-prompt="Write a GDD outline and save it as gdd.md">📄 GDD</button>
-                                <button class="preset-btn" data-prompt="Write NPC dialogue for a fantasy RPG">🗣️ Dialogue</button>
-                            </div>
-
-                            <div class="ai-chat" id="ai-chat">
-                                <div class="ai-message ai-welcome">
-                                    <div class="ai-avatar">🤖</div>
-                                    <div class="ai-bubble">
-                                        <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
-                                        <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
-                                        <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                                        <p>🔵 Powered by <strong>Google Gemini</strong> — 14 models available!</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="ai-attachment-preview hidden" id="ai-attachment-preview">
-                                <div class="attachment-info">
-                                    <span class="attachment-icon" id="attachment-icon">📎</span>
-                                    <span class="attachment-name" id="attachment-name">file.txt</span>
-                                    <span class="attachment-size" id="attachment-size">0 KB</span>
-                                </div>
-                                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
-                            </div>
-
-                            <div class="ai-input-area">
-                                <button class="btn-icon ai-attach-btn" id="btn-ai-attach" title="Attach file">📎</button>
-                                <input type="file" id="ai-file-input" hidden>
-                                <textarea id="ai-input" placeholder="Ask AI, manage files, or chat with the team..." class="textarea" rows="2"></textarea>
-                                <button id="btn-ai-send" class="btn btn-primary">
-                                    <span id="ai-send-text">Send ⚡</span>
-                                    <span id="ai-loading" class="hidden">Thinking...</span>
-                                </button>
-                            </div>
-                        </div>
+            <!-- MEMORY PANEL -->
+            <div class="memory-panel">
+                <div class="memory-header">
+                    <span>🧠 Shared Memory (<span id="memory-count">0</span>)</span>
+                    <div class="memory-actions">
+                        <button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button>
+                        <button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button>
                     </div>
-                </section>
+                </div>
+                <div class="memory-list hidden" id="memory-list"></div>
+            </div>
+
+            <!-- BOT IDENTITY -->
+            <div class="bot-identity-bar">
+                <div class="bot-logo" id="bot-logo">🟠</div>
+                <div class="bot-info">
+                    <span class="bot-name" id="bot-name">Select Random</span>
+                    <span class="bot-provider" id="bot-provider">via OpenRouter</span>
+                </div>
+                <span class="bot-badge" id="bot-badge">Free</span>
+            </div>
+
+            <!-- GROUP CHAT -->
+            <div class="group-chat-indicator">
+                <span class="group-icon">👥</span>
+                <span class="group-text">
+                    Shared Group Chat — Real-time via Firebase
+                </span>
+                <div class="typing-indicator hidden" id="typing-indicator">
+                    <span class="typing-user" id="typing-user">AI</span>
+                    <span> is typing</span>
+                    <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                </div>
+            </div>
+
+            <!-- PRESETS -->
+            <div class="ai-presets">
+                <button class="preset-btn" data-prompt="Generate a unique indie game concept">🎮 Game Idea</button>
+                <button class="preset-btn" data-prompt="List my cloud files">📂 List Files</button>
+                <button class="preset-btn" data-prompt="Write a GDD outline and save it as gdd.md">📄 GDD</button>
+                <button class="preset-btn" data-prompt="Write NPC dialogue for a fantasy RPG">🗣️ Dialogue</button>
+            </div>
+
+            <!-- CHAT WINDOW -->
+            <div class="ai-chat" id="ai-chat">
+                <div class="ai-message ai-welcome">
+                    <div class="ai-avatar">🤖</div>
+                    <div class="ai-bubble">
+                        <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
+                        <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
+                        <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
+                        <p>🟠 Powered by <strong>OpenRouter</strong> — 20+ AI models available.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATTACHMENT PREVIEW -->
+            <div class="ai-attachment-preview hidden" id="ai-attachment-preview">
+                <div class="attachment-info">
+                    <span class="attachment-icon" id="attachment-icon">📎</span>
+                    <span class="attachment-name" id="attachment-name">file.txt</span>
+                    <span class="attachment-size" id="attachment-size">0 KB</span>
+                </div>
+                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
+            </div>
+
+            <!-- INPUT -->
+            <div class="ai-input-area">
+                <button class="btn-icon ai-attach-btn" id="btn-ai-attach" title="Attach file">📎</button>
+                <input type="file" id="ai-file-input" hidden>
+                <textarea id="ai-input"
+                    placeholder="Ask AI, manage files, or chat with the team..."
+                    class="textarea"
+                    rows="2"></textarea>
+                <button id="btn-ai-send" class="btn btn-primary">
+                    <span id="ai-send-text">Send ⚡</span>
+                    <span id="ai-loading" class="hidden">Thinking...</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</section>
             </div>
         </main>
     </div>
