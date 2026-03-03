@@ -6,7 +6,7 @@
     <title>AI Assistant — Photon Core</title>
     <link rel="stylesheet" href="style.css">
 
-    <!-- Scripts -->
+    <!-- Firebase -->
     <script src="https://js.puter.com/v2/"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -21,203 +21,1334 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+
+    <style>
+        /* ========================================
+           AI PAGE SPECIFIC STYLES
+           ======================================== */
+
+        .ai-page-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            gap: 0;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        @media (max-width: 1200px) {
+            .ai-page-layout {
+                grid-template-columns: 260px 1fr;
+            }
+            .ai-sidebar-right {
+                display: none;
+            }
+            .ai-sidebar-right.mobile-open {
+                display: flex;
+                position: fixed;
+                right: 0;
+                top: 70px;
+                bottom: 0;
+                width: 300px;
+                z-index: 100;
+                box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .ai-page-layout {
+                grid-template-columns: 1fr;
+            }
+            .ai-sidebar-left {
+                display: none;
+            }
+            .ai-sidebar-left.mobile-open {
+                display: flex;
+                position: fixed;
+                left: 0;
+                top: 70px;
+                bottom: 0;
+                width: 280px;
+                z-index: 100;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+            }
+        }
+
+        /* Left Sidebar - Chat History */
+        .ai-sidebar-left {
+            background: var(--bg-secondary, #1a1a2e);
+            border-right: 1px solid var(--border-color, #2d2d44);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .sidebar-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted, #888);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .chat-history-item {
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .chat-history-item:hover {
+            background: var(--bg-hover, rgba(108, 92, 231, 0.1));
+        }
+
+        .chat-history-item.active {
+            background: var(--primary-alpha, rgba(108, 92, 231, 0.2));
+            border-color: var(--primary, #6c5ce7);
+        }
+
+        .chat-history-item-title {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-history-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-muted, #888);
+        }
+
+        .chat-history-item-delete {
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .chat-history-item:hover .chat-history-item-delete {
+            opacity: 1;
+        }
+
+        /* Main Chat Area */
+        .ai-main {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary, #16162a);
+            overflow: hidden;
+        }
+
+        /* Model Selector Bar */
+        .model-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            background: var(--bg-secondary, #1a1a2e);
+            border-bottom: 1px solid var(--border-color, #2d2d44);
+            flex-wrap: wrap;
+        }
+
+        .model-selector-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .model-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted, #888);
+            white-space: nowrap;
+        }
+
+        .model-dropdown {
+            flex: 1;
+            max-width: 400px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: var(--bg-tertiary, #232340);
+            border: 1px solid var(--border-color, #2d2d44);
+            color: var(--text-primary, #fff);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .model-dropdown:focus {
+            outline: none;
+            border-color: var(--primary, #6c5ce7);
+        }
+
+        .model-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            color: white;
+        }
+
+        .model-bar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon-small {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color, #2d2d44);
+            background: var(--bg-tertiary, #232340);
+            color: var(--text-primary, #fff);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon-small:hover {
+            background: var(--primary, #6c5ce7);
+            border-color: var(--primary, #6c5ce7);
+        }
+
+        /* Chat Container */
+        .ai-chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .ai-chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ai-message {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--bg-tertiary, #232340);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .user-message .ai-avatar {
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .ai-bubble {
+            background: var(--bg-secondary, #1a1a2e);
+            border-radius: 16px;
+            padding: 14px 18px;
+            border: 1px solid var(--border-color, #2d2d44);
+            position: relative;
+        }
+
+        .user-message .ai-bubble {
+            background: linear-gradient(135deg, #6c5ce7, #5b4cdb);
+            border: none;
+        }
+
+        .ai-bubble p {
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .ai-bubble code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .ai-message-author {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted, #888);
+            margin-bottom: 6px;
+        }
+
+        .user-message .ai-message-author {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .ai-model-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--text-muted, #888);
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: var(--bg-tertiary, #232340);
+            border-radius: 6px;
+        }
+
+        .ai-file-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg-tertiary, #232340);
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .memory-saved-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #10b981;
+            margin-left: 8px;
+        }
+
+        .ai-welcome {
+            align-self: center;
+            max-width: 500px;
+        }
+
+        .ai-welcome .ai-bubble {
+            text-align: center;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(108, 92, 231, 0.3);
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: var(--text-muted, #888);
+            background: var(--bg-secondary, #1a1a2e);
+            border-top: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .typing-indicator.hidden {
+            display: none;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--primary, #6c5ce7);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Attachment Preview */
+        .attachment-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--bg-tertiary, #232340);
+            border-top: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .attachment-preview.hidden {
+            display: none;
+        }
+
+        .attachment-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .attachment-icon {
+            font-size: 24px;
+        }
+
+        .attachment-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .attachment-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .attachment-size {
+            font-size: 11px;
+            color: var(--text-muted, #888);
+        }
+
+        /* Input Area */
+        .ai-input-area {
+            display: flex;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-secondary, #1a1a2e);
+            border-top: 1px solid var(--border-color, #2d2d44);
+            align-items: flex-end;
+        }
+
+        .ai-input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-input {
+            width: 100%;
+            min-height: 50px;
+            max-height: 150px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color, #2d2d44);
+            background: var(--bg-tertiary, #232340);
+            color: var(--text-primary, #fff);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            line-height: 1.5;
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--primary, #6c5ce7);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+
+        .ai-input::placeholder {
+            color: var(--text-muted, #888);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-attach {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color, #2d2d44);
+            background: var(--bg-tertiary, #232340);
+            color: var(--text-primary, #fff);
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-attach:hover {
+            background: var(--bg-hover, rgba(108, 92, 231, 0.2));
+            border-color: var(--primary, #6c5ce7);
+        }
+
+        .btn-send {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-send .hidden {
+            display: none;
+        }
+
+        /* Right Sidebar - Memory & Info */
+        .ai-sidebar-right {
+            background: var(--bg-secondary, #1a1a2e);
+            border-left: 1px solid var(--border-color, #2d2d44);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .memory-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .memory-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .memory-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .memory-count {
+            background: var(--primary, #6c5ce7);
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .memory-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .memory-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary, #232340);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .memory-item-text {
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .memory-item-user {
+            font-size: 11px;
+            color: var(--text-muted, #888);
+        }
+
+        .memory-item-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.5;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+
+        .memory-item-delete:hover {
+            opacity: 1;
+        }
+
+        .memory-tip-banner {
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            margin: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .memory-tip-banner.hidden {
+            display: none;
+        }
+
+        .memory-tip-text {
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        /* Model Info Card */
+        .model-info-card {
+            padding: 16px;
+            border-top: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .model-info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .bot-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--bg-tertiary, #232340);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .bot-details {
+            flex: 1;
+        }
+
+        .bot-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .bot-provider {
+            font-size: 12px;
+            color: var(--text-muted, #888);
+        }
+
+        .bot-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            color: white;
+        }
+
+        /* Stats Mini */
+        .stats-mini {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 16px;
+            border-top: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .stat-mini-item {
+            padding: 12px;
+            background: var(--bg-tertiary, #232340);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-mini-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary, #6c5ce7);
+        }
+
+        .stat-mini-label {
+            font-size: 11px;
+            color: var(--text-muted, #888);
+            margin-top: 4px;
+        }
+
+        /* Activity Section */
+        .activity-section {
+            padding: 16px;
+            border-top: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .activity-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted, #888);
+            margin-bottom: 12px;
+        }
+
+        .recent-activity {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-color, #2d2d44);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-time {
+            color: var(--text-muted, #888);
+            font-size: 10px;
+        }
+
+        /* Mobile Toggle Buttons */
+        .mobile-toggle-btn {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary, #6c5ce7);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+            z-index: 90;
+        }
+
+        .mobile-toggle-btn.left {
+            left: 16px;
+        }
+
+        .mobile-toggle-btn.right {
+            right: 16px;
+        }
+
+        @media (max-width: 1200px) {
+            .mobile-toggle-btn.right {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-toggle-btn.left {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* Typewriter Cursor */
+        .typewriter-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--primary, #6c5ce7);
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted, #888);
+        }
+
+        .empty-state.small {
+            padding: 16px;
+            font-size: 13px;
+        }
+
+        .empty-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* Scrollbar Styling */
+        .ai-chat::-webkit-scrollbar,
+        .chat-history-list::-webkit-scrollbar,
+        .memory-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ai-chat::-webkit-scrollbar-track,
+        .chat-history-list::-webkit-scrollbar-track,
+        .memory-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .ai-chat::-webkit-scrollbar-thumb,
+        .chat-history-list::-webkit-scrollbar-thumb,
+        .memory-list::-webkit-scrollbar-thumb {
+            background: var(--border-color, #2d2d44);
+            border-radius: 3px;
+        }
+
+        .ai-chat::-webkit-scrollbar-thumb:hover,
+        .chat-history-list::-webkit-scrollbar-thumb:hover,
+        .memory-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary, #6c5ce7);
+        }
+    </style>
 </head>
 
 <body>
-<div id="app" class="app">
-
-    <!-- SIDEBAR (UNCHANGED STRUCTURE) -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-small">⚡</div>
-            <span class="logo-text">Photon Core</span>
+    <!-- Auth Screen (Hidden when logged in) -->
+    <div id="auth-screen" class="auth-screen hidden">
+        <div class="auth-card">
+            <div class="auth-logo">⚡</div>
+            <h1>Photon Core</h1>
+            <p>Sign in to continue</p>
+            <button id="btn-sign-in" class="btn btn-primary btn-large">
+                Sign In with Puter
+            </button>
         </div>
+    </div>
 
-        <nav class="sidebar-nav">
-            <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
-            <a href="discussions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Discussions</span></a>
-            <a href="files.html" class="nav-item"><span class="nav-icon">📁</span><span class="nav-label">Files</span></a>
-            <a href="ai.html" class="nav-item active"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
-            <a href="members.html" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Members</span></a>
-        </nav>
+    <div id="app" class="app">
 
-        <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar" id="user-avatar">?</div>
-                <div class="user-details">
-                    <span class="user-name" id="user-name">Loading...</span>
-                    <span class="user-role">Member</span>
+        <!-- SIDEBAR (Navigation) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">⚡</div>
+                <span class="logo-text">Photon Core</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="discussions.html" class="nav-item">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-label">Discussions</span>
+                    <span class="nav-badge" id="stat-discussions">0</span>
+                </a>
+                <a href="files.html" class="nav-item">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-label">Files</span>
+                    <span class="nav-badge" id="stat-files">0</span>
+                </a>
+                <a href="ai.html" class="nav-item active">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-label">AI Assistant</span>
+                </a>
+                <a href="members.html" class="nav-item">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-label">Members</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <div class="user-details">
+                        <span class="user-name" id="user-name">Loading...</span>
+                        <span class="user-role">Member</span>
+                    </div>
                 </div>
+                <button id="btn-sign-out" class="btn-icon" title="Sign Out">🚪</button>
             </div>
-            <button id="btn-sign-out" class="btn-icon">🚪</button>
-        </div>
-    </aside>
+        </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
 
-        <header class="top-header">
-            <div class="header-left">
-                <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
-                <h2>AI Assistant</h2>
-            </div>
-            <div class="header-right">
-                <div class="online-count-badge">
-                    <span class="status-dot online"></span>
-                    <span id="online-count">0</span> online
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
+                    <h2 id="page-title">AI Assistant</h2>
+                    <span id="welcome-name" class="hidden"></span>
                 </div>
-            </div>
-        </header>
-
-        <div class="content-area">
-            <div class="ai-layout">
-
-                <!-- HISTORY PANEL -->
-                <aside class="chat-history-panel">
-                    <div class="chat-history-header">
-                        <h3>🕒 Chat History</h3>
-                        <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
+                <div class="header-right">
+                    <div class="online-count-badge">
+                        <span class="status-dot online"></span>
+                        <span id="online-count">0</span> online
                     </div>
+                    <span id="stat-online" class="hidden">0</span>
+                    <span id="stat-ai" class="hidden">0</span>
+                </div>
+            </header>
 
-                    <div id="chat-history-list" class="chat-history-list">
-                        <div class="empty-state small"><p>No chats yet</p></div>
-                    </div>
+            <!-- AI Page Layout -->
+            <div class="content-area">
+                <div class="ai-page-layout">
 
-                    <div class="chat-history-footer">
-                        <span class="chat-auto-delete-note">Auto-delete after 30 days</span>
-                    </div>
-                </aside>
-
-                <!-- AI MAIN -->
-                <div class="ai-container">
-
-                    <!-- MODEL SELECTOR (FULL VERSION ADDED) -->
-                    <div class="ai-model-selector">
-
-                        <div class="model-selector-header">
-                            <span class="model-selector-label">🧠 AI Model:</span>
-                            <span class="model-active-badge" id="model-active-badge">Select Random</span>
-                        </div>
-
-                        <select id="ai-model-select" class="select model-dropdown">
-
-                            <optgroup label="🎲 Random">
-                                <option value="openrouter/free" selected>
-                                    🎲 Select Random (Auto Pick Best Free Model)
-                                </option>
-                            </optgroup>
-
-                            <optgroup label="🦙 Meta LLaMA">
-                                <option value="meta-llama/llama-3.3-70b-instruct:free">🦙 LLaMA 3.3 70B</option>
-                                <option value="meta-llama/llama-3.2-3b-instruct:free">🦙 LLaMA 3.2 3B</option>
-                                <option value="nousresearch/hermes-3-llama-3.1-405b:free">🧠 Hermes 3 405B</option>
-                            </optgroup>
-
-                            <optgroup label="🟢 Google Gemma">
-                                <option value="google/gemma-3-27b-it:free">🟢 Gemma 3 27B</option>
-                                <option value="google/gemma-3-12b-it:free">🟢 Gemma 3 12B</option>
-                                <option value="google/gemma-3-4b-it:free">🟢 Gemma 3 4B</option>
-                                <option value="google/gemma-3n-e4b-it:free">🟢 Gemma 3N E4B</option>
-                                <option value="google/gemma-3n-e2b-it:free">🟢 Gemma 3N E2B</option>
-                            </optgroup>
-
-                            <optgroup label="🤖 OpenAI OSS">
-                                <option value="openai/gpt-oss-120b:free">🤖 GPT-OSS 120B</option>
-                                <option value="openai/gpt-oss-20b:free">🤖 GPT-OSS 20B</option>
-                            </optgroup>
-
-                            <optgroup label="🟣 NVIDIA">
-                                <option value="nvidia/nemotron-3-nano-30b-a3b:free">🟣 Nemotron 30B</option>
-                                <option value="nvidia/nemotron-nano-9b-v2:free">🟣 Nemotron 9B v2</option>
-                                <option value="nvidia/llama-nemotron-embed-vl-1b-v2:free">🟣 Nemotron Embed VL</option>
-                            </optgroup>
-
-                            <optgroup label="🟡 Qwen">
-                                <option value="qwen/qwen3-coder:free">🟡 Qwen3 Coder</option>
-                                <option value="qwen/qwen3-4b:free">🟡 Qwen3 4B</option>
-                            </optgroup>
-
-                            <optgroup label="🔵 Mistral">
-                                <option value="mistralai/mistral-small-3.1-24b-instruct:free">🔵 Mistral 24B</option>
-                                <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">🐬 Dolphin 24B</option>
-                            </optgroup>
-
-                            <optgroup label="🧡 Arcee AI">
-                                <option value="arcee-ai/trinity-large-preview:free">🧡 Trinity Large</option>
-                                <option value="arcee-ai/trinity-mini:free">🧡 Trinity Mini</option>
-                            </optgroup>
-
-                            <optgroup label="💧 Liquid AI">
-                                <option value="liquid/lfm-2.5-1.2b-thinking:free">💧 LFM Thinking</option>
-                                <option value="liquid/lfm-2.5-1.2b-instruct:free">💧 LFM Instruct</option>
-                            </optgroup>
-
-                            <optgroup label="⚡ Stepfun">
-                                <option value="stepfun/step-3.5-flash:free">⚡ Step 3.5 Flash</option>
-                            </optgroup>
-
-                            <optgroup label="🔴 Z-AI">
-                                <option value="z-ai/glm-4.5-air:free">🔴 GLM 4.5 Air</option>
-                            </optgroup>
-
-                        </select>
-
-                        <div class="model-info-bar">
-                            <span class="model-info-icon">💡</span>
-                            <span class="model-info-text" id="model-info-text">
-                                All models are free via OpenRouter. Some may have rate limits or queue delays.
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- CHAT WINDOW -->
-                    <div class="ai-chat" id="ai-chat">
-                        <div class="ai-message ai-welcome">
-                            <div class="ai-avatar">🤖</div>
-                            <div class="ai-bubble">
-                                <p><strong>Welcome to Photon Core AI</strong></p>
-                                <p>• Real-time shared group chat</p>
-                                <p>• Smart memory across sessions</p>
-                                <p>• Cloud file tools supported</p>
-                                <p>• 20+ free OpenRouter models</p>
+                    <!-- LEFT SIDEBAR: Chat History -->
+                    <aside class="ai-sidebar-left" id="ai-sidebar-left">
+                        <div class="sidebar-section">
+                            <div class="sidebar-section-header">
+                                <span class="sidebar-section-title">
+                                    <span>💬</span> Chats
+                                </span>
+                                <button id="btn-new-chat" class="btn btn-primary btn-small">
+                                    + New
+                                </button>
                             </div>
                         </div>
+
+                        <div id="chat-history-list" class="chat-history-list">
+                            <div class="empty-state small">
+                                <span class="empty-icon">💭</span>
+                                <p>No chats yet</p>
+                                <p style="font-size: 11px; margin-top: 4px;">Start a new conversation!</p>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-section" style="border-bottom: none; border-top: 1px solid var(--border-color, #2d2d44);">
+                            <p style="font-size: 11px; color: var(--text-muted); text-align: center;">
+                                💡 Chats sync in real-time across all team members
+                            </p>
+                        </div>
+                    </aside>
+
+                    <!-- MAIN: Chat Area -->
+                    <div class="ai-main">
+
+                        <!-- Model Selector Bar -->
+                        <div class="model-bar">
+                            <div class="model-selector-wrapper">
+                                <span class="model-label">🧠 Model:</span>
+                                <select id="ai-model-select" class="model-dropdown">
+                                    <optgroup label="🎲 Random">
+                                        <option value="openrouter/free" selected>🎲 Auto Pick (Random Free)</option>
+                                    </optgroup>
+                                    <optgroup label="🦙 Meta LLaMA">
+                                        <option value="meta-llama/llama-3.3-70b-instruct:free">🦙 LLaMA 3.3 70B</option>
+                                        <option value="meta-llama/llama-3.2-3b-instruct:free">🦙 LLaMA 3.2 3B</option>
+                                        <option value="nousresearch/hermes-3-llama-3.1-405b:free">🏛️ Hermes 3 405B</option>
+                                    </optgroup>
+                                    <optgroup label="💎 Google Gemma">
+                                        <option value="google/gemma-3-27b-it:free">💎 Gemma 3 27B</option>
+                                        <option value="google/gemma-3-12b-it:free">💎 Gemma 3 12B</option>
+                                        <option value="google/gemma-3-4b-it:free">💎 Gemma 3 4B</option>
+                                        <option value="google/gemma-3n-e4b-it:free">💎 Gemma 3N E4B</option>
+                                        <option value="google/gemma-3n-e2b-it:free">💎 Gemma 3N E2B</option>
+                                    </optgroup>
+                                    <optgroup label="🧠 OpenAI OSS">
+                                        <option value="openai/gpt-oss-120b:free">🧠 GPT-OSS 120B</option>
+                                        <option value="openai/gpt-oss-20b:free">🧩 GPT-OSS 20B</option>
+                                    </optgroup>
+                                    <optgroup label="🟢 NVIDIA">
+                                        <option value="nvidia/nemotron-3-nano-30b-a3b:free">🟢 Nemotron 30B</option>
+                                        <option value="nvidia/nemotron-nano-9b-v2:free">🟩 Nemotron 9B v2</option>
+                                        <option value="nvidia/llama-nemotron-embed-vl-1b-v2:free">🖼️ Nemotron Embed VL</option>
+                                    </optgroup>
+                                    <optgroup label="📘 Qwen">
+                                        <option value="qwen/qwen3-coder:free">👨‍💻 Qwen3 Coder</option>
+                                        <option value="qwen/qwen3-4b:free">📘 Qwen3 4B</option>
+                                    </optgroup>
+                                    <optgroup label="🌀 Mistral">
+                                        <option value="mistralai/mistral-small-3.1-24b-instruct:free">🌀 Mistral 24B</option>
+                                        <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">🐬 Dolphin 24B</option>
+                                    </optgroup>
+                                    <optgroup label="🔷 Arcee AI">
+                                        <option value="arcee-ai/trinity-large-preview:free">🔷 Trinity Large</option>
+                                        <option value="arcee-ai/trinity-mini:free">🔹 Trinity Mini</option>
+                                    </optgroup>
+                                    <optgroup label="💧 Liquid AI">
+                                        <option value="liquid/lfm-2.5-1.2b-thinking:free">🤔 LFM Thinking</option>
+                                        <option value="liquid/lfm-2.5-1.2b-instruct:free">📄 LFM Instruct</option>
+                                    </optgroup>
+                                    <optgroup label="⚡ Other">
+                                        <option value="stepfun/step-3.5-flash:free">⚡ Step 3.5 Flash</option>
+                                        <option value="z-ai/glm-4.5-air:free">🌪️ GLM 4.5 Air</option>
+                                    </optgroup>
+                                </select>
+                                <span class="model-badge" id="model-active-badge">Free</span>
+                            </div>
+
+                            <div class="model-bar-actions">
+                                <button class="btn-icon-small" id="btn-toggle-history" title="Toggle History">📋</button>
+                                <button class="btn-icon-small" id="btn-toggle-memory" title="Toggle Memory">🧠</button>
+                            </div>
+                        </div>
+
+                        <!-- Chat Container -->
+                        <div class="ai-chat-container">
+
+                            <!-- Chat Messages -->
+                            <div class="ai-chat" id="ai-chat">
+                                <div class="ai-message ai-welcome">
+                                    <div class="ai-avatar">🤖</div>
+                                    <div class="ai-bubble">
+                                        <p><strong>Welcome to Photon Core AI</strong></p>
+                                        <p>✨ Real-time shared group chat</p>
+                                        <p>🧠 Smart memory across sessions</p>
+                                        <p>☁️ Cloud file operations</p>
+                                        <p>🎯 20+ free AI models</p>
+                                        <br>
+                                        <p style="font-size: 12px; color: var(--text-muted);">
+                                            Try: "list my files", "remember our deadline is Friday", or just chat!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Typing Indicator -->
+                            <div class="typing-indicator hidden" id="typing-indicator">
+                                <div class="typing-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <span><strong id="typing-user">AI</strong> is typing...</span>
+                            </div>
+
+                            <!-- Attachment Preview -->
+                            <div class="attachment-preview hidden" id="ai-attachment-preview">
+                                <div class="attachment-info">
+                                    <span class="attachment-icon" id="attachment-icon">📄</span>
+                                    <div class="attachment-details">
+                                        <span class="attachment-name" id="attachment-name">file.txt</span>
+                                        <span class="attachment-size" id="attachment-size">0 KB</span>
+                                    </div>
+                                </div>
+                                <button class="btn-icon-small" id="btn-remove-attachment" title="Remove">✕</button>
+                            </div>
+
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="ai-input-area">
+                            <button class="btn-attach" id="btn-ai-attach" title="Attach File">
+                                📎
+                            </button>
+                            <input type="file" id="ai-file-input" hidden>
+
+                            <div class="ai-input-wrapper">
+                                <textarea
+                                    id="ai-input"
+                                    class="ai-input"
+                                    rows="2"
+                                    placeholder="Ask anything, manage files, or chat with your team..."
+                                ></textarea>
+                            </div>
+
+                            <button id="btn-ai-send" class="btn-send">
+                                <span id="ai-send-text">Send ⚡</span>
+                                <span id="ai-loading" class="hidden">
+                                    <span class="typing-dots" style="display: inline-flex;">
+                                        <span></span><span></span><span></span>
+                                    </span>
+                                </span>
+                            </button>
+                        </div>
+
                     </div>
 
-                    <!-- INPUT -->
-                    <div class="ai-input-area">
-                        <button class="btn-icon ai-attach-btn" id="btn-ai-attach">📎</button>
-                        <input type="file" id="ai-file-input" hidden>
+                    <!-- RIGHT SIDEBAR: Memory & Info -->
+                    <aside class="ai-sidebar-right" id="ai-sidebar-right">
 
-                        <textarea
-                            id="ai-input"
-                            class="textarea"
-                            rows="3"
-                            placeholder="Ask AI, manage files, or chat with your team..."
-                        ></textarea>
+                        <!-- Memory Section -->
+                        <div class="memory-section">
+                            <div class="memory-header">
+                                <span class="memory-title">
+                                    🧠 Team Memory
+                                    <span class="memory-count" id="memory-count">0</span>
+                                </span>
+                                <button class="btn-icon-small" id="btn-clear-memory" title="Clear All">🗑️</button>
+                            </div>
 
-                        <button id="btn-ai-send" class="btn btn-primary">
-                            <span id="ai-send-text">Send ⚡</span>
-                            <span id="ai-loading" class="hidden">Thinking...</span>
-                        </button>
-                    </div>
+                            <!-- Memory Tip Banner -->
+                            <div class="memory-tip-banner" id="memory-tip-banner">
+                                <span>💡</span>
+                                <span class="memory-tip-text">
+                                    Say <strong>"remember that..."</strong> or <strong>"note that..."</strong> to save info!
+                                </span>
+                                <button class="btn-icon-small" id="btn-dismiss-tip" style="width: 24px; height: 24px; font-size: 12px;">✕</button>
+                            </div>
+
+                            <div id="memory-list" class="memory-list">
+                                <div class="empty-state small">
+                                    <p>No memories saved</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model Info Card -->
+                        <div class="model-info-card">
+                            <div class="model-info-header">
+                                <div class="bot-logo" id="bot-logo">🎲</div>
+                                <div class="bot-details">
+                                    <div class="bot-name" id="bot-name">Select Random</div>
+                                    <div class="bot-provider" id="bot-provider">OpenRouter</div>
+                                </div>
+                                <span class="bot-badge" id="bot-badge">Free</span>
+                            </div>
+                            <p id="model-info-text" style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                                All models are free via OpenRouter. Some may have rate limits.
+                            </p>
+                        </div>
+
+                        <!-- Mini Stats -->
+                        <div class="stats-mini">
+                            <div class="stat-mini-item">
+                                <div class="stat-mini-value" id="stat-ai-display">0</div>
+                                <div class="stat-mini-label">AI Queries</div>
+                            </div>
+                            <div class="stat-mini-item">
+                                <div class="stat-mini-value" id="stat-online-display">0</div>
+                                <div class="stat-mini-label">Online Now</div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="activity-section">
+                            <div class="activity-title">📊 Recent Activity</div>
+                            <div id="recent-activity" class="recent-activity">
+                                <p class="empty-state small">No recent activity</p>
+                            </div>
+                        </div>
+
+                    </aside>
 
                 </div>
             </div>
-        </div>
-    </main>
-</div>
+        </main>
+    </div>
 
-<div id="toast-container" class="toast-container"></div>
+    <!-- Mobile Toggle Buttons -->
+    <button class="mobile-toggle-btn left" id="btn-toggle-left-mobile" title="Chat History">
+        📋
+    </button>
+    <button class="mobile-toggle-btn right" id="btn-toggle-right-mobile" title="Memory & Info">
+        🧠
+    </button>
 
-<script src="config.js"></script>
-<script src="auth.js"></script>
-<script src="presence.js"></script>
-<script src="discussions.js"></script>
-<script src="files.js"></script>
-<script src="ai.js"></script>
-<script src="ui.js"></script>
-<script src="boot.js"></script>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Hidden elements for compatibility -->
+    <div class="hidden">
+        <div id="discussions-list"></div>
+        <div id="discussion-title"></div>
+        <div id="discussion-body"></div>
+        <div id="discussion-category"></div>
+        <button id="btn-post-discussion"></button>
+        <div id="upload-zone"></div>
+        <input id="file-input" type="file">
+        <button id="btn-browse"></button>
+        <button id="btn-new-folder"></button>
+        <button id="btn-refresh-files"></button>
+        <div id="files-list"></div>
+        <div id="current-path"></div>
+        <div id="members-grid"></div>
+        <input id="profile-name">
+        <input id="profile-role">
+        <input id="profile-status">
+        <button id="btn-save-profile"></button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="presence.js"></script>
+    <script src="discussions.js"></script>
+    <script src="files.js"></script>
+    <script src="ai.js"></script>
+    <script src="ui.js"></script>
+    <script src="boot.js"></script>
+
+    <!-- Page-specific script -->
+    <script>
+        // Mobile sidebar toggles
+        document.getElementById('btn-toggle-left-mobile')?.addEventListener('click', () => {
+            document.getElementById('ai-sidebar-left')?.classList.toggle('mobile-open');
+            document.getElementById('ai-sidebar-right')?.classList.remove('mobile-open');
+        });
+
+        document.getElementById('btn-toggle-right-mobile')?.addEventListener('click', () => {
+            document.getElementById('ai-sidebar-right')?.classList.toggle('mobile-open');
+            document.getElementById('ai-sidebar-left')?.classList.remove('mobile-open');
+        });
+
+        document.getElementById('btn-toggle-history')?.addEventListener('click', () => {
+            document.getElementById('ai-sidebar-left')?.classList.toggle('mobile-open');
+        });
+
+        document.getElementById('btn-toggle-memory')?.addEventListener('click', () => {
+            document.getElementById('ai-sidebar-right')?.classList.toggle('mobile-open');
+        });
+
+        // Update model info when selection changes
+        document.getElementById('ai-model-select')?.addEventListener('change', function() {
+            const modelId = this.value;
+            const model = AI_MODELS[modelId];
+            
+            if (model) {
+                document.getElementById('bot-logo').textContent = model.logo || '🤖';
+                document.getElementById('bot-name').textContent = model.name || modelId;
+                document.getElementById('bot-provider').textContent = model.provider || 'OpenRouter';
+                document.getElementById('bot-badge').textContent = model.badge || 'Free';
+                document.getElementById('model-active-badge').textContent = model.badge || 'Free';
+            }
+
+            state.selectedModel = modelId;
+        });
+
+        // Sync stats display
+        const syncStats = () => {
+            const aiStat = document.getElementById('stat-ai');
+            const aiDisplay = document.getElementById('stat-ai-display');
+            const onlineStat = document.getElementById('online-count');
+            const onlineDisplay = document.getElementById('stat-online-display');
+
+            if (aiStat && aiDisplay) {
+                aiDisplay.textContent = aiStat.textContent;
+            }
+            if (onlineStat && onlineDisplay) {
+                onlineDisplay.textContent = onlineStat.textContent;
+            }
+        };
+
+        // Observe changes
+        const observer = new MutationObserver(syncStats);
+        const aiStat = document.getElementById('stat-ai');
+        const onlineStat = document.getElementById('online-count');
+        
+        if (aiStat) observer.observe(aiStat, { childList: true, characterData: true, subtree: true });
+        if (onlineStat) observer.observe(onlineStat, { childList: true, characterData: true, subtree: true });
+
+        // Auto-resize textarea
+        const aiInput = document.getElementById('ai-input');
+        aiInput?.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        // Send on Enter (Shift+Enter for new line)
+        aiInput?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('btn-ai-send')?.click();
+            }
+        });
+
+        // Click outside to close mobile sidebars
+        document.addEventListener('click', (e) => {
+            const leftSidebar = document.getElementById('ai-sidebar-left');
+            const rightSidebar = document.getElementById('ai-sidebar-right');
+            const leftToggle = document.getElementById('btn-toggle-left-mobile');
+            const rightToggle = document.getElementById('btn-toggle-right-mobile');
+
+            if (leftSidebar?.classList.contains('mobile-open')) {
+                if (!leftSidebar.contains(e.target) && e.target !== leftToggle) {
+                    leftSidebar.classList.remove('mobile-open');
+                }
+            }
+
+            if (rightSidebar?.classList.contains('mobile-open')) {
+                if (!rightSidebar.contains(e.target) && e.target !== rightToggle) {
+                    rightSidebar.classList.remove('mobile-open');
+                }
+            }
+        });
+
+        // Dismiss memory tip
+        document.getElementById('btn-dismiss-tip')?.addEventListener('click', () => {
+            document.getElementById('memory-tip-banner')?.classList.add('hidden');
+            localStorage.setItem('memoryTipDismissed', 'true');
+        });
+
+        // Check if tip was dismissed
+        if (localStorage.getItem('memoryTipDismissed') === 'true') {
+            document.getElementById('memory-tip-banner')?.classList.add('hidden');
+        }
+
+        // Clear all memories confirmation
+        document.getElementById('btn-clear-memory')?.addEventListener('click', async () => {
+            if (!confirm('Delete all memories? This cannot be undone.')) return;
+            
+            try {
+                const snapshot = await db.collection('memories').get();
+                const batch = db.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                showToast('All memories cleared.', 'info');
+            } catch (e) {
+                console.error('Failed to clear memories:', e);
+                showToast('Failed to clear memories.', 'error');
+            }
+        });
+    </script>
 
 </body>
 </html>
