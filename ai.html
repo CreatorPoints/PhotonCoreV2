@@ -83,39 +83,136 @@
         <span class="model-active-badge" id="model-active-badge">OpenRouter Free</span>
     </div>
 
+<div class="ai-model-selector">
+    <div class="model-selector-header">
+        <span class="model-selector-label">🧠 AI Model:</span>
+        <span class="model-active-badge" id="model-active-badge">Select Random</span>
+    </div>
+
     <select id="ai-model-select" class="select model-dropdown">
-        <optgroup label="🆓 OpenRouter Free Auto">
+
+        <!-- RANDOM -->
+        <optgroup label="🎲 Random">
             <option value="openrouter/free" selected>
-                OpenRouter Free (Auto Pick)
+                🎲 Select Random (Auto Pick Best Free Model)
             </option>
         </optgroup>
 
-        <optgroup label="🦙 LLaMA Free">
+        <!-- META LLAMA -->
+        <optgroup label="🦙 Meta LLaMA">
+            <option value="meta-llama/llama-3.3-70b-instruct:free">
+                🦙 LLaMA 3.3 70B (Powerful Reasoning)
+            </option>
             <option value="meta-llama/llama-3.2-3b-instruct:free">
-                LLaMA 3.2 3B (Free)
+                🦙 LLaMA 3.2 3B (Fast + Lightweight)
+            </option>
+            <option value="nousresearch/hermes-3-llama-3.1-405b:free">
+                🧠 Hermes 3 405B (Ultra Large Brain)
             </option>
         </optgroup>
 
-        <optgroup label="🟢 Mistral Free">
-            <option value="mistralai/mistral-7b-instruct:free">
-                Mistral 7B Instruct (Free)
+        <!-- GOOGLE -->
+        <optgroup label="🟢 Google Gemma">
+            <option value="google/gemma-3-27b-it:free">
+                🟢 Gemma 3 27B (Balanced Power)
+            </option>
+            <option value="google/gemma-3-12b-it:free">
+                🟢 Gemma 3 12B (Creative + Stable)
+            </option>
+            <option value="google/gemma-3-4b-it:free">
+                🟢 Gemma 3 4B (Fast + Efficient)
+            </option>
+            <option value="google/gemma-3n-e4b-it:free">
+                🟢 Gemma 3N E4B (Optimized Variant)
+            </option>
+            <option value="google/gemma-3n-e2b-it:free">
+                🟢 Gemma 3N E2B (Ultra Lightweight)
             </option>
         </optgroup>
 
-        <optgroup label="🧠 Other Free Models">
-            <option value="google/gemma-2b-it:free">
-                Gemma 2B IT (Free)
+        <!-- OPENAI OSS -->
+        <optgroup label="🤖 OpenAI OSS">
+            <option value="openai/gpt-oss-120b:free">
+                🤖 GPT-OSS 120B (High Intelligence)
             </option>
-            <option value="nousresearch/nous-hermes-2-mistral-7b-dpo:free">
-                Nous Hermes 2 (Free)
+            <option value="openai/gpt-oss-20b:free">
+                🤖 GPT-OSS 20B (Balanced Performance)
             </option>
         </optgroup>
+
+        <!-- NVIDIA -->
+        <optgroup label="🟣 NVIDIA">
+            <option value="nvidia/nemotron-3-nano-30b-a3b:free">
+                🟣 Nemotron 30B (Enterprise Logic)
+            </option>
+            <option value="nvidia/nemotron-nano-9b-v2:free">
+                🟣 Nemotron 9B v2 (Efficient Reasoning)
+            </option>
+            <option value="nvidia/llama-nemotron-embed-vl-1b-v2:free">
+                🟣 LLaMA Nemotron Embed (Embedding + Vision)
+            </option>
+        </optgroup>
+
+        <!-- QWEN -->
+        <optgroup label="🟡 Qwen">
+            <option value="qwen/qwen3-coder:free">
+                🟡 Qwen3 Coder (Code Specialist)
+            </option>
+            <option value="qwen/qwen3-4b:free">
+                🟡 Qwen3 4B (General Purpose)
+            </option>
+        </optgroup>
+
+        <!-- MISTRAL -->
+        <optgroup label="🔵 Mistral">
+            <option value="mistralai/mistral-small-3.1-24b-instruct:free">
+                🔵 Mistral Small 3.1 (Instruction Tuned)
+            </option>
+            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">
+                🐬 Dolphin Mistral 24B (Creative + Chatty)
+            </option>
+        </optgroup>
+
+        <!-- ARCEE -->
+        <optgroup label="🟠 Arcee AI">
+            <option value="arcee-ai/trinity-large-preview:free">
+                🟠 Trinity Large (Reasoning Focused)
+            </option>
+            <option value="arcee-ai/trinity-mini:free">
+                🟠 Trinity Mini (Fast + Lightweight)
+            </option>
+        </optgroup>
+
+        <!-- LIQUID -->
+        <optgroup label="💧 Liquid AI">
+            <option value="liquid/lfm-2.5-1.2b-thinking:free">
+                💧 LFM Thinking (Deep Reasoning Mode)
+            </option>
+            <option value="liquid/lfm-2.5-1.2b-instruct:free">
+                💧 LFM Instruct (General Assistant)
+            </option>
+        </optgroup>
+
+        <!-- STEPFUN -->
+        <optgroup label="⚡ Stepfun">
+            <option value="stepfun/step-3.5-flash:free">
+                ⚡ Step 3.5 Flash (Ultra Fast)
+            </option>
+        </optgroup>
+
+        <!-- Z-AI -->
+        <optgroup label="🔴 Z-AI">
+            <option value="z-ai/glm-4.5-air:free">
+                🔴 GLM 4.5 Air (Balanced + Smart)
+            </option>
+        </optgroup>
+
     </select>
 
     <div class="model-info-bar">
         <span class="model-info-icon">💡</span>
         <span class="model-info-text" id="model-info-text">
-            100% free models via OpenRouter. May have rate limits.
+            All models are free via OpenRouter. Some may have rate limits or queue delays.
         </span>
     </div>
 </div>
