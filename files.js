@@ -6,6 +6,17 @@
    USER FILE OPERATIONS (UI)
    ============================== */
 
+async function ensureBaseFolder() {
+    try {
+        await puter.fs.mkdir('PhotonCore', { createMissingParents: true });
+        await puter.fs.mkdir('PhotonCore/files', { createMissingParents: true });
+        state.filesReady = true;
+    } catch (e) {
+        // Folders may already exist
+        state.filesReady = true;
+    }
+}
+
 async function uploadFiles(fl) {
     if (!fl?.length) return;
     if (!state.filesReady) await ensureBaseFolder();
@@ -28,6 +39,7 @@ async function uploadFiles(fl) {
             addActivity('📁 ' + (state.user?.username || 'User') + ': ' + f.name);
             showToast(f.name + ' uploaded!', 'success');
         } catch (e) {
+            console.error('Upload failed:', e);
             showToast('Failed: ' + f.name, 'error');
         }
     }
@@ -38,9 +50,11 @@ async function uploadFiles(fl) {
 
 async function loadFiles() {
     try {
+        if (!state.filesReady) await ensureBaseFolder();
         const items = await puter.fs.readdir('PhotonCore/files');
         state.files = items || [];
-    } catch {
+    } catch (e) {
+        console.warn('Failed to load files:', e);
         state.files = [];
     }
 
@@ -61,21 +75,39 @@ function renderFiles() {
     }
 
     dom.filesList.innerHTML = state.files.map(f => {
-        const safe = esc(f.name).replace(/'/g, "\\'");
+        const safeId = esc(f.name);
         return `
-        <div class="file-card">
+        <div class="file-card" data-filename="${safeId}" data-isdir="${f.is_dir}">
             <div class="file-icon">${fileIcon(f.name, f.is_dir)}</div>
             <div class="file-name">${esc(f.name)}</div>
             <div class="file-size">${f.is_dir ? 'Folder' : fmtSize(f.size)}</div>
             <div class="file-actions">
-                ${!f.is_dir ? `<button class="file-action-btn" onclick="downloadFile('${safe}')">⬇️</button>` : ''}
-                <button class="file-action-btn danger" onclick="deleteFile('${safe}', ${f.is_dir})">🗑️</button>
+                ${!f.is_dir ? `<button class="file-action-btn download-btn" data-filename="${safeId}">⬇️</button>` : ''}
+                <button class="file-action-btn danger delete-btn" data-filename="${safeId}" data-isdir="${f.is_dir}">🗑️</button>
             </div>
         </div>`;
     }).join('');
+
+    // Event delegation for download buttons
+    dom.filesList.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadFile(btn.dataset.filename);
+        });
+    });
+
+    // Event delegation for delete buttons
+    dom.filesList.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteFile(btn.dataset.filename, btn.dataset.isdir === 'true');
+        });
+    });
 }
 
 async function downloadFile(name) {
+    if (!name) return;
+
     try {
         const blob = await puter.fs.read('PhotonCore/files/' + name);
         const url = URL.createObjectURL(blob);
@@ -86,19 +118,23 @@ async function downloadFile(name) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    } catch {
+        showToast('Downloaded: ' + name, 'success');
+    } catch (e) {
+        console.error('Download failed:', e);
         showToast('Download failed.', 'error');
     }
 }
 
 async function deleteFile(name, isDir = false) {
+    if (!name) return;
     if (!confirm(`Delete "${name}"?`)) return;
 
     try {
         await puter.fs.delete('PhotonCore/files/' + name, { recursive: isDir });
         showToast('Deleted.', 'info');
         await loadFiles();
-    } catch {
+    } catch (e) {
+        console.error('Delete failed:', e);
         showToast('Delete failed.', 'error');
     }
 }
@@ -109,6 +145,7 @@ async function deleteFile(name, isDir = false) {
 
 async function aiListFiles() {
     try {
+        if (!state.filesReady) await ensureBaseFolder();
         const items = await puter.fs.readdir('PhotonCore/files');
 
         if (!items?.length)
@@ -126,6 +163,8 @@ async function aiListFiles() {
 }
 
 async function aiReadFile(name) {
+    if (!name) return '⚠️ No file name provided.';
+
     try {
         const blob = await puter.fs.read('PhotonCore/files/' + name);
         const text = await blob.text();
@@ -136,10 +175,14 @@ async function aiReadFile(name) {
 }
 
 async function aiWriteFile(name, content) {
+    if (!name) return '⚠️ No file name provided.';
+
     try {
+        if (!state.filesReady) await ensureBaseFolder();
+
         await puter.fs.write(
             'PhotonCore/files/' + name,
-            new Blob([content], { type: 'text/plain' }),
+            new Blob([content || ''], { type: 'text/plain' }),
             { dedupeName: false, overwrite: true }
         );
 
@@ -153,6 +196,8 @@ async function aiWriteFile(name, content) {
 }
 
 async function aiDeleteFile(name) {
+    if (!name) return '⚠️ No file name provided.';
+
     try {
         await puter.fs.delete('PhotonCore/files/' + name);
         await loadFiles();
@@ -172,10 +217,7 @@ function detectFileOperation(msg) {
 
     const l = msg.toLowerCase().trim();
 
-    /* =========================
-       LIST / CLOUD VIEW
-    ========================== */
-
+    // LIST / CLOUD VIEW
     if (
         /(list|show|display|see|view|check|open).*(cloud|files|storage|directory)/i.test(l) ||
         /(what('| i)?s|whats).*(in|inside).*(cloud|storage)/i.test(l) ||
@@ -185,43 +227,31 @@ function detectFileOperation(msg) {
         return { op: 'list' };
     }
 
-    /* =========================
-       READ FILE
-    ========================== */
-
+    // READ FILE
     const readMatch = l.match(
-        /(read|open|view|show|get).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
+        /(read|open|view|show|get)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
     );
-    if (readMatch) {
-        return { op: 'read', name: readMatch[3] };
+    if (readMatch && readMatch[2]) {
+        return { op: 'read', name: readMatch[2] };
     }
 
-    /* =========================
-       DELETE FILE
-    ========================== */
-
+    // DELETE FILE
     const deleteMatch = l.match(
-        /(delete|remove|erase|trash).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
+        /(delete|remove|erase|trash)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
     );
-    if (deleteMatch) {
-        return { op: 'delete', name: deleteMatch[3] };
+    if (deleteMatch && deleteMatch[2]) {
+        return { op: 'delete', name: deleteMatch[2] };
     }
 
-    /* =========================
-       WRITE / CREATE FILE
-    ========================== */
-
+    // WRITE / CREATE FILE
     const writeMatch = l.match(
-        /(create|make|write|generate|save).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
+        /(create|make|write|generate|save)\s+(?:a\s+)?(?:file\s+)?(?:called\s+|named\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
     );
-    if (writeMatch) {
-        return { op: 'write', name: writeMatch[3] };
+    if (writeMatch && writeMatch[2]) {
+        return { op: 'write', name: writeMatch[2] };
     }
 
-    /* =========================
-       UPLOAD ATTACHED FILE
-    ========================== */
-
+    // UPLOAD ATTACHED FILE
     if (
         /(upload|add|put|store|save).*(this|attached|file).*(cloud|storage)/i.test(l)
     ) {
