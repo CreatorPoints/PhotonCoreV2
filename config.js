@@ -21,125 +21,173 @@ const db = firebase.firestore();
 const rtdb = firebase.database();
 
 const AI_MODELS = {
-    // Gemini 3
-    'gemini-3-pro': {
-        name: 'Gemini 3 Pro',
-        provider: 'Google',
-        logo: '🔵',
-        badge: 'Latest',
-        desc: 'Latest and most capable Gemini.',
-        rpm: 15, rpd: 1500
-    },
-    'gemini-3-flash': {
-        name: 'Gemini 3 Flash',
-        provider: 'Google',
-        logo: '🔵',
-        badge: 'Fast',
-        desc: 'Latest fast model.',
-        rpm: 5, rpd: 20
-    },
+'arcee-ai/trinity-large-preview:free': {
+  name: 'Trinity Large Preview (Balanced / General Intelligence)',
+  provider: 'OpenRouter',
+  logo: '🔷',
+  badge: 'Free'
+},
 
-    // Gemini 2.5
-    'gemini-2.5-pro': {
-        name: 'Gemini 2.5 Pro',
-        provider: 'Google',
-        logo: '🔵',
-        badge: 'Pro',
-        desc: 'Powerful reasoning and code.',
-        rpm: 15, rpd: 1500
-    },
-    'gemini-2.5-flash': {
-        name: 'Gemini 2.5 Flash',
-        provider: 'Google',
-        logo: '⚡',
-        badge: 'Flash',
-        desc: 'Fast and smart. Great default.',
-        rpm: 5, rpd: 20
-    },
-    'gemini-2.5-flash-lite': {
-        name: 'Gemini 2.5 Flash Lite',
-        provider: 'Google',
-        logo: '💨',
-        badge: 'Lite',
-        desc: 'Lightest 2.5 model. Ultra fast.',
-        rpm: 10, rpd: 20
-    },
+'arcee-ai/trinity-mini:free': {
+  name: 'Trinity Mini (Fast / Lightweight Chat)',
+  provider: 'OpenRouter',
+  logo: '🔹',
+  badge: 'Free'
+},
 
-    // Gemini 2.0
-    'gemini-2.0-flash': {
-        name: 'Gemini 2.0 Flash',
-        provider: 'Google',
-        logo: '🔵',
-        badge: 'Stable',
-        desc: 'Stable and reliable.',
-        rpm: 15, rpd: 1500
-    },
-    'gemini-2.0-flash-exp': {
-        name: 'Gemini 2.0 Flash Exp',
-        provider: 'Google',
-        logo: '🧪',
-        badge: 'Experimental',
-        desc: 'Experimental features.',
-        rpm: 15, rpd: 1500
-    },
-    'gemini-2.0-flash-lite': {
-        name: 'Gemini 2.0 Flash Lite',
-        provider: 'Google',
-        logo: '💨',
-        badge: 'Lite',
-        desc: 'Lightest 2.0 model.',
-        rpm: 15, rpd: 1500
-    },
-    'gemini-2.0-pro-exp': {
-        name: 'Gemini 2.0 Pro Exp',
-        provider: 'Google',
-        logo: '🧪',
-        badge: 'Pro Exp',
-        desc: 'Experimental pro model.',
-        rpm: 15, rpd: 1500
-    },
+'stepfun/step-3.5-flash:free': {
+  name: 'Step 3.5 Flash (Ultra Fast / Short Replies)',
+  provider: 'OpenRouter',
+  logo: '⚡',
+  badge: 'Free'
+},
 
-    // Gemma (open models)
-    'gemma-3-27b': {
-        name: 'Gemma 3 27B',
-        provider: 'Google',
-        logo: '🟢',
-        badge: '27B',
-        desc: 'Largest open Gemma model.',
-        rpm: 30, rpd: 14400
-    },
-    'gemma-3-12b': {
-        name: 'Gemma 3 12B',
-        provider: 'Google',
-        logo: '🟢',
-        badge: '12B',
-        desc: 'Medium Gemma model.',
-        rpm: 30, rpd: 14400
-    },
-    'gemma-3-4b': {
-        name: 'Gemma 3 4B',
-        provider: 'Google',
-        logo: '🟢',
-        badge: '4B',
-        desc: 'Small and fast Gemma.',
-        rpm: 30, rpd: 14400
-    },
-    'gemma-3-2b': {
-        name: 'Gemma 3 2B',
-        provider: 'Google',
-        logo: '🟢',
-        badge: '2B',
-        desc: 'Tiny Gemma. Ultra fast.',
-        rpm: 30, rpd: 14400
-    },
-    'gemma-3-1b': {
-        name: 'Gemma 3 1B',
-        provider: 'Google',
-        logo: '🟢',
-        badge: '1B',
-        desc: 'Smallest Gemma.',
-        rpm: 30, rpd: 14400
-    }
+'z-ai/glm-4.5-air:free': {
+  name: 'GLM 4.5 Air (Smart / Multilingual)',
+  provider: 'OpenRouter',
+  logo: '🌪️',
+  badge: 'Free'
+},
+
+'nvidia/nemotron-3-nano-30b-a3b:free': {
+  name: 'Nemotron 30B Nano (Reasoning / Large Context)',
+  provider: 'OpenRouter',
+  logo: '🟢',
+  badge: 'Free'
+},
+
+'nvidia/nemotron-nano-9b-v2:free': {
+  name: 'Nemotron 9B v2 (Fast / Stable)',
+  provider: 'OpenRouter',
+  logo: '🟩',
+  badge: 'Free'
+},
+
+'openai/gpt-oss-120b:free': {
+  name: 'GPT-OSS 120B (High Intelligence / Heavy)',
+  provider: 'OpenRouter',
+  logo: '🧠',
+  badge: 'Free'
+},
+
+'openai/gpt-oss-20b:free': {
+  name: 'GPT-OSS 20B (Balanced / Smart Chat)',
+  provider: 'OpenRouter',
+  logo: '🧩',
+  badge: 'Free'
+},
+
+'meta-llama/llama-3.3-70b-instruct:free': {
+  name: 'Llama 3.3 70B (Strong Reasoning / Creative)',
+  provider: 'OpenRouter',
+  logo: '🦙',
+  badge: 'Free'
+},
+
+'meta-llama/llama-3.2-3b-instruct:free': {
+  name: 'Llama 3.2 3B (Lightweight / Quick)',
+  provider: 'OpenRouter',
+  logo: '🐐',
+  badge: 'Free'
+},
+
+'google/gemma-3-27b-it:free': {
+  name: 'Gemma 3 27B (Detailed / Long Answers)',
+  provider: 'OpenRouter',
+  logo: '💎',
+  badge: 'Free'
+},
+
+'google/gemma-3-12b-it:free': {
+  name: 'Gemma 3 12B (Balanced / General)',
+  provider: 'OpenRouter',
+  logo: '🔷',
+  badge: 'Free'
+},
+
+'google/gemma-3-4b-it:free': {
+  name: 'Gemma 3 4B (Light / Fast)',
+  provider: 'OpenRouter',
+  logo: '🔵',
+  badge: 'Free'
+},
+
+'google/gemma-3n-e4b-it:free': {
+  name: 'Gemma 3n E4B (Efficient / Optimized)',
+  provider: 'OpenRouter',
+  logo: '🌐',
+  badge: 'Free'
+},
+
+'google/gemma-3n-e2b-it:free': {
+  name: 'Gemma 3n E2B (Ultra Lightweight)',
+  provider: 'OpenRouter',
+  logo: '🫧',
+  badge: 'Free'
+},
+
+'qwen/qwen3-coder:free': {
+  name: 'Qwen 3 Coder (Coding Specialist)',
+  provider: 'OpenRouter',
+  logo: '👨‍💻',
+  badge: 'Free'
+},
+
+'qwen/qwen3-4b:free': {
+  name: 'Qwen 3 4B (General / Compact)',
+  provider: 'OpenRouter',
+  logo: '📘',
+  badge: 'Free'
+},
+
+'mistralai/mistral-small-3.1-24b-instruct:free': {
+  name: 'Mistral Small 3.1 24B (Reasoning / Clean Output)',
+  provider: 'OpenRouter',
+  logo: '🌀',
+  badge: 'Free'
+},
+
+'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': {
+  name: 'Dolphin Mistral 24B (Creative / Personality)',
+  provider: 'OpenRouter',
+  logo: '🐬',
+  badge: 'Free'
+},
+
+'liquid/lfm-2.5-1.2b-thinking:free': {
+  name: 'LFM 2.5 Thinking (Step-by-Step Reasoning)',
+  provider: 'OpenRouter',
+  logo: '🤔',
+  badge: 'Free'
+},
+
+'liquid/lfm-2.5-1.2b-instruct:free': {
+  name: 'LFM 2.5 Instruct (Simple / Fast)',
+  provider: 'OpenRouter',
+  logo: '📄',
+  badge: 'Free'
+},
+
+'nousresearch/hermes-3-llama-3.1-405b:free': {
+  name: 'Hermes 3 Llama 405B (Massive / Deep Intelligence)',
+  provider: 'OpenRouter',
+  logo: '🏛️',
+  badge: 'Free'
+},
+
+'nvidia/llama-nemotron-embed-vl-1b-v2:free': {
+  name: 'Nemotron Embed VL (Embeddings / Vision)',
+  provider: 'OpenRouter',
+  logo: '🖼️',
+  badge: 'Free'
+},
+
+'openrouter/free': {
+  name: 'Select Random (Auto Pick Free Model)',
+  provider: 'OpenRouter',
+  logo: '🎲',
+  badge: 'Free'
+}
 };
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
