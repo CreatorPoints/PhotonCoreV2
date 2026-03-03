@@ -232,96 +232,86 @@ function fmtSize(b){if(!b)return'0 B';const s=['B','KB','MB','GB'];const i=Math.
 function fileIcon(n,d){if(d)return'📁';const e=n.split('.').pop().toLowerCase();return{png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',mp3:'🎵',wav:'🎵',ogg:'🎵',mp4:'🎬',pdf:'📄',doc:'📝',docx:'📝',txt:'📝',zip:'📦',rar:'📦',js:'💻',ts:'💻',py:'💻',cs:'💻',cpp:'💻',html:'🌐',css:'🎨',json:'⚙️',md:'📝',gd:'🎮',godot:'🎮',unity:'🎮',blend:'🎨',psd:'🎨'}[e]||'📄'}
 function formatAi(t){let f=esc(t);f=f.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');f=f.replace(/\*(.*?)\*/g,'<em>$1</em>');f=f.replace(/`(.*?)`/g,'<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');f=f.replace(/\n/g,'<br>');return'<p>'+f+'</p>'}
 
-// === GEMINI API (SECURE VIA NETLIFY FUNCTION) ===
+// === OPENROUTER API (SECURE VIA VERCEL /api/openrouter) ===
 
-function toGeminiMessages(messages){
-    let systemInstruction='';
-    const contents=[];
+
+// Convert internal messages to OpenRouter format
+function toOpenRouterMessages(messages){
+
+    const formatted = [];
 
     for(const msg of messages){
-        if(msg.role==='system'){
-            systemInstruction=msg.content;
-            continue;
-        }
-
-        contents.push({
-            role: msg.role==='assistant' ? 'model' : 'user',
-            parts:[{ text: msg.content }]
+        formatted.push({
+            role: msg.role, // 'system' | 'user' | 'assistant'
+            content: msg.content
         });
     }
 
-    // merge consecutive same-role messages
-    const merged=[];
-    for(const c of contents){
-        if(merged.length>0 && merged[merged.length-1].role===c.role){
-            merged[merged.length-1].parts[0].text += '\n'+c.parts[0].text;
-        }else{
-            merged.push(c);
+    // Merge consecutive same-role messages (cleaner context)
+    const merged = [];
+
+    for(const msg of formatted){
+        if(
+            merged.length > 0 &&
+            merged[merged.length - 1].role === msg.role
+        ){
+            merged[merged.length - 1].content += "\n" + msg.content;
+        } else {
+            merged.push({ ...msg });
         }
     }
 
-    if(merged.length>0 && merged[0].role==='model'){
-        merged.unshift({ role:'user', parts:[{ text:'(start)' }] });
-    }
-
-    return { systemInstruction, contents: merged };
+    return merged;
 }
+
 
 
 // ===== NON-STREAMING =====
 async function geminiChat(messages, modelId){
 
-    const { systemInstruction, contents } = toGeminiMessages(messages);
+    const formattedMessages = toOpenRouterMessages(messages);
 
-    const body = { contents };
-    if(systemInstruction){
-        body.systemInstruction = { parts:[{ text: systemInstruction }] };
-    }
-
-    const r = await fetch("/.netlify/functions/gemini", {
+    const r = await fetch("/api/openrouter", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
         body: JSON.stringify({
-            messages: body,
             modelId,
+            messages: formattedMessages,
             stream: false
         })
     });
 
     if(!r.ok){
         const err = await r.text().catch(()=> '');
-        throw new Error("Server error: "+r.status+" "+err);
+        throw new Error("Server error: " + r.status + " " + err);
     }
 
     const data = await r.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+
+    return data?.choices?.[0]?.message?.content || "No response.";
 }
+
 
 
 
 // ===== STREAMING =====
 async function* geminiChatStream(messages, modelId){
 
-    const { systemInstruction, contents } = toGeminiMessages(messages);
+    const formattedMessages = toOpenRouterMessages(messages);
 
-    const body = { contents };
-    if(systemInstruction){
-        body.systemInstruction = { parts:[{ text: systemInstruction }] };
-    }
-
-    const r = await fetch("/.netlify/functions/gemini", {
+    const r = await fetch("/api/openrouter", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
         body: JSON.stringify({
-            messages: body,
             modelId,
+            messages: formattedMessages,
             stream: true
         })
     });
 
     if(!r.ok){
         const err = await r.text().catch(()=> '');
-        throw new Error("Server error: "+r.status+" "+err);
+        throw new Error("Server error: " + r.status + " " + err);
     }
 
     const reader = r.body.getReader();
@@ -339,14 +329,15 @@ async function* geminiChatStream(messages, modelId){
 
         for(const line of lines){
             const trimmed = line.trim();
-            if(!trimmed || !trimmed.startsWith('data: ')) continue;
+            if(!trimmed || !trimmed.startsWith('data:')) continue;
 
-            const data = trimmed.slice(6);
-            if(data === '[DONE]') return;
+            const payload = trimmed.replace(/^data:\s*/, '');
+
+            if(payload === '[DONE]') return;
 
             try{
-                const parsed = JSON.parse(data);
-                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                const parsed = JSON.parse(payload);
+                const text = parsed?.choices?.[0]?.delta?.content;
                 if(text) yield text;
             }catch{}
         }
