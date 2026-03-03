@@ -626,30 +626,22 @@ async function sendAiMessage() {
         let fullText = '';
         const { div, target, cursor } = createStreamBubble(modelName);
 
-        try {
-            // Try streaming first
-            if (typeof openRouterChatStream === 'function') {
-                const stream = openRouterChatStream(messages, modelId);
-                for await (const chunk of stream) {
-                    if (chunk) {
-                        fullText += chunk;
-                        target.insertBefore(document.createTextNode(chunk), cursor);
-                        if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
-                    }
-                }
-            } else {
-                throw new Error('Streaming not available');
-            }
-        } catch (streamError) {
-            console.warn('Stream fallback:', streamError);
-            // Fallback to non-streaming
-            if (typeof openRouterChat === 'function') {
-                fullText = await openRouterChat(messages, modelId);
-                target.textContent = fullText;
-            } else {
-                throw new Error('No AI chat function available');
-            }
+       try {
+    // Try streaming first
+    const stream = openRouterChatStream(messages, modelId);
+    for await (const chunk of stream) {
+        if (chunk) {
+            fullText += chunk;
+            target.insertBefore(document.createTextNode(chunk), cursor);
+            if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
         }
+    }
+} catch (streamError) {
+    console.warn('Stream fallback:', streamError);
+    // Fallback to non-streaming
+    fullText = await openRouterChat(messages, modelId);
+    target.textContent = fullText;
+}
 
         // Finalize the response bubble
         cursor.remove();
