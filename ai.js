@@ -221,7 +221,7 @@ if (fileOp) {
 
     try{
         let sysPr='You are a helpful AI for Photon Studios (indie game dev team). Group chat. Be friendly.'+getMemoryContext();
-        if(toolResult)sysPr+='\n\nFILE RESULT:\n'+toolResult+'\n\nReport naturally.';
+        
         const hist=state.currentChatMessages.filter(m=>m.sender==='user'||m.sender==='ai').slice(-10).map(m=>({role:m.sender==='user'?'user':'assistant',content:m.sender==='user'?'['+m.author+']: '+m.text:m.text}));
         hist[hist.length-1]={role:'user',content:'['+username+']: '+displayMsg+savedCtx};
         const messages=[{role:'system',content:sysPr},...hist];
@@ -241,7 +241,7 @@ if (fileOp) {
 
         cursor.remove();target.innerHTML=formatAi(fullText);
         const tag=document.createElement('span');tag.className='ai-model-tag';tag.textContent=(md?.logo||'🔵')+' '+modelName;div.querySelector('.ai-bubble').appendChild(tag);
-        if(toolResult){const tr=document.createElement('div');tr.className='tool-result';tr.textContent='📂 '+toolResult.substring(0,200);div.querySelector('.ai-bubble').appendChild(tr)}
+       
         dom.aiChat.scrollTop=dom.aiChat.scrollHeight;
         if(writeOp){const result=await aiWriteFile(writeOp[1],fullText);showToast(result,'success')}
 
