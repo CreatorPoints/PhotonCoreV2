@@ -126,7 +126,7 @@ function renderChatHistory(){
 
 function clearChatUI(){
     if(!dom.aiChat)return;
-    dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by Google Gemini.</p></div></div>';
+    dom.aiChat.innerHTML='<div class="ai-message ai-welcome"><div class="ai-avatar">🤖</div><div class="ai-bubble"><p>👋 Ready! Powered by OpenRouter.</p></div></div>';
 }
 
 // === FILE ATTACHMENT ===
@@ -180,10 +180,49 @@ if (fileOp) {
     else if (fileOp.op === 'delete')
         result = await aiDeleteFile(fileOp.name);
 
-    else if (fileOp.op === 'write') {
-        // Optional: extract content better later
+    else if (fileOp.op === 'write')
         result = await aiWriteFile(fileOp.name, msg);
+
+    else if (fileOp.op === 'upload-attached') {
+        if (!state.attachedFile) {
+            result = '⚠️ No attached file to upload.';
+        } else {
+            try {
+                await puter.fs.write(
+                    'PhotonCore/files/' + state.attachedFileName,
+                    new Blob(
+                        [await state.attachedFile.arrayBuffer()],
+                        { type: state.attachedFile.type }
+                    ),
+                    { dedupeName: false, overwrite: true }
+                );
+
+                await loadFiles();
+                result = `☁️ Uploaded "${state.attachedFileName}" to cloud!`;
+            } catch (e) {
+                result = '⚠️ Upload failed: ' + e.message;
+            }
+        }
     }
+
+    const aiMsg = {
+        text: result,
+        sender: 'ai',
+        author: modelName,
+        modelName,
+        timestamp: new Date().toISOString()
+    };
+
+    state.currentChatMessages.push(aiMsg);
+    appendStatic(result, 'ai', modelName, modelName);
+    await saveCurrentChat();
+
+    addActivity('📂 ' + username + ' used cloud');
+    state.aiQueryCount++;
+    if (dom.statAi) dom.statAi.textContent = state.aiQueryCount;
+
+    return; 
+}
 
     // Append AI response immediately
     const aiMsg = {
@@ -229,13 +268,13 @@ if (fileOp) {
 
         let fullText='';const{div,target,cursor}=createStreamBubble(modelName);
         try{
-            const stream=geminiChatStream(messages,modelId);
+            const stream=openRouterChatStream(messages,modelId);
             for await(const chunk of stream){
                 if(chunk){fullText+=chunk;target.insertBefore(document.createTextNode(chunk),cursor);dom.aiChat.scrollTop=dom.aiChat.scrollHeight}
             }
         }catch(se){
             console.warn('Stream fallback:',se);
-            fullText=await geminiChat(messages,modelId);
+            fullText=await openRouterChat(messages,modelId);
             target.textContent=fullText;
         }
 
