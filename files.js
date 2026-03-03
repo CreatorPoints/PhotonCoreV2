@@ -168,39 +168,65 @@ async function aiDeleteFile(name) {
    ============================== */
 
 function detectFileOperation(msg) {
-    const l = msg.toLowerCase();
+    if (!msg) return null;
 
-    /* --- LIST / CLOUD CHECK --- */
+    const l = msg.toLowerCase().trim();
+
+    /* =========================
+       LIST / CLOUD VIEW
+    ========================== */
+
     if (
-        l.match(/list\s*(my\s*)?(cloud\s*)?files/) ||
-        l.match(/show\s*(my\s*)?(cloud\s*)?files/) ||
-        l.match(/check\s*(the\s*)?cloud/) ||
-        l.match(/what'?s?\s*in\s*(the\s*)?cloud/) ||
-        l.match(/see\s*(the\s*)?cloud/) ||
+        /(list|show|display|see|view|check|open).*(cloud|files|storage|directory)/i.test(l) ||
+        /(what('| i)?s|whats).*(in|inside).*(cloud|storage)/i.test(l) ||
         l === 'cloud' ||
         l === 'files'
-    ) return { op: 'list' };
+    ) {
+        return { op: 'list' };
+    }
 
-    /* --- READ FILE --- */
-    const readMatch = msg.match(
-        /(?:read|open|show|get)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/i
-    );
-    if (readMatch)
-        return { op: 'read', name: readMatch[1] };
+    /* =========================
+       READ FILE
+    ========================== */
 
-    /* --- WRITE FILE --- */
-    const writeMatch = msg.match(
-        /(?:save|write|create)\s+(?:this\s+)?(?:as|to)?\s*['"]?([a-zA-Z0-9_\-\.]+)['"]?/i
+    const readMatch = l.match(
+        /(read|open|view|show|get).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
     );
-    if (writeMatch)
-        return { op: 'write', name: writeMatch[1] };
+    if (readMatch) {
+        return { op: 'read', name: readMatch[3] };
+    }
 
-    /* --- DELETE FILE --- */
-    const deleteMatch = msg.match(
-        /(?:delete|remove)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/i
+    /* =========================
+       DELETE FILE
+    ========================== */
+
+    const deleteMatch = l.match(
+        /(delete|remove|erase|trash).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
     );
-    if (deleteMatch)
-        return { op: 'delete', name: deleteMatch[1] };
+    if (deleteMatch) {
+        return { op: 'delete', name: deleteMatch[3] };
+    }
+
+    /* =========================
+       WRITE / CREATE FILE
+    ========================== */
+
+    const writeMatch = l.match(
+        /(create|make|write|generate|save).*(file)?\s+['"]?([a-zA-Z0-9_\-\.]+)['"]?/
+    );
+    if (writeMatch) {
+        return { op: 'write', name: writeMatch[3] };
+    }
+
+    /* =========================
+       UPLOAD ATTACHED FILE
+    ========================== */
+
+    if (
+        /(upload|add|put|store|save).*(this|attached|file).*(cloud|storage)/i.test(l)
+    ) {
+        return { op: 'upload-attached' };
+    }
 
     return null;
 }
