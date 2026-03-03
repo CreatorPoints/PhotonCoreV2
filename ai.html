@@ -5,331 +5,219 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant — Photon Core</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- Scripts -->
     <script src="https://js.puter.com/v2/"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Markdown + Highlight -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
-<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
 </head>
+
 <body>
+<div id="app" class="app">
 
-    <div id="app" class="app">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-small">⚡</div>
-                <span class="logo-text">Photon Core</span>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-item" data-tab="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
-                <a href="discussions.html" class="nav-item" data-tab="discussions"><span class="nav-icon">💬</span><span class="nav-label">Discussions</span></a>
-                <a href="files.html" class="nav-item" data-tab="files"><span class="nav-icon">📁</span><span class="nav-label">Files</span></a>
-                <a href="ai.html" class="nav-item active" data-tab="ai"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
-                <a href="members.html" class="nav-item" data-tab="members"><span class="nav-icon">👥</span><span class="nav-label">Members</span></a>
-            </nav>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">?</div>
-                    <div class="user-details">
-                        <span class="user-name" id="user-name">Loading...</span>
-                        <span class="user-role">Member</span>
-                    </div>
-                </div>
-                <button id="btn-sign-out" class="btn-icon" title="Sign Out">🚪</button>
-            </div>
-        </aside>
-
-        <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
-                    <h2 id="page-title">AI Assistant</h2>
-                </div>
-                <div class="header-right">
-                    <div class="online-count-badge">
-                        <span class="status-dot online"></span>
-                        <span id="online-count">0</span> online
-                    </div>
-                </div>
-            </header>
-
-            <div class="content-area">
-                <section id="tab-ai" class="tab-content active">
-    <div class="tab-header">
-        <h2>🤖 AI Assistant</h2>
-        <p>Powered entirely by OpenRouter. Multi-model AI. Shared group chat. File tools. Smart memory.</p>
-    </div>
-
-    <div class="ai-layout">
-
-        <!-- LEFT HISTORY PANEL -->
-        <div class="chat-history-panel">
-            <div class="chat-history-header">
-                <h3>🕒 History</h3>
-                <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
-            </div>
-            <div id="chat-history-list" class="chat-history-list">
-                <div class="empty-state small"><p>No chats</p></div>
-            </div>
-            <div class="chat-history-footer">
-                <span class="chat-auto-delete-note">💡 Auto-delete after 30 days</span>
-            </div>
+    <!-- SIDEBAR (UNCHANGED STRUCTURE) -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-small">⚡</div>
+            <span class="logo-text">Photon Core</span>
         </div>
 
-        <!-- MAIN AI PANEL -->
-        <div class="ai-container">
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+            <a href="discussions.html" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Discussions</span></a>
+            <a href="files.html" class="nav-item"><span class="nav-icon">📁</span><span class="nav-label">Files</span></a>
+            <a href="ai.html" class="nav-item active"><span class="nav-icon">🤖</span><span class="nav-label">AI Assistant</span></a>
+            <a href="members.html" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Members</span></a>
+        </nav>
 
-            <!-- MODEL SELECTOR -->
-   <div class="ai-model-selector">
-    <div class="model-selector-header">
-        <span class="model-selector-label">🧠 AI Model:</span>
-        <span class="model-active-badge" id="model-active-badge">Select Random</span>
-    </div>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <div class="user-details">
+                    <span class="user-name" id="user-name">Loading...</span>
+                    <span class="user-role">Member</span>
+                </div>
+            </div>
+            <button id="btn-sign-out" class="btn-icon">🚪</button>
+        </div>
+    </aside>
 
-    <select id="ai-model-select" class="select model-dropdown">
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
 
-        <!-- RANDOM -->
-        <optgroup label="🎲 Random">
-            <option value="openrouter/free" selected>
-                🎲 Select Random (Auto Pick Best Free Model)
-            </option>
-        </optgroup>
+        <header class="top-header">
+            <div class="header-left">
+                <button id="mobile-menu-btn" class="btn-icon mobile-only">☰</button>
+                <h2>AI Assistant</h2>
+            </div>
+            <div class="header-right">
+                <div class="online-count-badge">
+                    <span class="status-dot online"></span>
+                    <span id="online-count">0</span> online
+                </div>
+            </div>
+        </header>
 
-        <!-- META LLAMA -->
-        <optgroup label="🦙 Meta LLaMA">
-            <option value="meta-llama/llama-3.3-70b-instruct:free">
-                🦙 LLaMA 3.3 70B (Powerful Reasoning)
-            </option>
-            <option value="meta-llama/llama-3.2-3b-instruct:free">
-                🦙 LLaMA 3.2 3B (Fast + Lightweight)
-            </option>
-            <option value="nousresearch/hermes-3-llama-3.1-405b:free">
-                🧠 Hermes 3 405B (Ultra Large Brain)
-            </option>
-        </optgroup>
+        <div class="content-area">
+            <div class="ai-layout">
 
-        <!-- GOOGLE -->
-        <optgroup label="🟢 Google Gemma">
-            <option value="google/gemma-3-27b-it:free">
-                🟢 Gemma 3 27B (Balanced Power)
-            </option>
-            <option value="google/gemma-3-12b-it:free">
-                🟢 Gemma 3 12B (Creative + Stable)
-            </option>
-            <option value="google/gemma-3-4b-it:free">
-                🟢 Gemma 3 4B (Fast + Efficient)
-            </option>
-            <option value="google/gemma-3n-e4b-it:free">
-                🟢 Gemma 3N E4B (Optimized Variant)
-            </option>
-            <option value="google/gemma-3n-e2b-it:free">
-                🟢 Gemma 3N E2B (Ultra Lightweight)
-            </option>
-        </optgroup>
+                <!-- HISTORY PANEL -->
+                <aside class="chat-history-panel">
+                    <div class="chat-history-header">
+                        <h3>🕒 Chat History</h3>
+                        <button id="btn-new-chat" class="btn btn-primary btn-small">+ New</button>
+                    </div>
 
-        <!-- OPENAI OSS -->
-        <optgroup label="🤖 OpenAI OSS">
-            <option value="openai/gpt-oss-120b:free">
-                🤖 GPT-OSS 120B (High Intelligence)
-            </option>
-            <option value="openai/gpt-oss-20b:free">
-                🤖 GPT-OSS 20B (Balanced Performance)
-            </option>
-        </optgroup>
+                    <div id="chat-history-list" class="chat-history-list">
+                        <div class="empty-state small"><p>No chats yet</p></div>
+                    </div>
 
-        <!-- NVIDIA -->
-        <optgroup label="🟣 NVIDIA">
-            <option value="nvidia/nemotron-3-nano-30b-a3b:free">
-                🟣 Nemotron 30B (Enterprise Logic)
-            </option>
-            <option value="nvidia/nemotron-nano-9b-v2:free">
-                🟣 Nemotron 9B v2 (Efficient Reasoning)
-            </option>
-            <option value="nvidia/llama-nemotron-embed-vl-1b-v2:free">
-                🟣 LLaMA Nemotron Embed (Embedding + Vision)
-            </option>
-        </optgroup>
+                    <div class="chat-history-footer">
+                        <span class="chat-auto-delete-note">Auto-delete after 30 days</span>
+                    </div>
+                </aside>
 
-        <!-- QWEN -->
-        <optgroup label="🟡 Qwen">
-            <option value="qwen/qwen3-coder:free">
-                🟡 Qwen3 Coder (Code Specialist)
-            </option>
-            <option value="qwen/qwen3-4b:free">
-                🟡 Qwen3 4B (General Purpose)
-            </option>
-        </optgroup>
+                <!-- AI MAIN -->
+                <div class="ai-container">
 
-        <!-- MISTRAL -->
-        <optgroup label="🔵 Mistral">
-            <option value="mistralai/mistral-small-3.1-24b-instruct:free">
-                🔵 Mistral Small 3.1 (Instruction Tuned)
-            </option>
-            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">
-                🐬 Dolphin Mistral 24B (Creative + Chatty)
-            </option>
-        </optgroup>
+                    <!-- MODEL SELECTOR (FULL VERSION ADDED) -->
+                    <div class="ai-model-selector">
 
-      <!-- ARCEE -->
-<optgroup label="🟠 Arcee AI">
-    <option value="arcee-ai/trinity-large-preview:free">
-        🟠 Arcee Large (Advanced Reasoning)
-    </option>
-    <option value="arcee-ai/trinity-mini:free">
-        🟠 Arcee Mini (Fast + Lightweight)
-    </option>
-</optgroup>
+                        <div class="model-selector-header">
+                            <span class="model-selector-label">🧠 AI Model:</span>
+                            <span class="model-active-badge" id="model-active-badge">Select Random</span>
+                        </div>
 
-        <!-- LIQUID -->
-        <optgroup label="💧 Liquid AI">
-            <option value="liquid/lfm-2.5-1.2b-thinking:free">
-                💧 LFM Thinking (Deep Reasoning Mode)
-            </option>
-            <option value="liquid/lfm-2.5-1.2b-instruct:free">
-                💧 LFM Instruct (General Assistant)
-            </option>
-        </optgroup>
+                        <select id="ai-model-select" class="select model-dropdown">
 
-        <!-- STEPFUN -->
-        <optgroup label="⚡ Stepfun">
-            <option value="stepfun/step-3.5-flash:free">
-                ⚡ Step 3.5 Flash (Ultra Fast)
-            </option>
-        </optgroup>
+                            <optgroup label="🎲 Random">
+                                <option value="openrouter/free" selected>
+                                    🎲 Select Random (Auto Pick Best Free Model)
+                                </option>
+                            </optgroup>
 
-        <!-- Z-AI -->
-        <optgroup label="🔴 Z-AI">
-            <option value="z-ai/glm-4.5-air:free">
-                🔴 GLM 4.5 Air (Balanced + Smart)
-            </option>
-        </optgroup>
+                            <optgroup label="🦙 Meta LLaMA">
+                                <option value="meta-llama/llama-3.3-70b-instruct:free">🦙 LLaMA 3.3 70B</option>
+                                <option value="meta-llama/llama-3.2-3b-instruct:free">🦙 LLaMA 3.2 3B</option>
+                                <option value="nousresearch/hermes-3-llama-3.1-405b:free">🧠 Hermes 3 405B</option>
+                            </optgroup>
 
-    </select>
+                            <optgroup label="🟢 Google Gemma">
+                                <option value="google/gemma-3-27b-it:free">🟢 Gemma 3 27B</option>
+                                <option value="google/gemma-3-12b-it:free">🟢 Gemma 3 12B</option>
+                                <option value="google/gemma-3-4b-it:free">🟢 Gemma 3 4B</option>
+                                <option value="google/gemma-3n-e4b-it:free">🟢 Gemma 3N E4B</option>
+                                <option value="google/gemma-3n-e2b-it:free">🟢 Gemma 3N E2B</option>
+                            </optgroup>
 
-    <div class="model-info-bar">
-        <span class="model-info-icon">💡</span>
-        <span class="model-info-text" id="model-info-text">
-            All models are free via OpenRouter. Some may have rate limits or queue delays.
-        </span>
-    </div>
+                            <optgroup label="🤖 OpenAI OSS">
+                                <option value="openai/gpt-oss-120b:free">🤖 GPT-OSS 120B</option>
+                                <option value="openai/gpt-oss-20b:free">🤖 GPT-OSS 20B</option>
+                            </optgroup>
+
+                            <optgroup label="🟣 NVIDIA">
+                                <option value="nvidia/nemotron-3-nano-30b-a3b:free">🟣 Nemotron 30B</option>
+                                <option value="nvidia/nemotron-nano-9b-v2:free">🟣 Nemotron 9B v2</option>
+                                <option value="nvidia/llama-nemotron-embed-vl-1b-v2:free">🟣 Nemotron Embed VL</option>
+                            </optgroup>
+
+                            <optgroup label="🟡 Qwen">
+                                <option value="qwen/qwen3-coder:free">🟡 Qwen3 Coder</option>
+                                <option value="qwen/qwen3-4b:free">🟡 Qwen3 4B</option>
+                            </optgroup>
+
+                            <optgroup label="🔵 Mistral">
+                                <option value="mistralai/mistral-small-3.1-24b-instruct:free">🔵 Mistral 24B</option>
+                                <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">🐬 Dolphin 24B</option>
+                            </optgroup>
+
+                            <optgroup label="🧡 Arcee AI">
+                                <option value="arcee-ai/trinity-large-preview:free">🧡 Trinity Large</option>
+                                <option value="arcee-ai/trinity-mini:free">🧡 Trinity Mini</option>
+                            </optgroup>
+
+                            <optgroup label="💧 Liquid AI">
+                                <option value="liquid/lfm-2.5-1.2b-thinking:free">💧 LFM Thinking</option>
+                                <option value="liquid/lfm-2.5-1.2b-instruct:free">💧 LFM Instruct</option>
+                            </optgroup>
+
+                            <optgroup label="⚡ Stepfun">
+                                <option value="stepfun/step-3.5-flash:free">⚡ Step 3.5 Flash</option>
+                            </optgroup>
+
+                            <optgroup label="🔴 Z-AI">
+                                <option value="z-ai/glm-4.5-air:free">🔴 GLM 4.5 Air</option>
+                            </optgroup>
+
+                        </select>
+
+                        <div class="model-info-bar">
+                            <span class="model-info-icon">💡</span>
+                            <span class="model-info-text" id="model-info-text">
+                                All models are free via OpenRouter. Some may have rate limits or queue delays.
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- CHAT WINDOW -->
+                    <div class="ai-chat" id="ai-chat">
+                        <div class="ai-message ai-welcome">
+                            <div class="ai-avatar">🤖</div>
+                            <div class="ai-bubble">
+                                <p><strong>Welcome to Photon Core AI</strong></p>
+                                <p>• Real-time shared group chat</p>
+                                <p>• Smart memory across sessions</p>
+                                <p>• Cloud file tools supported</p>
+                                <p>• 20+ free OpenRouter models</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INPUT -->
+                    <div class="ai-input-area">
+                        <button class="btn-icon ai-attach-btn" id="btn-ai-attach">📎</button>
+                        <input type="file" id="ai-file-input" hidden>
+
+                        <textarea
+                            id="ai-input"
+                            class="textarea"
+                            rows="3"
+                            placeholder="Ask AI, manage files, or chat with your team..."
+                        ></textarea>
+
+                        <button id="btn-ai-send" class="btn btn-primary">
+                            <span id="ai-send-text">Send ⚡</span>
+                            <span id="ai-loading" class="hidden">Thinking...</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
 
+<div id="toast-container" class="toast-container"></div>
 
-            <!-- MEMORY TIP -->
-            <div class="memory-tip-banner" id="memory-tip-banner">
-                <div class="tip-icon">🧠</div>
-                <div class="tip-content">
-                    <strong>AI Memory + File Tools</strong>
-                    <p>
-                        AI <strong>auto-remembers</strong> important info.
-                        It can also <strong>read, write, list & delete</strong> files from your cloud.
-                        Try: <span class="tip-keyword">"list my files"</span>
-                        or <span class="tip-keyword">"save this code as main.py"</span>
-                    </p>
-                </div>
-                <button class="tip-dismiss" id="btn-dismiss-tip">✕</button>
-            </div>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="presence.js"></script>
+<script src="discussions.js"></script>
+<script src="files.js"></script>
+<script src="ai.js"></script>
+<script src="ui.js"></script>
+<script src="boot.js"></script>
 
-            <!-- MEMORY PANEL -->
-            <div class="memory-panel">
-                <div class="memory-header">
-                    <span>🧠 Shared Memory (<span id="memory-count">0</span>)</span>
-                    <div class="memory-actions">
-                        <button class="btn btn-secondary btn-small" id="btn-toggle-memory">Show</button>
-                        <button class="btn btn-secondary btn-small btn-danger-text" id="btn-clear-memory">Clear</button>
-                    </div>
-                </div>
-                <div class="memory-list hidden" id="memory-list"></div>
-            </div>
-
-            <!-- BOT IDENTITY -->
-            <div class="bot-identity-bar">
-                <div class="bot-logo" id="bot-logo">🟠</div>
-                <div class="bot-info">
-                    <span class="bot-name" id="bot-name">Select Random</span>
-                    <span class="bot-provider" id="bot-provider">via OpenRouter</span>
-                </div>
-                <span class="bot-badge" id="bot-badge">Free</span>
-            </div>
-
-            <!-- GROUP CHAT -->
-            <div class="group-chat-indicator">
-                <span class="group-icon">👥</span>
-                <span class="group-text">
-                    Shared Group Chat — Real-time via Firebase
-                </span>
-                <div class="typing-indicator hidden" id="typing-indicator">
-                    <span class="typing-user" id="typing-user">AI</span>
-                    <span> is typing</span>
-                    <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
-                </div>
-            </div>
-
-            <!-- PRESETS -->
-            <div class="ai-presets">
-                <button class="preset-btn" data-prompt="Generate a unique indie game concept">🎮 Game Idea</button>
-                <button class="preset-btn" data-prompt="List my cloud files">📂 List Files</button>
-                <button class="preset-btn" data-prompt="Write a GDD outline and save it as gdd.md">📄 GDD</button>
-                <button class="preset-btn" data-prompt="Write NPC dialogue for a fantasy RPG">🗣️ Dialogue</button>
-            </div>
-
-            <!-- CHAT WINDOW -->
-            <div class="ai-chat" id="ai-chat">
-                <div class="ai-message ai-welcome">
-                    <div class="ai-avatar">🤖</div>
-                    <div class="ai-bubble">
-                        <p>Hey Photon Studios! 👋 <strong>Group chat</strong> — shared in real-time.</p>
-                        <p>📂 I can <strong>read, write, list & delete</strong> your cloud files.</p>
-                        <p>🧠 I <strong>auto-remember</strong> important info for the whole team.</p>
-                        <p>🟠 Powered by <strong>OpenRouter</strong> — 20+ AI models available.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ATTACHMENT PREVIEW -->
-            <div class="ai-attachment-preview hidden" id="ai-attachment-preview">
-                <div class="attachment-info">
-                    <span class="attachment-icon" id="attachment-icon">📎</span>
-                    <span class="attachment-name" id="attachment-name">file.txt</span>
-                    <span class="attachment-size" id="attachment-size">0 KB</span>
-                </div>
-                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
-            </div>
-
-            <!-- INPUT -->
-            <div class="ai-input-area">
-                <button class="btn-icon ai-attach-btn" id="btn-ai-attach" title="Attach file">📎</button>
-                <input type="file" id="ai-file-input" hidden>
-                <textarea id="ai-input"
-                    placeholder="Ask AI, manage files, or chat with the team..."
-                    class="textarea"
-                    rows="2"></textarea>
-                <button id="btn-ai-send" class="btn btn-primary">
-                    <span id="ai-send-text">Send ⚡</span>
-                    <span id="ai-loading" class="hidden">Thinking...</span>
-                </button>
-            </div>
-
-        </div>
-    </div>
-</section>
-            </div>
-        </main>
-    </div>
-
-    <div id="toast-container" class="toast-container"></div>
-
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
-    <script src="presence.js"></script>
-    <script src="discussions.js"></script>
-    <script src="files.js"></script>
-    <script src="ai.js"></script>
-    <script src="ui.js"></script>
-    <script src="boot.js"></script>
 </body>
 </html>
