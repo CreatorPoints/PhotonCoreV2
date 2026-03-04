@@ -10,7 +10,7 @@ window.state = {
     files: [],
     aiQueryCount: 0,
     currentFilter: 'all',
-    selectedModel: null, // Will be set after AI_MODELS is defined
+    selectedModel: null,
     memories: [],
     chatSessions: [],
     currentChatId: null,
@@ -26,6 +26,9 @@ window.state = {
 
 window.dom = {};
 
+// Firebase service variables (will be initialized later)
+let auth, db, rtdb, storage, storageRef, filesRef;
+
 // ========== FIREBASE CONFIG ==========
 const firebaseConfig = {
     apiKey: "AIzaSyCUNuQNPgQ8P8PPTworUPZ1NFcTAUd2ueU",
@@ -38,27 +41,72 @@ const firebaseConfig = {
     measurementId: "G-3DT2FW953X"
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+/**
+ * Initialize Firebase - called when Firebase SDK is ready
+ */
+function initFirebase() {
+    if (typeof firebase === 'undefined') {
+        console.error('Firebase SDK not loaded');
+        return false;
+    }
+    
+    try {
+        // Initialize Firebase app
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Initialize services
+        if (firebase.auth) {
+            auth = firebase.auth();
+            window.auth = auth;
+        } else {
+            console.warn('Firebase Auth not available');
+        }
+        
+        if (firebase.firestore) {
+            db = firebase.firestore();
+            window.db = db;
+        } else {
+            console.warn('Firebase Firestore not available');
+        }
+        
+        if (firebase.database) {
+            rtdb = firebase.database();
+            window.rtdb = rtdb;
+        } else {
+            console.warn('Firebase Realtime Database not available');
+        }
+        
+        if (firebase.storage) {
+            storage = firebase.storage();
+            window.storage = storage;
+            storageRef = storage.ref();
+            filesRef = storageRef.child('files');
+            window.storageRef = storageRef;
+            window.filesRef = filesRef;
+        } else {
+            console.warn('Firebase Storage not available');
+        }
+        
+        console.log('✓ Firebase initialized:', {
+            auth: !!auth,
+            db: !!db,
+            rtdb: !!rtdb,
+            storage: !!storage
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
+        return false;
+    }
 }
 
-// Firebase Services
-const auth = firebase.auth();
-const db = firebase.firestore();
-const rtdb = firebase.database();
-const storage = firebase.storage();
-
-// Storage reference helper
-const storageRef = storage.ref();
-const filesRef = storageRef.child('files');
-
-console.log('Firebase initialized:', {
-    auth: !!auth,
-    db: !!db,
-    rtdb: !!rtdb,
-    storage: !!storage
-});
+// Try to initialize Firebase immediately if available
+if (typeof firebase !== 'undefined') {
+    initFirebase();
+}
 
 // ========== AI MODELS ==========
 const AI_MODELS = {
@@ -209,8 +257,6 @@ const AI_MODELS = {
 };
 
 const DEFAULT_MODEL = 'google/gemma-3-4b-it:free';
-
-// Set default model
 state.selectedModel = DEFAULT_MODEL;
 
 // ========== DOM INITIALIZATION ==========
@@ -232,9 +278,9 @@ function initDom() {
         'ai-attachment-preview', 'attachment-icon', 'attachment-name', 'attachment-size',
         'btn-remove-attachment', 'members-grid', 'profile-name', 'profile-role',
         'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container',
-        // New AI page elements
         'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory', 
-        'memory-count-panel', 'model-logo-panel', 'model-name-panel'
+        'memory-count-panel', 'model-logo-panel', 'model-name-panel',
+        'sidebar-overlay', 'ai-sidebar', 'memory-panel'
     ];
     
     elementIds.forEach(id => {
@@ -247,19 +293,28 @@ function initDom() {
 
 // ========== UTILITY FUNCTIONS ==========
 function showToast(m, t = 'info') {
-    if (!dom.toastContainer) {
-        console.warn('Toast container not found');
-        return;
+    let container = dom.toastContainer || document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
     }
+    
     const e = document.createElement('div');
     e.className = 'toast ' + t;
-    e.innerHTML = '<span>' + ({ success: '✅', error: '❌', info: 'ℹ️' }[t] || 'ℹ️') + '</span><span>' + m + '</span>';
-    dom.toastContainer.appendChild(e);
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    e.innerHTML = '<span>' + (icons[t] || 'ℹ️') + '</span><span>' + m + '</span>';
+    container.appendChild(e);
+    
     setTimeout(() => {
-        e.style.animation = 'to .3s ease forwards';
+        e.style.animation = 'toastOut 0.3s ease forwards';
         setTimeout(() => e.remove(), 300);
     }, 3500);
 }
+
+// Make showToast globally available
+window.showToast = showToast;
 
 function esc(t) {
     const d = document.createElement('div');
@@ -410,4 +465,13 @@ async function* openRouterChatStream(messages, modelId) {
     }
 }
 
-console.log('Config loaded - State and Firebase ready');
+// Make functions globally available
+window.initFirebase = initFirebase;
+window.initDom = initDom;
+window.esc = esc;
+window.fmtDate = fmtDate;
+window.fmtSize = fmtSize;
+window.fileIcon = fileIcon;
+window.formatAi = formatAi;
+
+console.log('✓ Config.js loaded');
