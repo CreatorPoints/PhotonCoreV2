@@ -779,3 +779,178 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     dom.aiChat.appendChild(div);
     dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
 }
+
+/* ========================================
+   AI PAGE CONTROLLER
+   New ChatGPT-like UI Integration
+   ======================================== */
+
+function initAIPageController() {
+    if (!document.querySelector('.ai-page-wrapper')) return; // Only run on AI page
+    
+    setupAISidebar();
+    setupAIModelSelector();
+    setupAIMemoryPanel();
+    setupAIInput();
+    setupAISuggestions();
+}
+
+// Sidebar toggle
+function setupAISidebar() {
+    const sidebar = document.getElementById('ai-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const toggleBtn = document.getElementById('btn-toggle-sidebar');
+
+    toggleBtn?.addEventListener('click', () => {
+        sidebar?.classList.toggle('open');
+        overlay?.classList.toggle('visible');
+    });
+
+    overlay?.addEventListener('click', () => {
+        sidebar?.classList.remove('open');
+        document.getElementById('memory-panel')?.classList.add('collapsed');
+        overlay?.classList.remove('visible');
+    });
+}
+
+// Model selector
+function setupAIModelSelector() {
+    const selector = document.getElementById('model-selector');
+    const btn = document.getElementById('model-selector-btn');
+    const search = document.getElementById('model-search');
+    const options = document.querySelectorAll('.model-option');
+
+    btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selector?.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!selector?.contains(e.target)) {
+            selector?.classList.remove('open');
+        }
+    });
+
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            const value = option.dataset.value;
+            const icon = option.dataset.icon;
+            const name = option.dataset.name;
+
+            document.getElementById('model-icon').textContent = icon;
+            document.getElementById('model-name').textContent = name;
+            document.getElementById('model-logo-panel').textContent = icon;
+            document.getElementById('model-name-panel').textContent = name;
+
+            options.forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+
+            state.selectedModel = value;
+            if (typeof puter !== 'undefined') {
+                puter.kv.set('photon_selected_model', value).catch(() => {});
+            }
+
+            selector?.classList.remove('open');
+            showToast(`Switched to ${name} ✨`, 'success');
+        });
+    });
+
+    search?.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        options.forEach(option => {
+            const name = option.dataset.name?.toLowerCase() || '';
+            const desc = option.querySelector('.model-option-desc')?.textContent?.toLowerCase() || '';
+            option.style.display = (name.includes(query) || desc.includes(query)) ? '' : 'none';
+        });
+    });
+}
+
+// Memory panel
+function setupAIMemoryPanel() {
+    const panel = document.getElementById('memory-panel');
+    const memoryBtn = document.getElementById('btn-memory');
+    const closeBtn = document.getElementById('btn-close-memory');
+    const overlay = document.getElementById('sidebar-overlay');
+    const dismissTip = document.getElementById('btn-dismiss-tip');
+
+    memoryBtn?.addEventListener('click', () => {
+        panel?.classList.toggle('collapsed');
+        panel?.classList.toggle('open');
+        
+        if (window.innerWidth <= 1024) {
+            overlay?.classList.toggle('visible');
+        }
+    });
+
+    closeBtn?.addEventListener('click', () => {
+        panel?.classList.add('collapsed');
+        panel?.classList.remove('open');
+        overlay?.classList.remove('visible');
+    });
+
+    dismissTip?.addEventListener('click', () => {
+        document.getElementById('memory-tip')?.remove();
+        localStorage.setItem('memoryTipDismissed', 'true');
+    });
+
+    if (localStorage.getItem('memoryTipDismissed') === 'true') {
+        document.getElementById('memory-tip')?.remove();
+    }
+}
+
+// Input handling
+function setupAIInput() {
+    const input = document.getElementById('ai-input');
+    const sendBtn = document.getElementById('btn-send');
+    const attachBtn = document.getElementById('btn-attach');
+    const fileInput = document.getElementById('ai-file-input');
+    const removeBtn = document.getElementById('btn-remove-attachment');
+
+    if (!input || !sendBtn) return;
+
+    // Auto-resize textarea
+    input.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    });
+
+    // Send on Enter
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendAiMessage();
+        }
+    });
+
+    // Send button
+    sendBtn.addEventListener('click', () => sendAiMessage());
+
+    // Attachments
+    attachBtn?.addEventListener('click', () => fileInput?.click());
+    fileInput?.addEventListener('change', handleFileAttach);
+    removeBtn?.addEventListener('click', clearAttachment);
+}
+
+// Suggestions
+function setupAISuggestions() {
+    const chips = document.querySelectorAll('.suggestion-chip');
+    const input = document.getElementById('ai-input');
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const prompt = chip.dataset.prompt;
+            if (input && prompt) {
+                input.value = prompt;
+                input.focus();
+                sendAiMessage();
+            }
+        });
+    });
+}
+
+// Auto-init when DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAIPageController);
+} else {
+    initAIPageController();
+}
