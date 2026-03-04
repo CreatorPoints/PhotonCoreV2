@@ -898,7 +898,7 @@ function setupAIMemoryPanel() {
     }
 }
 
-// Input handling
+// Input handling - with duplicate prevention
 function setupAIInput() {
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('btn-send');
@@ -907,6 +907,10 @@ function setupAIInput() {
     const removeBtn = document.getElementById('btn-remove-attachment');
 
     if (!input || !sendBtn) return;
+    
+    // Prevent duplicate listeners
+    if (sendBtn.dataset.listenerAttached === 'true') return;
+    sendBtn.dataset.listenerAttached = 'true';
 
     // Auto-resize textarea
     input.addEventListener('input', function() {
@@ -921,6 +925,15 @@ function setupAIInput() {
             sendAiMessage();
         }
     });
+
+    // Send button - use onclick to prevent duplicates
+    sendBtn.onclick = () => sendAiMessage();
+
+    // Attachments
+    if (attachBtn) attachBtn.onclick = () => fileInput?.click();
+    if (fileInput) fileInput.onchange = handleFileAttach;
+    if (removeBtn) removeBtn.onclick = clearAttachment;
+}
 
     // Send button
     sendBtn.addEventListener('click', () => sendAiMessage());
