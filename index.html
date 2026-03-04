@@ -106,6 +106,38 @@
             text-align: center;
             min-height: 20px;
         }
+
+        <style>
+    /* ... existing styles ... */
+    
+    /* Spinner animation */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Shake animation for errors */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    /* Button disabled state */
+    .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    .btn-google:disabled {
+        background: #e0e0e0;
+    }
+    
+    /* Hidden class */
+    .hidden {
+        display: none !important;
+    }
+</style>
     </style>
 </head>
 <body>
