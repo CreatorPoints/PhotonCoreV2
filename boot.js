@@ -9,7 +9,6 @@ function createParticles(){
 }
 
 function setupTypingListener() {
-    // Check if rtdb is available
     if (typeof rtdb === 'undefined' && typeof window.rtdb === 'undefined') {
         console.warn('RTDB not available for typing listener');
         return;
@@ -30,6 +29,11 @@ function setupTypingListener() {
             if (dom.typingIndicator) dom.typingIndicator.classList.add('hidden');
         }
     });
+}
+
+// Check if we're on the new AI page (has ai-page-wrapper)
+function isNewAIPage() {
+    return !!document.querySelector('.ai-page-wrapper');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -118,15 +122,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(typeof puter!=='undefined')puter.kv.set('photon_tip_dismissed','true').catch(()=>{});
     });
 
-    if(dom.btnNewChat&&typeof createNewChat==='function')dom.btnNewChat.addEventListener('click',createNewChat);
-    if(dom.btnAiSend&&typeof sendAiMessage==='function')dom.btnAiSend.addEventListener('click',sendAiMessage);
-    if(dom.aiInput)dom.aiInput.addEventListener('keydown',e=>{
-        if(e.key==='Enter'&&!e.shiftKey){
-            e.preventDefault();
-            if(typeof sendAiMessage==='function')sendAiMessage();
-        }
-    });
+    // New chat button - works on both old and new AI pages
+    if(dom.btnNewChat&&typeof createNewChat==='function'){
+        dom.btnNewChat.addEventListener('click', createNewChat);
+    }
     
+    // === AI SEND LISTENERS ===
+    // ONLY add these on OLD pages (not the new AI page)
+    // The new AI page has its own controller in ai.js
+    if (!isNewAIPage()) {
+        if(dom.btnAiSend&&typeof sendAiMessage==='function'){
+            dom.btnAiSend.addEventListener('click', sendAiMessage);
+        }
+        if(dom.aiInput){
+            dom.aiInput.addEventListener('keydown', e => {
+                if(e.key==='Enter' && !e.shiftKey){
+                    e.preventDefault();
+                    if(typeof sendAiMessage==='function') sendAiMessage();
+                }
+            });
+        }
+    }
+    
+    // Preset buttons (old UI)
     document.querySelectorAll('.preset-btn').forEach(b=>b.addEventListener('click',()=>{
         if(dom.aiInput){
             dom.aiInput.value=b.dataset.prompt;
@@ -134,10 +152,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }));
     
-    if(dom.btnAiAttach)dom.btnAiAttach.addEventListener('click',()=>dom.aiFileInput?.click());
-    if(dom.aiFileInput&&typeof handleFileAttach==='function')dom.aiFileInput.addEventListener('change',handleFileAttach);
-    if(dom.btnRemoveAttachment&&typeof clearAttachment==='function')dom.btnRemoveAttachment.addEventListener('click',clearAttachment);
+    // Attachment handlers - only for old UI
+    if (!isNewAIPage()) {
+        if(dom.btnAiAttach)dom.btnAiAttach.addEventListener('click',()=>dom.aiFileInput?.click());
+        if(dom.aiFileInput&&typeof handleFileAttach==='function')dom.aiFileInput.addEventListener('change',handleFileAttach);
+        if(dom.btnRemoveAttachment&&typeof clearAttachment==='function')dom.btnRemoveAttachment.addEventListener('click',clearAttachment);
+    }
 
+    // Discussions
     if(dom.btnPostDiscussion&&typeof postDiscussion==='function')dom.btnPostDiscussion.addEventListener('click',postDiscussion);
     
     document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>{
@@ -147,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(typeof renderDiscussions==='function')renderDiscussions();
     }));
 
+    // Files
     if(dom.btnBrowse)dom.btnBrowse.addEventListener('click',()=>dom.fileInput?.click());
     
     if(dom.uploadZone){
@@ -176,6 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }catch(e){showToast('Failed.','error')}
     });
     
+    // Profile
     if(dom.btnSaveProfile&&typeof saveProfile==='function')dom.btnSaveProfile.addEventListener('click',saveProfile);
     
     console.log('✅ Photon Core ready!');
