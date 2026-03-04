@@ -1,46 +1,48 @@
 /* ========================================
-   PHOTON CORE — files.js (Upgraded)
+   PHOTON CORE — files.js
+   Firebase Storage Integration
    ======================================== */
 
-/* ==============================
-   USER FILE OPERATIONS (UI)
-   ============================== */
-
-async function ensureBaseFolder() {
-    try {
-        await puter.fs.mkdir('PhotonCore', { createMissingParents: true });
-        await puter.fs.mkdir('PhotonCore/files', { createMissingParents: true });
-        state.filesReady = true;
-    } catch (e) {
-        // Folders may already exist
-        state.filesReady = true;
+/**
+ * Upload files to Firebase Storage
+ */
+async function uploadFiles(fileList) {
+    if (!fileList?.length) return;
+    if (!state.user) {
+        showToast('Please sign in to upload files.', 'error');
+        return;
     }
-}
 
-async function uploadFiles(fl) {
-    if (!fl?.length) return;
-    if (!state.filesReady) await ensureBaseFolder();
-
-    for (const f of fl) {
+    for (const file of fileList) {
         try {
-            showToast('Uploading ' + f.name + '...', 'info');
+            showToast('Uploading ' + file.name + '...', 'info');
 
-            const blob = new Blob(
-                [await f.arrayBuffer()],
-                { type: f.type || 'application/octet-stream' }
-            );
+            // Create storage reference
+            const fileRef = filesRef.child(file.name);
+            
+            // Upload file
+            const snapshot = await fileRef.put(file);
+            
+            // Get download URL
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            
+            // Save metadata to Firestore
+            await db.collection('fileMetadata').doc(file.name).set({
+                name: file.name,
+                size: file.size,
+                type: file.type || 'application/octet-stream',
+                downloadURL: downloadURL,
+                uploadedBy: state.user.username,
+                uploadedById: state.user.uid,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
 
-            await puter.fs.write(
-                'PhotonCore/files/' + f.name,
-                blob,
-                { dedupeName: false, overwrite: true }
-            );
-
-            addActivity('📁 ' + (state.user?.username || 'User') + ': ' + f.name);
-            showToast(f.name + ' uploaded!', 'success');
+            addActivity('📁 ' + state.user.username + ': ' + file.name);
+            showToast(file.name + ' uploaded!', 'success');
         } catch (e) {
-            console.error('Upload failed:', e);
-            showToast('Failed: ' + f.name, 'error');
+            console.error('Upload error:', e);
+            showToast('Failed: ' + file.name, 'error');
         }
     }
 
@@ -48,13 +50,21 @@ async function uploadFiles(fl) {
     if (dom.fileInput) dom.fileInput.value = '';
 }
 
+/**
+ * Load files from Firestore metadata
+ */
 async function loadFiles() {
     try {
-        if (!state.filesReady) await ensureBaseFolder();
-        const items = await puter.fs.readdir('PhotonCore/files');
-        state.files = items || [];
+        const snapshot = await db.collection('fileMetadata')
+            .orderBy('createdAt', 'desc')
+            .get();
+        
+        state.files = [];
+        snapshot.forEach(doc => {
+            state.files.push({ id: doc.id, ...doc.data() });
+        });
     } catch (e) {
-        console.warn('Failed to load files:', e);
+        console.error('Failed to load files:', e);
         state.files = [];
     }
 
@@ -62,6 +72,9 @@ async function loadFiles() {
     if (dom.statFiles) dom.statFiles.textContent = state.files.length;
 }
 
+/**
+ * Render files list
+ */
 function renderFiles() {
     if (!dom.filesList) return;
 
@@ -77,61 +90,97 @@ function renderFiles() {
     dom.filesList.innerHTML = state.files.map(f => {
         const safeId = esc(f.name);
         return `
-        <div class="file-card" data-filename="${safeId}" data-isdir="${f.is_dir}">
-            <div class="file-icon">${fileIcon(f.name, f.is_dir)}</div>
+        <div class="file-card" data-filename="${safeId}">
+            <div class="file-icon">${fileIcon(f.name, false)}</div>
             <div class="file-name">${esc(f.name)}</div>
-            <div class="file-size">${f.is_dir ? 'Folder' : fmtSize(f.size)}</div>
+            <div class="file-size">${fmtSize(f.size)}</div>
+            <div class="file-meta">
+                <span class="file-uploader">👤 ${esc(f.uploadedBy || 'Unknown')}</span>
+                <span class="file-date">${fmtDate(f.createdAt)}</span>
+            </div>
             <div class="file-actions">
-                ${!f.is_dir ? `<button class="file-action-btn download-btn" data-filename="${safeId}">⬇️</button>` : ''}
-                <button class="file-action-btn danger delete-btn" data-filename="${safeId}" data-isdir="${f.is_dir}">🗑️</button>
+                <button class="file-action-btn download-btn" data-filename="${safeId}" data-url="${esc(f.downloadURL)}">⬇️</button>
+                <button class="file-action-btn danger delete-btn" data-filename="${safeId}">🗑️</button>
             </div>
         </div>`;
     }).join('');
 
-    // Event delegation for download buttons
+    // Download handlers
     dom.filesList.querySelectorAll('.download-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            downloadFile(btn.dataset.filename);
+            downloadFile(btn.dataset.filename, btn.dataset.url);
         });
     });
 
-    // Event delegation for delete buttons
+    // Delete handlers
     dom.filesList.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            deleteFile(btn.dataset.filename, btn.dataset.isdir === 'true');
+            deleteFile(btn.dataset.filename);
         });
     });
 }
 
-async function downloadFile(name) {
+/**
+ * Download file
+ */
+async function downloadFile(name, url) {
     if (!name) return;
 
     try {
-        const blob = await puter.fs.read('PhotonCore/files/' + name);
-        const url = URL.createObjectURL(blob);
+        // If URL provided, use it directly
+        if (url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Downloading: ' + name, 'info');
+            return;
+        }
+
+        // Otherwise, get URL from storage
+        const fileRef = filesRef.child(name);
+        const downloadURL = await fileRef.getDownloadURL();
+        
         const a = document.createElement('a');
-        a.href = url;
+        a.href = downloadURL;
         a.download = name;
+        a.target = '_blank';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('Downloaded: ' + name, 'success');
+        
+        showToast('Downloading: ' + name, 'info');
     } catch (e) {
         console.error('Download failed:', e);
         showToast('Download failed.', 'error');
     }
 }
 
-async function deleteFile(name, isDir = false) {
+/**
+ * Delete file from Storage and Firestore
+ */
+async function deleteFile(name) {
     if (!name) return;
     if (!confirm(`Delete "${name}"?`)) return;
 
     try {
-        await puter.fs.delete('PhotonCore/files/' + name, { recursive: isDir });
-        showToast('Deleted.', 'info');
+        // Delete from Storage
+        const fileRef = filesRef.child(name);
+        await fileRef.delete().catch(e => {
+            // File might not exist in storage, continue
+            console.warn('Storage delete warning:', e);
+        });
+
+        // Delete metadata from Firestore
+        await db.collection('fileMetadata').doc(name).delete();
+
+        showToast('Deleted: ' + name, 'info');
+        addActivity('🗑️ ' + (state.user?.username || 'User') + ' deleted: ' + name);
         await loadFiles();
     } catch (e) {
         console.error('Delete failed:', e);
@@ -145,18 +194,21 @@ async function deleteFile(name, isDir = false) {
 
 async function aiListFiles() {
     try {
-        if (!state.filesReady) await ensureBaseFolder();
-        const items = await puter.fs.readdir('PhotonCore/files');
+        const snapshot = await db.collection('fileMetadata')
+            .orderBy('createdAt', 'desc')
+            .get();
 
-        if (!items?.length)
+        if (snapshot.empty) {
             return '📂 Your cloud is empty.';
+        }
 
-        return `📂 Files in your cloud:\n\n` +
-            items.map(f =>
-                `- ${f.is_dir ? '📁' : '📄'} ${f.name}` +
-                (f.is_dir ? '' : ` (${fmtSize(f.size)})`)
-            ).join('\n');
+        let result = '📂 Files in your cloud:\n\n';
+        snapshot.forEach(doc => {
+            const f = doc.data();
+            result += `- 📄 ${f.name} (${fmtSize(f.size)}) - uploaded by ${f.uploadedBy}\n`;
+        });
 
+        return result;
     } catch (e) {
         return '⚠️ Error reading cloud: ' + e.message;
     }
@@ -166,8 +218,28 @@ async function aiReadFile(name) {
     if (!name) return '⚠️ No file name provided.';
 
     try {
-        const blob = await puter.fs.read('PhotonCore/files/' + name);
-        const text = await blob.text();
+        // Get file metadata
+        const doc = await db.collection('fileMetadata').doc(name).get();
+        if (!doc.exists) {
+            return '⚠️ File not found: ' + name;
+        }
+
+        const metadata = doc.data();
+        
+        // Check if it's a text file
+        const textExtensions = /\.(txt|js|ts|py|html|css|json|md|csv|xml|yaml|yml|log|sh|gd)$/i;
+        if (!textExtensions.test(name) && !metadata.type?.startsWith('text/')) {
+            return `📄 ${name} is a binary file (${fmtSize(metadata.size)}). Cannot display content.`;
+        }
+
+        // Fetch content
+        const response = await fetch(metadata.downloadURL);
+        const text = await response.text();
+
+        if (text.length > 10000) {
+            return `📄 Content of ${name} (first 10000 chars):\n\n${text.substring(0, 10000)}...\n\n[Truncated]`;
+        }
+
         return `📄 Content of ${name}:\n\n${text}`;
     } catch (e) {
         return '⚠️ Error reading file: ' + e.message;
@@ -176,15 +248,28 @@ async function aiReadFile(name) {
 
 async function aiWriteFile(name, content) {
     if (!name) return '⚠️ No file name provided.';
+    if (!state.user) return '⚠️ Please sign in to save files.';
 
     try {
-        if (!state.filesReady) await ensureBaseFolder();
+        // Create blob from content
+        const blob = new Blob([content || ''], { type: 'text/plain' });
+        
+        // Upload to storage
+        const fileRef = filesRef.child(name);
+        const snapshot = await fileRef.put(blob);
+        const downloadURL = await snapshot.ref.getDownloadURL();
 
-        await puter.fs.write(
-            'PhotonCore/files/' + name,
-            new Blob([content || ''], { type: 'text/plain' }),
-            { dedupeName: false, overwrite: true }
-        );
+        // Save metadata
+        await db.collection('fileMetadata').doc(name).set({
+            name: name,
+            size: blob.size,
+            type: 'text/plain',
+            downloadURL: downloadURL,
+            uploadedBy: state.user.username,
+            uploadedById: state.user.uid,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
 
         await loadFiles();
         addActivity('🤖 AI saved: ' + name);
@@ -199,12 +284,48 @@ async function aiDeleteFile(name) {
     if (!name) return '⚠️ No file name provided.';
 
     try {
-        await puter.fs.delete('PhotonCore/files/' + name);
+        // Delete from Storage
+        const fileRef = filesRef.child(name);
+        await fileRef.delete().catch(() => {});
+
+        // Delete metadata
+        await db.collection('fileMetadata').doc(name).delete();
+
         await loadFiles();
         addActivity('🤖 AI deleted: ' + name);
         return `🗑️ Deleted "${name}".`;
     } catch (e) {
         return '⚠️ Error deleting file: ' + e.message;
+    }
+}
+
+/**
+ * Upload file for AI (used in chat attachments)
+ */
+async function uploadFileForAI(file) {
+    if (!file) return null;
+    if (!state.user) return null;
+
+    try {
+        const fileRef = filesRef.child(file.name);
+        const snapshot = await fileRef.put(file);
+        const downloadURL = await snapshot.ref.getDownloadURL();
+
+        await db.collection('fileMetadata').doc(file.name).set({
+            name: file.name,
+            size: file.size,
+            type: file.type || 'application/octet-stream',
+            downloadURL: downloadURL,
+            uploadedBy: state.user.username,
+            uploadedById: state.user.uid,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+
+        return downloadURL;
+    } catch (e) {
+        console.error('AI file upload error:', e);
+        return null;
     }
 }
 
