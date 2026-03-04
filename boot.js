@@ -8,63 +8,65 @@ function createParticles(){
     document.head.appendChild(Object.assign(document.createElement('style'),{textContent:'@keyframes pf{0%,100%{transform:translate(0,0);opacity:.5}50%{transform:translate('+(Math.random()*60-30)+'px,'+(Math.random()*60-30)+'px);opacity:.3}}'}));
 }
 
-// Listen for typing indicators from other users
 function setupTypingListener(){
-    if (!rtdb || !dom.typingIndicator) return;
+    if (typeof rtdb === 'undefined') return;
     
     rtdb.ref('typing').on('value',snap=>{
         const typing=snap.val();
-        if(!typing)return;
+        if(!typing||!dom.typingIndicator)return;
 
-        // Find if anyone is typing in current chat
         const currentTyping=state.currentChatId?typing[state.currentChatId]:null;
 
         if(currentTyping&&currentTyping.typing&&currentTyping.user!==state.user?.username){
-            // Someone else is typing
             if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');
             if(dom.typingUser)dom.typingUser.textContent=currentTyping.user+' via '+currentTyping.model;
         }else if(!state.isTyping){
-            // Nobody typing (and we're not typing either)
             if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');
         }
     });
 }
 
-// Wait for everything to be ready
-async function initializeApp() {
-    console.log('🚀 Initializing Photon Core...');
-    
-    // 1. Initialize DOM
+document.addEventListener('DOMContentLoaded',()=>{
+    // Initialize DOM first
     initDom();
-    console.log('✓ DOM initialized');
     
-    // 2. Create particles
+    // Create particles
     createParticles();
-    console.log('✓ Particles created');
     
-    // 3. Wait for Firebase
-    try {
-        await waitForFirebase();
-        console.log('✓ Firebase ready');
-    } catch (error) {
-        console.error('❌ Firebase initialization failed:', error);
-        showToast('Failed to connect to services', 'error');
-        return;
-    }
-    
-    // 4. Initialize auth
-    await initAuth();
-    console.log('✓ Auth initialized');
-    
-    // 5. Start typing listener
-    setupTypingListener();
-    console.log('✓ Typing listener active');
-    
-    console.log('✅ Photon Core ready!');
-}
+    // Setup typing listener (auth.js handles initAuth)
+    setTimeout(setupTypingListener, 1000);
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+    // Event listeners
+    if(dom.btnSignIn)dom.btnSignIn.addEventListener('click',()=>{sessionStorage.setItem('photon_just_signed_in','true');if(typeof handleSignIn==='function')handleSignIn()});
+    if(dom.btnSignOut)dom.btnSignOut.addEventListener('click',()=>{if(typeof handleSignOut==='function')handleSignOut()});
 
-    // ... rest of your event listeners stay the same ...
+    document.querySelectorAll('.nav-item').forEach(i=>{if(i.tagName.toUpperCase()==='BUTTON')i.addEventListener('click',()=>{if(typeof switchTab==='function')switchTab(i.dataset.tab)})});
+
+    if(dom.mobileMenuBtn)dom.mobileMenuBtn.addEventListener('click',()=>{document.querySelector('.sidebar')?.classList.toggle('open');let o=document.querySelector('.sidebar-overlay');if(!o){o=document.createElement('div');o.className='sidebar-overlay';o.addEventListener('click',()=>{document.querySelector('.sidebar')?.classList.remove('open');o.classList.remove('active')});document.body.appendChild(o)}o.classList.toggle('active')});
+
+    if(dom.aiModelSelect)dom.aiModelSelect.addEventListener('change',()=>{state.selectedModel=dom.aiModelSelect.value;if(typeof updateBotIdentity==='function')updateBotIdentity();if(typeof puter!=='undefined')puter.kv.set('photon_selected_model',state.selectedModel).catch(()=>{});showToast('Switched to '+AI_MODELS[state.selectedModel]?.name+' ✨','success')});
+
+    if(dom.btnToggleMemory)dom.btnToggleMemory.addEventListener('click',()=>{if(dom.memoryList){dom.memoryList.classList.toggle('hidden');dom.btnToggleMemory.textContent=dom.memoryList.classList.contains('hidden')?'Show':'Hide'}});
+    if(dom.btnClearMemory)dom.btnClearMemory.addEventListener('click',async()=>{if(!confirm('Clear ALL?'))return;try{const snap=await db.collection('memories').get();const batch=db.batch();snap.forEach(doc=>batch.delete(doc.ref));await batch.commit();showToast('Cleared.','info')}catch(e){console.error(e)}});
+    if(dom.btnDismissTip)dom.btnDismissTip.addEventListener('click',()=>{if(dom.memoryTipBanner)dom.memoryTipBanner.classList.add('dismissed');if(typeof puter!=='undefined')puter.kv.set('photon_tip_dismissed','true').catch(()=>{})});
+
+    if(dom.btnNewChat&&typeof createNewChat==='function')dom.btnNewChat.addEventListener('click',createNewChat);
+    if(dom.btnAiSend&&typeof sendAiMessage==='function')dom.btnAiSend.addEventListener('click',sendAiMessage);
+    if(dom.aiInput)dom.aiInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(typeof sendAiMessage==='function')sendAiMessage()}});
+    document.querySelectorAll('.preset-btn').forEach(b=>b.addEventListener('click',()=>{if(dom.aiInput){dom.aiInput.value=b.dataset.prompt;if(typeof sendAiMessage==='function')sendAiMessage()}}));
+    if(dom.btnAiAttach)dom.btnAiAttach.addEventListener('click',()=>dom.aiFileInput?.click());
+    if(dom.aiFileInput&&typeof handleFileAttach==='function')dom.aiFileInput.addEventListener('change',handleFileAttach);
+    if(dom.btnRemoveAttachment&&typeof clearAttachment==='function')dom.btnRemoveAttachment.addEventListener('click',clearAttachment);
+
+    if(dom.btnPostDiscussion&&typeof postDiscussion==='function')dom.btnPostDiscussion.addEventListener('click',postDiscussion);
+    document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.currentFilter=b.dataset.filter;if(typeof renderDiscussions==='function')renderDiscussions()}));
+
+    if(dom.btnBrowse)dom.btnBrowse.addEventListener('click',()=>dom.fileInput?.click());
+    if(dom.uploadZone){dom.uploadZone.addEventListener('click',e=>{if(e.target!==dom.btnBrowse)dom.fileInput?.click()});dom.uploadZone.addEventListener('dragover',e=>{e.preventDefault();dom.uploadZone.classList.add('drag-over')});dom.uploadZone.addEventListener('dragleave',()=>dom.uploadZone.classList.remove('drag-over'));dom.uploadZone.addEventListener('drop',e=>{e.preventDefault();dom.uploadZone.classList.remove('drag-over');if(typeof uploadFiles==='function')uploadFiles(e.dataTransfer.files)})}
+    if(dom.fileInput)dom.fileInput.addEventListener('change',e=>{if(typeof uploadFiles==='function')uploadFiles(e.target.files)});
+    if(dom.btnRefreshFiles&&typeof loadFiles==='function')dom.btnRefreshFiles.addEventListener('click',loadFiles);
+    if(dom.btnNewFolder)dom.btnNewFolder.addEventListener('click',async()=>{const n=prompt('Folder name:');if(!n?.trim())return;try{if(typeof puter!=='undefined')await puter.fs.mkdir('PhotonCore/files/'+n.trim(),{dedupeName:false});showToast('Created!','success');if(typeof loadFiles==='function')loadFiles()}catch(e){showToast('Failed.','error')}});
+    if(dom.btnSaveProfile&&typeof saveProfile==='function')dom.btnSaveProfile.addEventListener('click',saveProfile);
+    
+    console.log('✅ Boot.js initialized');
 });
