@@ -7,10 +7,193 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://js.puter.com/v2/"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Under Development Page Styles */
+        .dev-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 200px);
+            text-align: center;
+            padding: 40px 24px;
+        }
+
+        .dev-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 32px;
+            background: linear-gradient(135deg, #6c5ce7 0%, #a855f7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+            margin-bottom: 32px;
+            box-shadow: 0 20px 60px rgba(108, 92, 231, 0.4);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .dev-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dev-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 500px;
+            line-height: 1.7;
+        }
+
+        .dev-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            max-width: 700px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .dev-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .dev-feature:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.15);
+        }
+
+        .dev-feature-icon {
+            font-size: 1.5rem;
+        }
+
+        .dev-progress {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 24px;
+        }
+
+        .dev-progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .dev-progress-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .dev-progress-fill {
+            height: 100%;
+            width: 35%;
+            background: linear-gradient(90deg, #6c5ce7, #a855f7);
+            border-radius: 4px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .dev-cta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .dev-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #ffaa00;
+            margin-bottom: 24px;
+        }
+
+        .dev-badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffaa00;
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .dev-note {
+            margin-top: 32px;
+            padding: 16px 24px;
+            background: rgba(0, 180, 216, 0.08);
+            border: 1px solid rgba(0, 180, 216, 0.2);
+            border-radius: 12px;
+            max-width: 500px;
+        }
+
+        .dev-note-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--info);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dev-note-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .dev-note-text code {
+            background: rgba(0, 180, 216, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            color: var(--info);
+        }
+    </style>
 </head>
 <body>
 
@@ -55,43 +238,135 @@
 
             <div class="content-area">
                 <section id="tab-files" class="tab-content active">
-                    <div class="tab-header">
-                        <h2>📁 File Storage</h2>
-                        <p>Your personal cloud files. AI can read, write, and manage these.</p>
-                    </div>
-                    <div class="files-container">
-                        <div class="upload-zone" id="upload-zone">
-                            <div class="upload-icon">📤</div>
-                            <h3>Drop files here or click to upload</h3>
-                            <p>Stored in your Puter cloud</p>
-                            <input type="file" id="file-input" multiple hidden>
-                            <button id="btn-browse" class="btn btn-primary">Browse Files</button>
+                    <div class="dev-container">
+                        
+                        <div class="dev-badge">
+                            <span class="dev-badge-dot"></span>
+                            Under Active Development
                         </div>
-                        <div class="files-toolbar">
-                            <div class="files-path"><span>📂</span><span id="current-path">/PhotonCore/files</span></div>
-                            <div class="files-actions">
-                                <button id="btn-new-folder" class="btn btn-secondary">📁 New Folder</button>
-                                <button id="btn-refresh-files" class="btn btn-secondary">🔄 Refresh</button>
+                        
+                        <div class="dev-icon">🚧</div>
+                        
+                        <h1 class="dev-title">Coming Soon!</h1>
+                        
+                        <p class="dev-subtitle">
+                            We're building a powerful cloud file storage system for Photon Studios. 
+                            Share assets, documents, and game files with your entire team in real-time.
+                        </p>
+
+                        <div class="dev-features">
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">☁️</span>
+                                Cloud Storage
+                            </div>
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">📤</span>
+                                Drag & Drop Upload
+                            </div>
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">🔗</span>
+                                Shareable Links
+                            </div>
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">🤖</span>
+                                AI Integration
+                            </div>
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">📂</span>
+                                Folder Organization
+                            </div>
+                            <div class="dev-feature">
+                                <span class="dev-feature-icon">🔄</span>
+                                Real-time Sync
                             </div>
                         </div>
-                        <div id="files-list" class="files-grid">
-                            <div class="empty-state"><span class="empty-icon">📂</span><p>No files.</p></div>
+
+                        <div class="dev-progress">
+                            <div class="dev-progress-label">
+                                <span>Development Progress</span>
+                                <span>35%</span>
+                            </div>
+                            <div class="dev-progress-bar">
+                                <div class="dev-progress-fill"></div>
+                            </div>
                         </div>
+
+                        <div class="dev-cta">
+                            <a href="ai.html" class="btn btn-primary">
+                                🤖 Try AI Assistant
+                            </a>
+                            <a href="discussions.html" class="btn btn-secondary">
+                                💬 Join Discussions
+                            </a>
+                        </div>
+
+                        <div class="dev-note">
+                            <div class="dev-note-title">
+                                💡 Pro Tip
+                            </div>
+                            <p class="dev-note-text">
+                                While Files is being built, you can still use the <code>AI Assistant</code> 
+                                to manage files! Try saying <code>"list my files"</code> or 
+                                <code>"save this to cloud"</code> with an attachment.
+                            </p>
+                        </div>
+
                     </div>
                 </section>
             </div>
         </main>
     </div>
 
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Hidden elements for compatibility -->
+    <div class="hidden">
+        <span id="stat-discussions">0</span>
+        <span id="stat-files">0</span>
+        <span id="stat-ai">0</span>
+        <span id="stat-online">0</span>
+        <span id="welcome-name"></span>
+        <div id="discussions-list"></div>
+        <div id="upload-zone"></div>
+        <input id="file-input" type="file">
+        <button id="btn-browse"></button>
+        <button id="btn-new-folder"></button>
+        <button id="btn-refresh-files"></button>
+        <div id="files-list"></div>
+        <div id="current-path"></div>
+        <div id="members-grid"></div>
+        <input id="profile-name">
+        <input id="profile-role">
+        <input id="profile-status">
+        <button id="btn-save-profile"></button>
+        <div id="recent-activity"></div>
+        <div id="ai-chat"></div>
+        <textarea id="ai-input"></textarea>
+        <button id="btn-ai-send"></button>
+        <select id="ai-model-select"></select>
+    </div>
+
+    <!-- Scripts -->
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
-    <script src="discussions.js"></script>
-    <script src="files.js"></script>
-    <script src="ai.js"></script>
     <script src="ui.js"></script>
     <script src="boot.js"></script>
+    
+    <script>
+        // Mobile sidebar toggle
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+            document.querySelector('.sidebar')?.classList.toggle('open');
+            document.getElementById('sidebar-overlay')?.classList.toggle('active');
+        });
+        
+        document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
+            document.querySelector('.sidebar')?.classList.remove('open');
+            document.getElementById('sidebar-overlay')?.classList.remove('active');
+        });
+    </script>
 </body>
 </html>
