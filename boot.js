@@ -8,20 +8,26 @@ function createParticles(){
     document.head.appendChild(Object.assign(document.createElement('style'),{textContent:'@keyframes pf{0%,100%{transform:translate(0,0);opacity:.5}50%{transform:translate('+(Math.random()*60-30)+'px,'+(Math.random()*60-30)+'px);opacity:.3}}'}));
 }
 
-function setupTypingListener(){
-    if (typeof rtdb === 'undefined') return;
+function setupTypingListener() {
+    // Check if rtdb is available
+    if (typeof rtdb === 'undefined' && typeof window.rtdb === 'undefined') {
+        console.warn('RTDB not available for typing listener');
+        return;
+    }
     
-    rtdb.ref('typing').on('value',snap=>{
-        const typing=snap.val();
-        if(!typing||!dom.typingIndicator)return;
+    const database = rtdb || window.rtdb;
+    
+    database.ref('typing').on('value', snap => {
+        const typing = snap.val();
+        if (!typing || !dom.typingIndicator) return;
 
-        const currentTyping=state.currentChatId?typing[state.currentChatId]:null;
+        const currentTyping = state.currentChatId ? typing[state.currentChatId] : null;
 
-        if(currentTyping&&currentTyping.typing&&currentTyping.user!==state.user?.username){
-            if(dom.typingIndicator)dom.typingIndicator.classList.remove('hidden');
-            if(dom.typingUser)dom.typingUser.textContent=currentTyping.user+' via '+currentTyping.model;
-        }else if(!state.isTyping){
-            if(dom.typingIndicator)dom.typingIndicator.classList.add('hidden');
+        if (currentTyping && currentTyping.typing && currentTyping.user !== state.user?.username) {
+            if (dom.typingIndicator) dom.typingIndicator.classList.remove('hidden');
+            if (dom.typingUser) dom.typingUser.textContent = currentTyping.user + ' via ' + currentTyping.model;
+        } else if (!state.isTyping) {
+            if (dom.typingIndicator) dom.typingIndicator.classList.add('hidden');
         }
     });
 }
