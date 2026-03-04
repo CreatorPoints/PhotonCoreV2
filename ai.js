@@ -798,11 +798,15 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
 function initAIPageController() {
     if (!document.querySelector('.ai-page-wrapper')) return; // Only run on AI page
     
+    console.log('🎨 Initializing AI Page Controller...');
+    
     setupAISidebar();
     setupAIModelSelector();
     setupAIMemoryPanel();
     setupAIInput();
     setupAISuggestions();
+    
+    console.log('✅ AI Page Controller ready!');
 }
 
 // Sidebar toggle
@@ -919,8 +923,13 @@ function setupAIInput() {
     if (!input || !sendBtn) return;
     
     // Prevent duplicate listeners
-    if (sendBtn.dataset.listenerAttached === 'true') return;
+    if (sendBtn.dataset.listenerAttached === 'true') {
+        console.log('✓ Input listeners already attached, skipping');
+        return;
+    }
     sendBtn.dataset.listenerAttached = 'true';
+
+    console.log('✓ Attaching AI input listeners');
 
     // Auto-resize textarea
     input.addEventListener('input', function() {
@@ -944,16 +953,6 @@ function setupAIInput() {
     if (fileInput) fileInput.onchange = handleFileAttach;
     if (removeBtn) removeBtn.onclick = clearAttachment;
 }
-
-    // Send button
-    sendBtn.addEventListener('click', () => sendAiMessage());
-
-    // Attachments
-    attachBtn?.addEventListener('click', () => fileInput?.click());
-    fileInput?.addEventListener('change', handleFileAttach);
-    removeBtn?.addEventListener('click', clearAttachment);
-}
-
 // Suggestions
 function setupAISuggestions() {
     const chips = document.querySelectorAll('.suggestion-chip');
