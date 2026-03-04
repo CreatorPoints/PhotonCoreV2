@@ -1,8 +1,7 @@
 /* ========================================
    PHOTON CORE — config.js
+   Firebase Auth + Storage + Firestore
    ======================================== */
-
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUNuQNPgQ8P8PPTworUPZ1NFcTAUd2ueU",
@@ -15,9 +14,18 @@ const firebaseConfig = {
     measurementId: "G-3DT2FW953X"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
+
+// Firebase Services
+const auth = firebase.auth();
 const db = firebase.firestore();
 const rtdb = firebase.database();
+const storage = firebase.storage();
+
+// Storage reference helper
+const storageRef = storage.ref();
+const filesRef = storageRef.child('files');
 
 const AI_MODELS = {
     'arcee-ai/trinity-large-preview:free': {
@@ -166,7 +174,6 @@ const AI_MODELS = {
     }
 };
 
-// Use a valid default model from the list
 const DEFAULT_MODEL = 'google/gemma-3-4b-it:free';
 
 const state = {
@@ -185,6 +192,7 @@ const state = {
     attachedFileContent: null,
     attachedFileName: '',
     isTyping: false,
+    isSending: false,
     onlineUsers: {}
 };
 
@@ -192,20 +200,22 @@ let dom = {};
 
 function initDom() {
     [
-        'auth-screen', 'app', 'btn-sign-in', 'btn-sign-out', 'user-name', 'user-avatar',
-        'welcome-name', 'page-title', 'mobile-menu-btn', 'stat-discussions', 'stat-files',
-        'stat-ai', 'stat-online', 'online-count', 'discussion-title', 'discussion-body',
-        'discussion-category', 'btn-post-discussion', 'discussions-list', 'upload-zone',
-        'file-input', 'btn-browse', 'btn-new-folder', 'btn-refresh-files', 'files-list',
-        'current-path', 'ai-chat', 'ai-input', 'btn-ai-send', 'ai-send-text', 'ai-loading',
-        'ai-model-select', 'model-active-badge', 'model-info-text', 'bot-logo', 'bot-name',
-        'bot-provider', 'bot-badge', 'typing-indicator', 'typing-user', 'btn-new-chat',
-        'chat-history-list', 'memory-count', 'memory-list', 'btn-toggle-memory',
-        'btn-clear-memory', 'btn-dismiss-tip', 'memory-tip-banner', 'btn-ai-attach',
-        'ai-file-input', 'ai-attachment-preview', 'attachment-icon', 'attachment-name',
-        'attachment-size', 'btn-remove-attachment', 'members-grid', 'profile-name',
-        'profile-role', 'profile-status', 'btn-save-profile', 'recent-activity',
-        'toast-container'
+        'auth-screen', 'app', 'btn-sign-in', 'btn-sign-out', 'btn-google-signin',
+        'btn-email-auth', 'auth-form', 'auth-email', 'auth-password', 'auth-username',
+        'auth-error', 'auth-toggle-text', 'auth-toggle-link',
+        'user-name', 'user-avatar', 'welcome-name', 'page-title', 'mobile-menu-btn',
+        'stat-discussions', 'stat-files', 'stat-ai', 'stat-online', 'online-count',
+        'discussion-title', 'discussion-body', 'discussion-category', 'btn-post-discussion',
+        'discussions-list', 'upload-zone', 'file-input', 'btn-browse', 'btn-new-folder',
+        'btn-refresh-files', 'files-list', 'current-path', 'ai-chat', 'ai-input',
+        'btn-ai-send', 'ai-send-text', 'ai-loading', 'ai-model-select', 'model-active-badge',
+        'model-info-text', 'bot-logo', 'bot-name', 'bot-provider', 'bot-badge',
+        'typing-indicator', 'typing-user', 'btn-new-chat', 'chat-history-list',
+        'memory-count', 'memory-list', 'btn-toggle-memory', 'btn-clear-memory',
+        'btn-dismiss-tip', 'memory-tip-banner', 'btn-ai-attach', 'ai-file-input',
+        'ai-attachment-preview', 'attachment-icon', 'attachment-name', 'attachment-size',
+        'btn-remove-attachment', 'members-grid', 'profile-name', 'profile-role',
+        'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container'
     ].forEach(id => {
         dom[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
     });
@@ -279,28 +289,19 @@ function formatAi(t) {
     return '<p>' + f + '</p>';
 }
 
-// === OPENROUTER API (SECURE VIA VERCEL /api/openrouter) ===
+// === OPENROUTER API ===
 
-/**
- * Convert internal messages to OpenRouter format
- */
 function toOpenRouterMessages(messages) {
     if (!messages || !Array.isArray(messages)) return [];
 
     const formatted = [];
-
     for (const msg of messages) {
         if (msg && msg.role && msg.content) {
-            formatted.push({
-                role: msg.role,
-                content: msg.content
-            });
+            formatted.push({ role: msg.role, content: msg.content });
         }
     }
 
-    // Merge consecutive same-role messages (cleaner context)
     const merged = [];
-
     for (const msg of formatted) {
         if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
             merged[merged.length - 1].content += "\n" + msg.content;
@@ -312,9 +313,6 @@ function toOpenRouterMessages(messages) {
     return merged;
 }
 
-/**
- * Non-streaming chat completion
- */
 async function openRouterChat(messages, modelId) {
     const formattedMessages = toOpenRouterMessages(messages);
 
@@ -337,9 +335,6 @@ async function openRouterChat(messages, modelId) {
     return data?.choices?.[0]?.message?.content || "No response.";
 }
 
-/**
- * Streaming chat completion (async generator)
- */
 async function* openRouterChatStream(messages, modelId) {
     const formattedMessages = toOpenRouterMessages(messages);
 
@@ -367,7 +362,6 @@ async function* openRouterChatStream(messages, modelId) {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
@@ -376,7 +370,6 @@ async function* openRouterChatStream(messages, modelId) {
             if (!trimmed || !trimmed.startsWith('data:')) continue;
 
             const payload = trimmed.replace(/^data:\s*/, '');
-
             if (payload === '[DONE]') return;
 
             try {
@@ -384,12 +377,8 @@ async function* openRouterChatStream(messages, modelId) {
                 const text = parsed?.choices?.[0]?.delta?.content;
                 if (text) yield text;
             } catch {
-                // Skip invalid JSON chunks
+                // Skip invalid JSON
             }
         }
     }
 }
-
-// Legacy aliases (for backward compatibility)
-const geminiChat = openRouterChat;
-const geminiChatStream = openRouterChatStream;
