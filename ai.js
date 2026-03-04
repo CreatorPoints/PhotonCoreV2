@@ -408,7 +408,14 @@ async function sendAiMessage() {
 
     const msg = dom.aiInput.value.trim();
     if (!msg && !state.attachedFile) return;
-    if (state.isTyping) return;
+    
+    // === PREVENT DOUBLE SEND ===
+    if (state.isTyping || state.isSending) {
+        console.log('⚠️ Already sending, skipping duplicate');
+        return;
+    }
+    state.isSending = true;
+    // ===========================
 
     const modelId = state.selectedModel;
     const md = AI_MODELS[modelId];
@@ -432,6 +439,7 @@ async function sendAiMessage() {
         } catch (e) {
             console.error('Failed to create chat:', e);
             showToast('Failed to create chat.', 'error');
+            state.isSending = false;  // Unlock on error
             return;
         }
     }
@@ -562,6 +570,7 @@ async function sendAiMessage() {
         state.aiQueryCount = (state.aiQueryCount || 0) + 1;
         if (dom.statAi) dom.statAi.textContent = state.aiQueryCount;
 
+        state.isSending = false;  // Unlock
         return;
     }
 
@@ -700,6 +709,7 @@ async function sendAiMessage() {
 
     // Reset UI state
     state.isTyping = false;
+    state.isSending = false;  // UNLOCK
     if (dom.typingIndicator) dom.typingIndicator.classList.add('hidden');
     if (dom.aiSendText) dom.aiSendText.classList.remove('hidden');
     if (dom.aiLoading) dom.aiLoading.classList.add('hidden');
