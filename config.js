@@ -3,6 +3,30 @@
    Firebase Auth + Storage + Firestore
    ======================================== */
 
+// ========== GLOBAL STATE (MUST BE FIRST) ==========
+window.state = {
+    user: null,
+    discussions: [],
+    files: [],
+    aiQueryCount: 0,
+    currentFilter: 'all',
+    selectedModel: null, // Will be set after AI_MODELS is defined
+    memories: [],
+    chatSessions: [],
+    currentChatId: null,
+    currentChatMessages: [],
+    filesReady: false,
+    attachedFile: null,
+    attachedFileContent: null,
+    attachedFileName: '',
+    isTyping: false,
+    isSending: false,
+    onlineUsers: {}
+};
+
+window.dom = {};
+
+// ========== FIREBASE CONFIG ==========
 const firebaseConfig = {
     apiKey: "AIzaSyCUNuQNPgQ8P8PPTworUPZ1NFcTAUd2ueU",
     authDomain: "photon-core.firebaseapp.com",
@@ -15,7 +39,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Firebase Services
 const auth = firebase.auth();
@@ -27,6 +53,14 @@ const storage = firebase.storage();
 const storageRef = storage.ref();
 const filesRef = storageRef.child('files');
 
+console.log('Firebase initialized:', {
+    auth: !!auth,
+    db: !!db,
+    rtdb: !!rtdb,
+    storage: !!storage
+});
+
+// ========== AI MODELS ==========
 const AI_MODELS = {
     'arcee-ai/trinity-large-preview:free': {
         name: 'Trinity Large Preview (Balanced / General Intelligence)',
@@ -176,30 +210,12 @@ const AI_MODELS = {
 
 const DEFAULT_MODEL = 'google/gemma-3-4b-it:free';
 
-const state = {
-    user: null,
-    discussions: [],
-    files: [],
-    aiQueryCount: 0,
-    currentFilter: 'all',
-    selectedModel: DEFAULT_MODEL,
-    memories: [],
-    chatSessions: [],
-    currentChatId: null,
-    currentChatMessages: [],
-    filesReady: false,
-    attachedFile: null,
-    attachedFileContent: null,
-    attachedFileName: '',
-    isTyping: false,
-    isSending: false,
-    onlineUsers: {}
-};
+// Set default model
+state.selectedModel = DEFAULT_MODEL;
 
-let dom = {};
-
+// ========== DOM INITIALIZATION ==========
 function initDom() {
-    [
+    const elementIds = [
         'auth-screen', 'app', 'btn-sign-in', 'btn-sign-out', 'btn-google-signin',
         'btn-email-auth', 'auth-form', 'auth-email', 'auth-password', 'auth-username',
         'auth-error', 'auth-toggle-text', 'auth-toggle-link',
@@ -215,14 +231,26 @@ function initDom() {
         'btn-dismiss-tip', 'memory-tip-banner', 'btn-ai-attach', 'ai-file-input',
         'ai-attachment-preview', 'attachment-icon', 'attachment-name', 'attachment-size',
         'btn-remove-attachment', 'members-grid', 'profile-name', 'profile-role',
-        'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container'
-    ].forEach(id => {
-        dom[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
+        'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container',
+        // New AI page elements
+        'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory', 
+        'memory-count-panel', 'model-logo-panel', 'model-name-panel'
+    ];
+    
+    elementIds.forEach(id => {
+        const camelCaseId = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        dom[camelCaseId] = document.getElementById(id);
     });
+    
+    console.log('DOM initialized:', Object.keys(dom).length, 'elements');
 }
 
+// ========== UTILITY FUNCTIONS ==========
 function showToast(m, t = 'info') {
-    if (!dom.toastContainer) return;
+    if (!dom.toastContainer) {
+        console.warn('Toast container not found');
+        return;
+    }
     const e = document.createElement('div');
     e.className = 'toast ' + t;
     e.innerHTML = '<span>' + ({ success: '✅', error: '❌', info: 'ℹ️' }[t] || 'ℹ️') + '</span><span>' + m + '</span>';
@@ -289,8 +317,7 @@ function formatAi(t) {
     return '<p>' + f + '</p>';
 }
 
-// === OPENROUTER API ===
-
+// ========== OPENROUTER API ==========
 function toOpenRouterMessages(messages) {
     if (!messages || !Array.isArray(messages)) return [];
 
@@ -382,3 +409,5 @@ async function* openRouterChatStream(messages, modelId) {
         }
     }
 }
+
+console.log('Config loaded - State and Firebase ready');
