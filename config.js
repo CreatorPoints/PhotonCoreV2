@@ -46,48 +46,33 @@ const firebaseConfig = {
  */
 function initFirebase() {
     if (typeof firebase === 'undefined') {
-        console.error('Firebase SDK not loaded');
+        console.error('❌ Firebase SDK not loaded');
         return false;
     }
     
     try {
         // Initialize Firebase app
-        if (!firebase.apps.length) {
+        if (!firebase.apps || !firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         
         // Initialize services
-        if (firebase.auth) {
-            auth = firebase.auth();
-            window.auth = auth;
-        } else {
-            console.warn('Firebase Auth not available');
-        }
+        auth = firebase.auth();
+        db = firebase.firestore();
+        rtdb = firebase.database();
+        storage = firebase.storage();
         
-        if (firebase.firestore) {
-            db = firebase.firestore();
-            window.db = db;
-        } else {
-            console.warn('Firebase Firestore not available');
-        }
+        // Export globally
+        window.auth = auth;
+        window.db = db;
+        window.rtdb = rtdb;
+        window.storage = storage;
         
-        if (firebase.database) {
-            rtdb = firebase.database();
-            window.rtdb = rtdb;
-        } else {
-            console.warn('Firebase Realtime Database not available');
-        }
-        
-        if (firebase.storage) {
-            storage = firebase.storage();
-            window.storage = storage;
-            storageRef = storage.ref();
-            filesRef = storageRef.child('files');
-            window.storageRef = storageRef;
-            window.filesRef = filesRef;
-        } else {
-            console.warn('Firebase Storage not available');
-        }
+        // Storage references
+        storageRef = storage.ref();
+        filesRef = storageRef.child('files');
+        window.storageRef = storageRef;
+        window.filesRef = filesRef;
         
         console.log('✓ Firebase initialized:', {
             auth: !!auth,
@@ -98,7 +83,7 @@ function initFirebase() {
         
         return true;
     } catch (error) {
-        console.error('Firebase initialization error:', error);
+        console.error('❌ Firebase initialization error:', error);
         return false;
     }
 }
@@ -110,148 +95,58 @@ if (typeof firebase !== 'undefined') {
 
 // ========== AI MODELS ==========
 const AI_MODELS = {
-    'arcee-ai/trinity-large-preview:free': {
-        name: 'Trinity Large Preview (Balanced / General Intelligence)',
+    'openrouter/free': {
+        name: 'Auto Pick (Random Free Model)',
         provider: 'OpenRouter',
-        logo: '🔷',
-        badge: 'Free'
-    },
-    'arcee-ai/trinity-mini:free': {
-        name: 'Trinity Mini (Fast / Lightweight Chat)',
-        provider: 'OpenRouter',
-        logo: '🔹',
-        badge: 'Free'
-    },
-    'stepfun/step-3.5-flash:free': {
-        name: 'Step 3.5 Flash (Ultra Fast / Short Replies)',
-        provider: 'OpenRouter',
-        logo: '⚡',
-        badge: 'Free'
-    },
-    'z-ai/glm-4.5-air:free': {
-        name: 'GLM 4.5 Air (Smart / Multilingual)',
-        provider: 'OpenRouter',
-        logo: '🌪️',
-        badge: 'Free'
-    },
-    'nvidia/nemotron-3-nano-30b-a3b:free': {
-        name: 'Nemotron 30B Nano (Reasoning / Large Context)',
-        provider: 'OpenRouter',
-        logo: '🟢',
-        badge: 'Free'
-    },
-    'nvidia/nemotron-nano-9b-v2:free': {
-        name: 'Nemotron 9B v2 (Fast / Stable)',
-        provider: 'OpenRouter',
-        logo: '🟩',
-        badge: 'Free'
-    },
-    'openai/gpt-oss-120b:free': {
-        name: 'GPT-OSS 120B (High Intelligence / Heavy)',
-        provider: 'OpenRouter',
-        logo: '🧠',
-        badge: 'Free'
-    },
-    'openai/gpt-oss-20b:free': {
-        name: 'GPT-OSS 20B (Balanced / Smart Chat)',
-        provider: 'OpenRouter',
-        logo: '🧩',
+        logo: '🎲',
         badge: 'Free'
     },
     'meta-llama/llama-3.3-70b-instruct:free': {
-        name: 'Llama 3.3 70B (Strong Reasoning / Creative)',
-        provider: 'OpenRouter',
+        name: 'LLaMA 3.3 70B',
+        provider: 'Meta',
         logo: '🦙',
         badge: 'Free'
     },
     'meta-llama/llama-3.2-3b-instruct:free': {
-        name: 'Llama 3.2 3B (Lightweight / Quick)',
-        provider: 'OpenRouter',
+        name: 'LLaMA 3.2 3B',
+        provider: 'Meta',
         logo: '🐐',
         badge: 'Free'
     },
     'google/gemma-3-27b-it:free': {
-        name: 'Gemma 3 27B (Detailed / Long Answers)',
-        provider: 'OpenRouter',
+        name: 'Gemma 3 27B',
+        provider: 'Google',
         logo: '💎',
         badge: 'Free'
     },
     'google/gemma-3-12b-it:free': {
-        name: 'Gemma 3 12B (Balanced / General)',
-        provider: 'OpenRouter',
+        name: 'Gemma 3 12B',
+        provider: 'Google',
         logo: '🔷',
         badge: 'Free'
     },
     'google/gemma-3-4b-it:free': {
-        name: 'Gemma 3 4B (Light / Fast)',
-        provider: 'OpenRouter',
+        name: 'Gemma 3 4B',
+        provider: 'Google',
         logo: '🔵',
         badge: 'Free'
     },
-    'google/gemma-3n-e4b-it:free': {
-        name: 'Gemma 3n E4B (Efficient / Optimized)',
-        provider: 'OpenRouter',
-        logo: '🌐',
-        badge: 'Free'
-    },
-    'google/gemma-3n-e2b-it:free': {
-        name: 'Gemma 3n E2B (Ultra Lightweight)',
-        provider: 'OpenRouter',
-        logo: '🫧',
-        badge: 'Free'
-    },
-    'qwen/qwen3-coder:free': {
-        name: 'Qwen 3 Coder (Coding Specialist)',
-        provider: 'OpenRouter',
-        logo: '👨‍💻',
-        badge: 'Free'
-    },
-    'qwen/qwen3-4b:free': {
-        name: 'Qwen 3 4B (General / Compact)',
-        provider: 'OpenRouter',
-        logo: '📘',
-        badge: 'Free'
-    },
     'mistralai/mistral-small-3.1-24b-instruct:free': {
-        name: 'Mistral Small 3.1 24B (Reasoning / Clean Output)',
-        provider: 'OpenRouter',
+        name: 'Mistral Small 24B',
+        provider: 'Mistral AI',
         logo: '🌀',
         badge: 'Free'
     },
-    'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': {
-        name: 'Dolphin Mistral 24B (Creative / Personality)',
-        provider: 'OpenRouter',
-        logo: '🐬',
+    'qwen/qwen3-coder:free': {
+        name: 'Qwen3 Coder',
+        provider: 'Alibaba',
+        logo: '👨‍💻',
         badge: 'Free'
     },
-    'liquid/lfm-2.5-1.2b-thinking:free': {
-        name: 'LFM 2.5 Thinking (Step-by-Step Reasoning)',
-        provider: 'OpenRouter',
-        logo: '🤔',
-        badge: 'Free'
-    },
-    'liquid/lfm-2.5-1.2b-instruct:free': {
-        name: 'LFM 2.5 Instruct (Simple / Fast)',
-        provider: 'OpenRouter',
-        logo: '📄',
-        badge: 'Free'
-    },
-    'nousresearch/hermes-3-llama-3.1-405b:free': {
-        name: 'Hermes 3 Llama 405B (Massive / Deep Intelligence)',
-        provider: 'OpenRouter',
-        logo: '🏛️',
-        badge: 'Free'
-    },
-    'nvidia/llama-nemotron-embed-vl-1b-v2:free': {
-        name: 'Nemotron Embed VL (Embeddings / Vision)',
-        provider: 'OpenRouter',
-        logo: '🖼️',
-        badge: 'Free'
-    },
-    'openrouter/free': {
-        name: 'Select Random (Auto Pick Free Model)',
-        provider: 'OpenRouter',
-        logo: '🎲',
+    'stepfun/step-3.5-flash:free': {
+        name: 'Step 3.5 Flash',
+        provider: 'StepFun',
+        logo: '⚡',
         badge: 'Free'
     }
 };
@@ -278,6 +173,7 @@ function initDom() {
         'ai-attachment-preview', 'attachment-icon', 'attachment-name', 'attachment-size',
         'btn-remove-attachment', 'members-grid', 'profile-name', 'profile-role',
         'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container',
+        // New AI page elements
         'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory', 
         'memory-count-panel', 'model-logo-panel', 'model-name-panel',
         'sidebar-overlay', 'ai-sidebar', 'memory-panel'
@@ -285,10 +181,11 @@ function initDom() {
     
     elementIds.forEach(id => {
         const camelCaseId = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-        dom[camelCaseId] = document.getElementById(id);
+        const el = document.getElementById(id);
+        dom[camelCaseId] = el;
     });
     
-    console.log('DOM initialized:', Object.keys(dom).length, 'elements');
+    console.log('✓ DOM initialized:', Object.keys(dom).filter(k => dom[k]).length, 'elements found');
 }
 
 // ========== UTILITY FUNCTIONS ==========
@@ -299,6 +196,7 @@ function showToast(m, t = 'info') {
         container.id = 'toast-container';
         container.className = 'toast-container';
         document.body.appendChild(container);
+        dom.toastContainer = container;
     }
     
     const e = document.createElement('div');
@@ -313,12 +211,12 @@ function showToast(m, t = 'info') {
     }, 3500);
 }
 
-// Make showToast globally available
 window.showToast = showToast;
 
 function esc(t) {
+    if (t === null || t === undefined) return '';
     const d = document.createElement('div');
-    d.textContent = t || '';
+    d.textContent = String(t);
     return d.innerHTML;
 }
 
@@ -341,7 +239,7 @@ function fmtDate(iso) {
 }
 
 function fmtSize(b) {
-    if (!b) return '0 B';
+    if (!b || b === 0) return '0 B';
     const s = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(b) / Math.log(1024));
     return (b / Math.pow(1024, i)).toFixed(1) + ' ' + s[i];
@@ -351,15 +249,16 @@ function fileIcon(n, d) {
     if (d) return '📁';
     if (!n) return '📄';
     const e = n.split('.').pop().toLowerCase();
-    return {
+    const icons = {
         png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', svg: '🖼️', webp: '🖼️',
         mp3: '🎵', wav: '🎵', ogg: '🎵', mp4: '🎬',
         pdf: '📄', doc: '📝', docx: '📝', txt: '📝',
-        zip: '📦', rar: '📦',
+        zip: '📦', rar: '📦', '7z': '📦',
         js: '💻', ts: '💻', py: '💻', cs: '💻', cpp: '💻',
         html: '🌐', css: '🎨', json: '⚙️', md: '📝',
         gd: '🎮', godot: '🎮', unity: '🎮', blend: '🎨', psd: '🎨'
-    }[e] || '📄';
+    };
+    return icons[e] || '📄';
 }
 
 function formatAi(t) {
@@ -383,6 +282,7 @@ function toOpenRouterMessages(messages) {
         }
     }
 
+    // Merge consecutive messages from same role
     const merged = [];
     for (const msg of formatted) {
         if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
@@ -473,5 +373,7 @@ window.fmtDate = fmtDate;
 window.fmtSize = fmtSize;
 window.fileIcon = fileIcon;
 window.formatAi = formatAi;
+window.openRouterChat = openRouterChat;
+window.openRouterChatStream = openRouterChatStream;
 
 console.log('✓ Config.js loaded');
