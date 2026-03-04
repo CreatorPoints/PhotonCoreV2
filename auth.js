@@ -17,19 +17,39 @@ let isSignUpMode = false;
 function waitForFirebase() {
     return new Promise((resolve, reject) => {
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 100; // Increased attempts
         
         const checkFirebase = () => {
             attempts++;
             
-            if (typeof firebase !== 'undefined' && 
-                typeof auth !== 'undefined' && 
-                typeof db !== 'undefined' &&
-                typeof state !== 'undefined') {
-                console.log('✓ Firebase and state ready');
+            // Check if Firebase is available
+            if (typeof firebase === 'undefined') {
+                if (attempts >= maxAttempts) {
+                    reject(new Error('Firebase SDK not loaded'));
+                    return;
+                }
+                setTimeout(checkFirebase, 100);
+                return;
+            }
+            
+            // Try to initialize Firebase if not done
+            if (typeof initFirebase === 'function' && !window.auth) {
+                initFirebase();
+            }
+            
+            // Check if all services are ready
+            if (window.auth && window.db && window.rtdb) {
+                console.log('✓ All Firebase services ready');
                 resolve();
             } else if (attempts >= maxAttempts) {
-                reject(new Error('Firebase failed to load'));
+                // List which services failed
+                console.error('Firebase services status:', {
+                    auth: !!window.auth,
+                    db: !!window.db,
+                    rtdb: !!window.rtdb,
+                    storage: !!window.storage
+                });
+                reject(new Error('Firebase services failed to initialize'));
             } else {
                 setTimeout(checkFirebase, 100);
             }
