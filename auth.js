@@ -70,11 +70,13 @@ async function initAuth() {
         auth.onAuthStateChanged(async (user) => {
             console.log('Auth state changed:', user ? user.email : 'signed out');
             
-            if (user) {
-                if (isAuthPage) {
-                    sessionStorage.setItem('photon_just_signed_in', 'true');
-                    window.location.href = 'dashboard.html';
-                    return;
+if (user) {
+    if (isAuthPage) {
+        sessionStorage.setItem('photon_just_signed_in', 'true');
+        // Don't redirect here - let secret-verify.js handle it
+        // window.location.href = 'dashboard.html';
+        return;
+    }
                 }
                 await onAppPageReady(user);
             } else {
