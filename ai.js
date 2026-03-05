@@ -1049,9 +1049,7 @@ function createStreamingBubble(name, modelData) {
     messageDiv.className = 'message ai-message';
 
     messageDiv.innerHTML = `
-        <div class="message-avatar" style="background: var(--ai-bg-tertiary); border: 1px solid var(--ai-border);">
-            ${modelData?.logo || '🤖'}
-        </div>
+        <div class="message-avatar">${modelData?.logo || '🤖'}</div>
         <div class="message-content">
             <div class="message-header">
                 <span class="message-author">${esc(name)}</span>
@@ -1059,6 +1057,25 @@ function createStreamingBubble(name, modelData) {
             <div class="message-text"></div>
         </div>
     `;
+
+    // Insert before typing indicator
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator && typingIndicator.parentNode === inner) {
+        inner.insertBefore(messageDiv, typingIndicator);
+    } else {
+        inner.appendChild(messageDiv);
+    }
+
+    const contentTarget = messageDiv.querySelector('.message-text');
+    const renderer = new StreamingMarkdownRenderer(contentTarget);
+
+    // Scroll to bottom
+    if (dom.aiChat) {
+        dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
+    }
+
+    return { messageDiv, contentTarget, renderer };
+}
 
     // Insert before typing indicator
     const typingIndicator = document.getElementById('typing-indicator');
