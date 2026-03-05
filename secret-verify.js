@@ -1,12 +1,12 @@
 /* ========================================
    SECRET KEY VERIFICATION
+   For index.html ONLY
    ======================================== */
 
 (function() {
-    // Check if already verified in this session
     const STORAGE_KEY = 'photon_secret_verified';
     
-    // Wait for auth state
+    // Wait for auth to be available
     function waitForAuth() {
         return new Promise((resolve) => {
             const checkAuth = setInterval(() => {
@@ -16,7 +16,6 @@
                 }
             }, 100);
             
-            // Timeout after 10 seconds
             setTimeout(() => {
                 clearInterval(checkAuth);
                 resolve();
@@ -24,7 +23,7 @@
         });
     }
 
-    // Create the modal HTML
+    // Create modal HTML
     function createSecretModal() {
         const overlay = document.createElement('div');
         overlay.className = 'secret-modal-overlay';
@@ -83,8 +82,12 @@
         return overlay;
     }
 
-    // Show modal with user info
+    // Show modal
     function showSecretModal(user) {
+        // Hide auth screen if visible
+        const authScreen = document.getElementById('auth-screen');
+        if (authScreen) authScreen.classList.add('hidden');
+        
         let overlay = document.getElementById('secret-modal-overlay');
         if (!overlay) {
             overlay = createSecretModal();
@@ -109,13 +112,9 @@
             email.textContent = user.email || '';
         }
         
-        // Show modal
         setTimeout(() => overlay.classList.add('visible'), 10);
-        
-        // Setup event listeners
         setupSecretModalEvents();
         
-        // Focus input
         setTimeout(() => {
             document.getElementById('secret-input')?.focus();
         }, 300);
@@ -130,14 +129,29 @@
         }
     }
 
-    // Setup event listeners
+    // Setup events
     function setupSecretModalEvents() {
         const form = document.getElementById('secret-form');
         const input = document.getElementById('secret-input');
         const toggle = document.getElementById('secret-toggle');
         const logout = document.getElementById('secret-logout');
         
-        // Toggle password visibility
+        // Prevent closing by clicking outside
+        const overlay = document.getElementById('secret-modal-overlay');
+        overlay?.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                input?.focus();
+            }
+        });
+        
+        // Prevent escape key from closing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay?.classList.contains('visible')) {
+                e.preventDefault();
+                input?.focus();
+            }
+        });
+        
         toggle?.addEventListener('click', () => {
             if (input.type === 'password') {
                 input.type = 'text';
@@ -148,31 +162,32 @@
             }
         });
         
-        // Form submit
         form?.addEventListener('submit', async (e) => {
             e.preventDefault();
             await verifySecret();
         });
         
-        // Logout button
         logout?.addEventListener('click', async () => {
             try {
                 sessionStorage.removeItem(STORAGE_KEY);
                 await window.auth.signOut();
-                window.location.href = 'index.html';
+                hideSecretModal();
+                
+                // Show auth screen again
+                const authScreen = document.getElementById('auth-screen');
+                if (authScreen) authScreen.classList.remove('hidden');
             } catch (err) {
                 console.error('Logout error:', err);
             }
         });
         
-        // Clear error on input
         input?.addEventListener('input', () => {
             input.classList.remove('error');
             document.getElementById('secret-error').textContent = '';
         });
     }
 
-    // Verify the secret
+    // Verify secret
     async function verifySecret() {
         const input = document.getElementById('secret-input');
         const submitBtn = document.getElementById('secret-submit');
@@ -187,7 +202,6 @@
             return;
         }
         
-        // Show loading
         submitBtn.disabled = true;
         submitText.innerHTML = '<div class="spinner"></div> Verifying...';
         
@@ -201,25 +215,20 @@
             const data = await response.json();
             
             if (data.valid) {
-                // Success!
                 input.classList.add('success');
                 submitText.textContent = '✓ Verified!';
                 
-                // Store in session
+                // IMPORTANT: Store verification
                 sessionStorage.setItem(STORAGE_KEY, 'true');
                 
-                // Redirect to dashboard
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 500);
             } else {
-                // Invalid
                 input.classList.add('error');
                 errorEl.textContent = '❌ Invalid access code. Please try again.';
                 submitBtn.disabled = false;
                 submitText.textContent = 'Verify & Continue';
-                
-                // Clear input
                 input.value = '';
                 input.focus();
             }
@@ -231,7 +240,7 @@
         }
     }
 
-    // Check if already verified
+    // Check if verified
     function isVerified() {
         return sessionStorage.getItem(STORAGE_KEY) === 'true';
     }
@@ -245,40 +254,36 @@
             return;
         }
         
-        // Listen for auth state
         window.auth.onAuthStateChanged((user) => {
             if (user) {
-                // User is signed in
                 if (isVerified()) {
-                    // Already verified, proceed to dashboard
-                    console.log('✓ Secret already verified');
-                    
-                    // Only redirect if on index page
-                    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-                    if (currentPage === 'index.html' || currentPage === '') {
-                        window.location.href = 'dashboard.html';
-                    }
+                    console.log('✓ Already verified - redirecting to dashboard');
+                    window.location.href = 'dashboard.html';
                 } else {
-                    // Need verification
                     console.log('🔐 Secret verification required');
                     showSecretModal(user);
                 }
+            } else {
+                // User signed out - clear verification
+                sessionStorage.removeItem(STORAGE_KEY);
+                hideSecretModal();
             }
         });
     }
 
-    // Auto-init when DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initSecretVerification);
     } else {
         initSecretVerification();
     }
 
-    // Expose for debugging
     window.secretVerify = {
         show: showSecretModal,
         hide: hideSecretModal,
         isVerified,
-        reset: () => sessionStorage.removeItem(STORAGE_KEY)
+        reset: () => {
+            sessionStorage.removeItem(STORAGE_KEY);
+            window.location.reload();
+        }
     };
 })();
