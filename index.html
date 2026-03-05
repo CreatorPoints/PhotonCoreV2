@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="Photon_Core.png">
     
+    
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -15,6 +16,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
     <!-- Secret Modal Styles -->
     <link rel="stylesheet" href="secret-modal.css">
+    <!-- Auth Guard System (BEFORE other scripts) -->
+<link rel="stylesheet" href="auth-guard.css">
+<script src="members-list.js"></script>
+<script src="auth-guard.js"></script>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -151,6 +156,8 @@
                 <div class="logo-icon">⚡</div>
                 <h1>Photon Core</h1>
                 <p>Photon Studios Internal Hub</p>
+                <p class="auth-note">Authorized members only — Photon Studios</p>
+                <p class="auth-warning">⚠️ Only registered team member emails are allowed</p>
             </div>
             
             <!-- Google Sign In (Primary) -->
