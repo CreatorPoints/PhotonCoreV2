@@ -1370,8 +1370,8 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 ======================================== */
 
 .chat-messages-inner {
-    max-width: 900px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     padding: 0 24px;
     display: flex;
     flex-direction: column;
@@ -1383,7 +1383,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     display: flex;
     gap: 12px;
     padding: 12px 0;
-    max-width: 85%;
+    max-width: 75%;
     animation: messageIn 0.3s ease;
 }
 
@@ -1396,6 +1396,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 .message.ai-message {
     align-self: flex-start;
     flex-direction: row;
+    max-width: 85%;
 }
 
 .message.ai-message .message-avatar {
@@ -1417,6 +1418,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 .message.user-message {
     align-self: flex-end;
     flex-direction: row-reverse;
+    max-width: 70%;
 }
 
 .message.user-message .message-avatar {
@@ -1468,6 +1470,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 .message-content {
     min-width: 0;
     max-width: 100%;
+    flex: 1;
 }
 
 .message-header {
@@ -1595,10 +1598,25 @@ table code {
     51%, 100% { opacity: 0; }
 }
 
+/* Input area full width */
+.input-wrapper {
+    max-width: 100%;
+    margin: 0;
+    padding: 0 16px;
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .message {
-        max-width: 92%;
+        max-width: 90%;
+    }
+
+    .message.ai-message {
+        max-width: 95%;
+    }
+
+    .message.user-message {
+        max-width: 85%;
     }
 
     .chat-messages-inner {
@@ -1617,5 +1635,34 @@ table code {
 
     .message.ai-message .message-avatar {
         font-size: 16px;
+    }
+}
+
+/* Large screens - use more space */
+@media (min-width: 1200px) {
+    .chat-messages-inner {
+        padding: 0 40px;
+    }
+
+    .message.ai-message {
+        max-width: 80%;
+    }
+
+    .message.user-message {
+        max-width: 65%;
+    }
+
+    .input-wrapper {
+        padding: 0 40px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .chat-messages-inner {
+        padding: 0 60px;
+    }
+
+    .input-wrapper {
+        padding: 0 60px;
     }
 }
