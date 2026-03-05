@@ -1,7 +1,7 @@
 /* ========================================
    PHOTON CORE — config.js
    Firebase Auth + Storage + Firestore
-   ======================================== */
+======================================== */
 
 // ========== GLOBAL STATE (MUST BE FIRST) ==========
 window.state = {
@@ -49,38 +49,38 @@ function initFirebase() {
         console.error('❌ Firebase SDK not loaded');
         return false;
     }
-    
+
     try {
         // Initialize Firebase app
         if (!firebase.apps || !firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
-        
+
         // Initialize services
         auth = firebase.auth();
         db = firebase.firestore();
         rtdb = firebase.database();
         storage = firebase.storage();
-        
+
         // Export globally
         window.auth = auth;
         window.db = db;
         window.rtdb = rtdb;
         window.storage = storage;
-        
+
         // Storage references
         storageRef = storage.ref();
         filesRef = storageRef.child('files');
         window.storageRef = storageRef;
         window.filesRef = filesRef;
-        
+
         console.log('✓ Firebase initialized:', {
             auth: !!auth,
             db: !!db,
             rtdb: !!rtdb,
             storage: !!storage
         });
-        
+
         return true;
     } catch (error) {
         console.error('❌ Firebase initialization error:', error);
@@ -103,7 +103,7 @@ const AI_MODELS = {
         badge: 'Smart',
         desc: 'Automatically picks the best available model'
     },
-    
+
     // === META LLAMA ===
     'meta-llama/llama-3.3-70b-instruct:free': {
         name: 'LLaMA 3.3 70B',
@@ -119,7 +119,7 @@ const AI_MODELS = {
         badge: 'Fast',
         desc: 'Lightning fast, good for simple tasks'
     },
-    
+
     // === GOOGLE GEMMA ===
     'google/gemma-3-27b-it:free': {
         name: 'Gemma 3 27B',
@@ -156,7 +156,7 @@ const AI_MODELS = {
         badge: 'Tiny',
         desc: 'Ultra-compact, instant responses'
     },
-    
+
     // === NVIDIA ===
     'nvidia/nemotron-3-nano-30b-a3b:free': {
         name: 'Nemotron 30B',
@@ -186,7 +186,7 @@ const AI_MODELS = {
         badge: 'Embed',
         desc: 'Embeddings & vision tasks'
     },
-    
+
     // === QWEN (ALIBABA) ===
     'qwen/qwen3-coder:free': {
         name: 'Qwen3 Coder',
@@ -209,7 +209,7 @@ const AI_MODELS = {
         badge: 'Fast',
         desc: 'Quick general assistant'
     },
-    
+
     // === MISTRAL ===
     'mistralai/mistral-small-3.1-24b-instruct:free': {
         name: 'Mistral Small 24B',
@@ -218,7 +218,7 @@ const AI_MODELS = {
         badge: 'Quality',
         desc: 'Excellent writing & reasoning'
     },
-    
+
     // === OPENAI OSS ===
     'openai/gpt-oss-120b:free': {
         name: 'GPT-OSS 120B',
@@ -234,23 +234,23 @@ const AI_MODELS = {
         badge: 'Fast',
         desc: 'Faster open-source GPT'
     },
-    
+
     // === ARCEE AI ===
     'arcee-ai/trinity-large-preview:free': {
-        name: 'Trinity Large',
+        name: 'Arcee Large',
         provider: 'Arcee AI',
         logo: '🔺',
         badge: 'Preview',
         desc: 'Advanced multi-task reasoning'
     },
     'arcee-ai/trinity-mini:free': {
-        name: 'Trinity Mini',
+        name: 'Arcee Mini',
         provider: 'Arcee AI',
         logo: '🔺',
         badge: 'Compact',
         desc: 'Lightweight but capable'
     },
-    
+
     // === STEPFUN ===
     'stepfun/step-3.5-flash:free': {
         name: 'Step 3.5 Flash',
@@ -259,7 +259,7 @@ const AI_MODELS = {
         badge: 'Ultra Fast',
         desc: 'Blazing fast responses'
     },
-    
+
     // === Z AI ===
     'z-ai/glm-4.5-air:free': {
         name: 'GLM 4.5 Air',
@@ -268,7 +268,7 @@ const AI_MODELS = {
         badge: 'Bilingual',
         desc: 'Chinese & English specialist'
     },
-    
+
     // === LIQUID ===
     'liquid/lfm-2.5-1.2b-thinking:free': {
         name: 'LFM Thinking',
@@ -284,7 +284,7 @@ const AI_MODELS = {
         badge: 'Fast',
         desc: 'Quick instruction following'
     },
-    
+
     // === NOUS RESEARCH ===
     'nousresearch/hermes-3-llama-3.1-405b:free': {
         name: 'Hermes 3 405B',
@@ -293,7 +293,7 @@ const AI_MODELS = {
         badge: 'Massive',
         desc: 'Largest free model, best quality'
     },
-    
+
     // === COGNITIVE COMPUTATIONS ===
     'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': {
         name: 'Dolphin Mistral 24B',
@@ -306,6 +306,7 @@ const AI_MODELS = {
 
 const DEFAULT_MODEL = 'openrouter/free';
 state.selectedModel = DEFAULT_MODEL;
+
 // ========== DOM INITIALIZATION ==========
 function initDom() {
     const elementIds = [
@@ -326,17 +327,17 @@ function initDom() {
         'btn-remove-attachment', 'members-grid', 'profile-name', 'profile-role',
         'profile-status', 'btn-save-profile', 'recent-activity', 'toast-container',
         // New AI page elements
-        'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory', 
+        'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory',
         'memory-count-panel', 'model-logo-panel', 'model-name-panel',
         'sidebar-overlay', 'ai-sidebar', 'memory-panel'
     ];
-    
+
     elementIds.forEach(id => {
         const camelCaseId = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
         const el = document.getElementById(id);
         dom[camelCaseId] = el;
     });
-    
+
     console.log('✓ DOM initialized:', Object.keys(dom).filter(k => dom[k]).length, 'elements found');
 }
 
@@ -350,13 +351,13 @@ function showToast(m, t = 'info') {
         document.body.appendChild(container);
         dom.toastContainer = container;
     }
-    
+
     const e = document.createElement('div');
     e.className = 'toast ' + t;
     const icons = { success: '✅', error: '❌', info: 'ℹ️' };
     e.innerHTML = '<span>' + (icons[t] || 'ℹ️') + '</span><span>' + m + '</span>';
     container.appendChild(e);
-    
+
     setTimeout(() => {
         e.style.animation = 'toastOut 0.3s ease forwards';
         setTimeout(() => e.remove(), 300);
@@ -376,13 +377,13 @@ function fmtDate(iso) {
     if (!iso) return 'Unknown';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return 'Invalid';
-    
+
     const n = new Date();
     const ms = n - d;
     const min = Math.floor(ms / 60000);
     const hr = Math.floor(ms / 3600000);
     const day = Math.floor(ms / 86400000);
-    
+
     if (min < 1) return 'Now';
     if (min < 60) return min + 'm';
     if (hr < 24) return hr + 'h';
@@ -413,15 +414,204 @@ function fileIcon(n, d) {
     return icons[e] || '📄';
 }
 
-function formatAi(t) {
-    if (!t) return '<p></p>';
-    let f = esc(t);
-    f = f.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    f = f.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    f = f.replace(/`(.*?)`/g, '<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');
-    f = f.replace(/\n/g, '<br>');
-    return '<p>' + f + '</p>';
+// ========== CHATGPT-LIKE MARKDOWN RENDERER ==========
+function formatAi(text) {
+    if (!text) return '';
+
+    // Check if marked.js is available
+    if (typeof marked === 'undefined') {
+        // Fallback to basic formatting
+        let f = esc(text);
+        f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        f = f.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        f = f.replace(/`([^`]+)`/g, '<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');
+        f = f.replace(/\n/g, '<br>');
+        return f;
+    }
+
+    // Configure marked with custom renderer for ChatGPT-like output
+    const renderer = new marked.Renderer();
+
+    // Code blocks with syntax highlighting and copy button
+    renderer.code = function(code, language, escaped) {
+        // Handle both old and new marked API
+        let codeText, lang;
+        if (typeof code === 'object') {
+            codeText = code.text || '';
+            lang = code.lang || '';
+        } else {
+            codeText = code || '';
+            lang = language || '';
+        }
+
+        let highlighted;
+        const validLang = lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang) ? lang : '';
+
+        try {
+            if (validLang && typeof hljs !== 'undefined') {
+                highlighted = hljs.highlight(codeText, { language: validLang }).value;
+            } else if (typeof hljs !== 'undefined') {
+                const auto = hljs.highlightAuto(codeText);
+                highlighted = auto.value;
+            } else {
+                highlighted = esc(codeText);
+            }
+        } catch (e) {
+            highlighted = esc(codeText);
+        }
+
+        const langLabel = validLang || 'plaintext';
+        const escapedCode = encodeURIComponent(codeText);
+
+        return `<div class="ai-code-block" style="margin:16px 0;border-radius:8px;overflow:hidden;background:#0d0d0d;border:1px solid #333;">
+            <div class="ai-code-header" style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#262626;border-bottom:1px solid #333;">
+                <span style="color:#a0a0a0;font-size:12px;font-weight:500;">${langLabel}</span>
+                <button class="ai-copy-btn" data-code="${escapedCode}" style="background:transparent;border:none;color:#a0a0a0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;transition:all 0.15s ease;" onmouseover="this.style.background='#404040';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#a0a0a0'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span class="copy-text">Copy code</span>
+                </button>
+            </div>
+            <pre style="margin:0;padding:16px;overflow-x:auto;background:#0d0d0d;"><code class="hljs language-${langLabel}" style="font-family:'JetBrains Mono',Consolas,'Courier New',monospace;font-size:13px;line-height:1.6;background:transparent;">${highlighted}</code></pre>
+        </div>`;
+    };
+
+    // Inline code
+    renderer.codespan = function(code) {
+        const text = typeof code === 'object' ? code.text : code;
+        return `<code style="background:rgba(110,118,129,0.25);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',Consolas,monospace;font-size:0.875em;color:#e6edf3;">${esc(text)}</code>`;
+    };
+
+    // Paragraphs
+    renderer.paragraph = function(text) {
+        const content = typeof text === 'object' ? text.text : text;
+        return `<p style="margin:0 0 16px 0;line-height:1.75;">${content}</p>`;
+    };
+
+    // Lists
+    renderer.list = function(body, ordered, start) {
+        const content = typeof body === 'object' ? body.body : body;
+        const isOrdered = typeof body === 'object' ? body.ordered : ordered;
+        const tag = isOrdered ? 'ol' : 'ul';
+        return `<${tag} style="margin:0 0 16px 0;padding-left:24px;line-height:1.75;">${content}</${tag}>`;
+    };
+
+    renderer.listitem = function(text) {
+        const content = typeof text === 'object' ? text.text : text;
+        return `<li style="margin:4px 0;">${content}</li>`;
+    };
+
+    // Blockquotes
+    renderer.blockquote = function(quote) {
+        const content = typeof quote === 'object' ? quote.text : quote;
+        return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #6c5ce7;background:rgba(108,92,231,0.1);border-radius:0 8px 8px 0;">${content}</blockquote>`;
+    };
+
+    // Headers
+    renderer.heading = function(text, level, raw) {
+        const content = typeof text === 'object' ? text.text : text;
+        const lvl = typeof text === 'object' ? text.depth : level;
+        const sizes = { 1: '1.75em', 2: '1.5em', 3: '1.25em', 4: '1.1em', 5: '1em', 6: '0.9em' };
+        const margins = { 1: '24px 0 16px', 2: '20px 0 12px', 3: '16px 0 8px', 4: '12px 0 8px', 5: '8px 0 4px', 6: '8px 0 4px' };
+        return `<h${lvl} style="font-size:${sizes[lvl]};font-weight:600;margin:${margins[lvl]};line-height:1.3;">${content}</h${lvl}>`;
+    };
+
+    // Links
+    renderer.link = function(href, title, text) {
+        const url = typeof href === 'object' ? href.href : href;
+        const linkText = typeof href === 'object' ? href.text : text;
+        const linkTitle = typeof href === 'object' ? href.title : title;
+        return `<a href="${esc(url)}" title="${esc(linkTitle || '')}" style="color:#6c5ce7;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank" rel="noopener">${linkText}</a>`;
+    };
+
+    // Bold
+    renderer.strong = function(text) {
+        const content = typeof text === 'object' ? text.text : text;
+        return `<strong style="font-weight:600;">${content}</strong>`;
+    };
+
+    // Italic
+    renderer.em = function(text) {
+        const content = typeof text === 'object' ? text.text : text;
+        return `<em>${content}</em>`;
+    };
+
+    // Horizontal rule
+    renderer.hr = function() {
+        return `<hr style="margin:24px 0;border:none;border-top:1px solid #333;">`;
+    };
+
+    // Tables
+    renderer.table = function(header, body) {
+        const headerContent = typeof header === 'object' ? header.header : header;
+        const bodyContent = typeof header === 'object' ? header.body : body;
+        return `<div style="overflow-x:auto;margin:16px 0;"><table style="width:100%;border-collapse:collapse;border:1px solid #333;border-radius:8px;overflow:hidden;"><thead style="background:#262626;">${headerContent}</thead><tbody>${bodyContent}</tbody></table></div>`;
+    };
+
+    renderer.tablerow = function(content) {
+        const rowContent = typeof content === 'object' ? content.text : content;
+        return `<tr style="border-bottom:1px solid #333;">${rowContent}</tr>`;
+    };
+
+    renderer.tablecell = function(content, flags) {
+        const cellContent = typeof content === 'object' ? content.text : content;
+        const isHeader = typeof content === 'object' ? content.header : (flags && flags.header);
+        const tag = isHeader ? 'th' : 'td';
+        return `<${tag} style="padding:10px 16px;text-align:left;">${cellContent}</${tag}>`;
+    };
+
+    // Set marked options
+    marked.setOptions({
+        renderer: renderer,
+        breaks: true,
+        gfm: true
+    });
+
+    // Parse the markdown
+    let html = marked.parse(text);
+
+    // Sanitize with DOMPurify if available
+    if (typeof DOMPurify !== 'undefined') {
+        html = DOMPurify.sanitize(html, {
+            ADD_TAGS: ['svg', 'path', 'rect', 'polyline', 'line', 'circle'],
+            ADD_ATTR: ['class', 'data-code', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'x', 'y', 'width', 'height', 'rx', 'ry', 'points', 'style', 'onclick', 'onmouseover', 'onmouseout', 'target', 'rel']
+        });
+    }
+
+    return html;
 }
+
+// Copy code handler - called via event delegation
+function handleCodeCopy(btn) {
+    if (!btn || !btn.dataset.code) return;
+    
+    const code = decodeURIComponent(btn.dataset.code);
+    const copyText = btn.querySelector('.copy-text');
+    
+    navigator.clipboard.writeText(code).then(() => {
+        if (copyText) {
+            copyText.textContent = 'Copied!';
+            btn.style.color = '#10b981';
+        }
+        setTimeout(() => {
+            if (copyText) {
+                copyText.textContent = 'Copy code';
+                btn.style.color = '#a0a0a0';
+            }
+        }, 2000);
+    }).catch(() => {
+        showToast('Failed to copy', 'error');
+    });
+}
+
+// Set up event delegation for copy buttons
+document.addEventListener('click', function(e) {
+    const copyBtn = e.target.closest('.ai-copy-btn');
+    if (copyBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCodeCopy(copyBtn);
+    }
+});
 
 // ========== OPENROUTER API ==========
 function toOpenRouterMessages(messages) {
