@@ -1077,25 +1077,6 @@ function createStreamingBubble(name, modelData) {
     return { messageDiv, contentTarget, renderer };
 }
 
-    // Insert before typing indicator
-    const typingIndicator = document.getElementById('typing-indicator');
-    if (typingIndicator && typingIndicator.parentNode === inner) {
-        inner.insertBefore(messageDiv, typingIndicator);
-    } else {
-        inner.appendChild(messageDiv);
-    }
-
-    const contentTarget = messageDiv.querySelector('.message-text');
-    const renderer = new StreamingMarkdownRenderer(contentTarget);
-
-    // Scroll to bottom
-    if (dom.aiChat) {
-        dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
-    }
-
-    return { messageDiv, contentTarget, renderer };
-}
-
 function appendUserMessage(text, author, memorySaved = false, fileName = '') {
     const inner = dom.aiChat?.querySelector('.chat-messages-inner');
     if (!inner) return;
@@ -1420,7 +1401,6 @@ function setupCopyButtons() {
         }
     });
 }
-
 
 // Auto-init when DOM ready
 if (document.readyState === 'loading') {
