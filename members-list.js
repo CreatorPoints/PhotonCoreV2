@@ -13,12 +13,7 @@ const AUTHORIZED_EMAILS = [
     
     
     // Add your team members' emails below
-    'member1@example.com',
-    'member2@example.com',
-    'youremail@gmail.com',
-    
-    // Example domains - you can add whole domains too
-    // We'll handle domain matching separately
+    'shrestangshudutta@gmail.com',
 ];
 
 /**
