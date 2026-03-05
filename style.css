@@ -1365,42 +1365,148 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}.sidebar-overlay.active{display:block}
 
 /* ========================================
-   COLORED CHAT BUBBLES
+   CHAT MESSAGE LAYOUT - ChatGPT Style
+   (Includes colored bubbles + alignment)
 ======================================== */
 
-/* User messages - Purple/Blue gradient */
-.message.user-message .message-content {
-    background: linear-gradient(135deg, rgba(108, 92, 231, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
-    border: 1px solid rgba(108, 92, 231, 0.3);
-    border-radius: 16px;
-    padding: 16px 20px;
+.chat-messages-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.message.user-message .message-text {
-    color: var(--ai-text-primary);
+/* Base message styling */
+.message {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    max-width: 85%;
+    animation: messageIn 0.3s ease;
 }
 
-/* AI messages - Dark gray with subtle border */
+/* Remove border between messages */
+.message + .message {
+    border-top: none;
+}
+
+/* AI messages - LEFT aligned */
+.message.ai-message {
+    align-self: flex-start;
+    flex-direction: row;
+}
+
+.message.ai-message .message-avatar {
+    order: 0;
+}
+
 .message.ai-message .message-content {
-    background: rgba(26, 26, 62, 0.4);
+    background: rgba(26, 26, 62, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 16px 20px;
+    border-radius: 4px 18px 18px 18px;
+    padding: 14px 18px;
 }
 
 .message.ai-message .message-text {
     color: var(--ai-text-primary);
 }
 
-/* AI model tag styling */
+/* USER messages - RIGHT aligned */
+.message.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message.user-message .message-avatar {
+    order: 0;
+}
+
+.message.user-message .message-content {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.25) 0%, rgba(168, 85, 247, 0.2) 100%);
+    border: 1px solid rgba(108, 92, 231, 0.35);
+    border-radius: 18px 4px 18px 18px;
+    padding: 14px 18px;
+}
+
+.message.user-message .message-text {
+    color: var(--ai-text-primary);
+}
+
+/* Message header alignment */
+.message.user-message .message-header {
+    justify-content: flex-end;
+}
+
+/* Avatar styling */
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    font-weight: 600;
+}
+
+.message.user-message .message-avatar {
+    background: var(--ai-user-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+}
+
+.message.ai-message .message-avatar {
+    background: var(--ai-bg-tertiary);
+    border: 1px solid var(--ai-border);
+    font-size: 18px;
+}
+
+/* Message content */
+.message-content {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.message-author {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ai-text-secondary);
+}
+
+.message-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ai-text-primary);
+    word-wrap: break-word;
+}
+
+.message-text p {
+    margin: 0 0 12px 0;
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+/* AI model tag */
 .ai-model-tag {
     display: inline-flex !important;
     align-items: center;
     gap: 6px;
     margin-top: 12px;
-    padding: 6px 12px;
-    background: rgba(108, 92, 231, 0.15);
-    border: 1px solid rgba(108, 92, 231, 0.3);
+    padding: 5px 12px;
+    background: rgba(108, 92, 231, 0.12);
+    border: 1px solid rgba(108, 92, 231, 0.25);
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
@@ -1408,7 +1514,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 }
 
 .ai-model-tag span {
-    font-size: 14px;
+    font-size: 13px;
 }
 
 /* Memory saved badge */
@@ -1418,8 +1524,8 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     gap: 6px;
     margin-top: 10px;
     padding: 5px 12px;
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
     border-radius: 16px;
     font-size: 11px;
     font-weight: 600;
@@ -1428,20 +1534,41 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 
 /* File attachment in messages */
 .message-file {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 14px;
+    padding: 8px 14px;
     background: rgba(108, 92, 231, 0.1);
     border: 1px solid rgba(108, 92, 231, 0.2);
     border-radius: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 13px;
     font-weight: 500;
 }
 
 .message-file span:first-child {
-    font-size: 18px;
+    font-size: 16px;
+}
+
+/* Welcome message centered */
+.welcome-message {
+    align-self: center !important;
+    max-width: 600px !important;
+    text-align: center;
+    padding: 60px 24px;
+}
+
+/* Typing indicator - left aligned like AI */
+.typing-indicator {
+    align-self: flex-start;
+    display: none;
+    gap: 12px;
+    padding: 12px 0;
+    max-width: 85%;
+}
+
+.typing-indicator:not(.hidden) {
+    display: flex;
 }
 
 /* Code block improvements for tables */
@@ -1466,4 +1593,29 @@ table code {
 @keyframes blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .message {
+        max-width: 92%;
+    }
+
+    .chat-messages-inner {
+        padding: 0 12px;
+    }
+
+    .message-content {
+        padding: 12px 14px !important;
+    }
+
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .message.ai-message .message-avatar {
+        font-size: 16px;
+    }
 }
