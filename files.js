@@ -1,10 +1,26 @@
 /* ========================================
    PHOTON CORE — files.js
-   Firebase Storage Integration
+   Supabase Storage Integration
    ======================================== */
 
+/* ==============================
+   SUPABASE INIT
+   ============================== */
+
+const supabase = window.supabase.createClient(
+    window.CONFIG?.SUPABASE_URL || window.NEXT_PUBLIC_SUPABASE_URL,
+    window.CONFIG?.SUPABASE_ANON_KEY || window.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+const FILE_BUCKET = "photon-files";
+const FILE_PATH = "shared";
+
+/* ==============================
+   UPLOAD FILES
+   ============================== */
+
 /**
- * Upload files to Firebase Storage
+ * Upload files to Supabase Storage
  */
 async function uploadFiles(fileList) {
     if (!fileList?.length) return;
@@ -17,32 +33,50 @@ async function uploadFiles(fileList) {
         try {
             showToast('Uploading ' + file.name + '...', 'info');
 
-            // Create storage reference
-            const fileRef = filesRef.child(file.name);
-            
-            // Upload file
-            const snapshot = await fileRef.put(file);
-            
-            // Get download URL
-            const downloadURL = await snapshot.ref.getDownloadURL();
-            
-            // Save metadata to Firestore
-            await db.collection('fileMetadata').doc(file.name).set({
-                name: file.name,
-                size: file.size,
-                type: file.type || 'application/octet-stream',
-                downloadURL: downloadURL,
-                uploadedBy: state.user.username,
-                uploadedById: state.user.uid,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            });
+            // Generate unique file path
+            const timestamp = Date.now();
+            const fileName = `${timestamp}_${file.name}`;
+            const filePath = `${FILE_PATH}/${fileName}`;
+
+            // Upload to Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from(FILE_BUCKET)
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from(FILE_BUCKET)
+                .getPublicUrl(filePath);
+
+            const downloadURL = urlData.publicUrl;
+
+            // Save metadata to Supabase database
+            const { error: dbError } = await supabase
+                .from('file_metadata')
+                .insert({
+                    name: file.name,
+                    storage_path: filePath,
+                    size: file.size,
+                    type: file.type || 'application/octet-stream',
+                    download_url: downloadURL,
+                    uploaded_by: state.user.username,
+                    uploaded_by_id: state.user.uid,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+
+            if (dbError) throw dbError;
 
             addActivity('📁 ' + state.user.username + ': ' + file.name);
             showToast(file.name + ' uploaded!', 'success');
         } catch (e) {
             console.error('Upload error:', e);
-            showToast('Failed: ' + file.name, 'error');
+            showToast('Failed: ' + file.name + ' - ' + e.message, 'error');
         }
     }
 
@@ -50,19 +84,34 @@ async function uploadFiles(fileList) {
     if (dom.fileInput) dom.fileInput.value = '';
 }
 
+/* ==============================
+   LOAD FILES
+   ============================== */
+
 /**
- * Load files from Firestore metadata
+ * Load files from Supabase metadata table
  */
 async function loadFiles() {
     try {
-        const snapshot = await db.collection('fileMetadata')
-            .orderBy('createdAt', 'desc')
-            .get();
-        
-        state.files = [];
-        snapshot.forEach(doc => {
-            state.files.push({ id: doc.id, ...doc.data() });
-        });
+        const { data, error } = await supabase
+            .from('file_metadata')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        state.files = data.map(f => ({
+            id: f.id,
+            name: f.name,
+            storagePath: f.storage_path,
+            size: f.size,
+            type: f.type,
+            downloadURL: f.download_url,
+            uploadedBy: f.uploaded_by,
+            uploadedById: f.uploaded_by_id,
+            createdAt: f.created_at,
+            updatedAt: f.updated_at
+        }));
     } catch (e) {
         console.error('Failed to load files:', e);
         state.files = [];
@@ -71,6 +120,10 @@ async function loadFiles() {
     renderFiles();
     if (dom.statFiles) dom.statFiles.textContent = state.files.length;
 }
+
+/* ==============================
+   RENDER FILES
+   ============================== */
 
 /**
  * Render files list
@@ -89,6 +142,7 @@ function renderFiles() {
 
     dom.filesList.innerHTML = state.files.map(f => {
         const safeId = esc(f.name);
+        const safePath = esc(f.storagePath || f.name);
         return `
         <div class="file-card" data-filename="${safeId}">
             <div class="file-icon">${fileIcon(f.name, false)}</div>
@@ -99,8 +153,14 @@ function renderFiles() {
                 <span class="file-date">${fmtDate(f.createdAt)}</span>
             </div>
             <div class="file-actions">
-                <button class="file-action-btn download-btn" data-filename="${safeId}" data-url="${esc(f.downloadURL)}">⬇️</button>
-                <button class="file-action-btn danger delete-btn" data-filename="${safeId}">🗑️</button>
+                <button class="file-action-btn download-btn" 
+                        data-filename="${safeId}" 
+                        data-url="${esc(f.downloadURL)}"
+                        data-path="${safePath}">⬇️</button>
+                <button class="file-action-btn danger delete-btn" 
+                        data-filename="${safeId}"
+                        data-path="${safePath}"
+                        data-id="${f.id}">🗑️</button>
             </div>
         </div>`;
     }).join('');
@@ -117,19 +177,23 @@ function renderFiles() {
     dom.filesList.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            deleteFile(btn.dataset.filename);
+            deleteFile(btn.dataset.filename, btn.dataset.path, btn.dataset.id);
         });
     });
 }
 
+/* ==============================
+   DOWNLOAD FILE
+   ============================== */
+
 /**
- * Download file
+ * Download file from Supabase
  */
 async function downloadFile(name, url) {
     if (!name) return;
 
     try {
-        // If URL provided, use it directly
+        // Use provided URL if available
         if (url) {
             const a = document.createElement('a');
             a.href = url;
@@ -142,49 +206,67 @@ async function downloadFile(name, url) {
             return;
         }
 
-        // Otherwise, get URL from storage
-        const fileRef = filesRef.child(name);
-        const downloadURL = await fileRef.getDownloadURL();
-        
+        // Otherwise, fetch from database
+        const { data, error } = await supabase
+            .from('file_metadata')
+            .select('download_url, storage_path')
+            .eq('name', name)
+            .single();
+
+        if (error) throw error;
+
         const a = document.createElement('a');
-        a.href = downloadURL;
+        a.href = data.download_url;
         a.download = name;
         a.target = '_blank';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
+
         showToast('Downloading: ' + name, 'info');
     } catch (e) {
         console.error('Download failed:', e);
-        showToast('Download failed.', 'error');
+        showToast('Download failed: ' + e.message, 'error');
     }
 }
 
+/* ==============================
+   DELETE FILE
+   ============================== */
+
 /**
- * Delete file from Storage and Firestore
+ * Delete file from Supabase Storage and database
  */
-async function deleteFile(name) {
+async function deleteFile(name, storagePath, recordId) {
     if (!name) return;
     if (!confirm(`Delete "${name}"?`)) return;
 
     try {
-        // Delete from Storage
-        const fileRef = filesRef.child(name);
-        await fileRef.delete().catch(e => {
-            // File might not exist in storage, continue
-            console.warn('Storage delete warning:', e);
-        });
+        // Delete from Supabase Storage
+        if (storagePath) {
+            const { error: storageError } = await supabase.storage
+                .from(FILE_BUCKET)
+                .remove([storagePath]);
 
-        // Delete metadata from Firestore
-        await db.collection('fileMetadata').doc(name).delete();
+            if (storageError) {
+                console.warn('Storage delete warning:', storageError);
+            }
+        }
+
+        // Delete metadata from database
+        const { error: dbError } = await supabase
+            .from('file_metadata')
+            .delete()
+            .eq('id', recordId);
+
+        if (dbError) throw dbError;
 
         showToast('Deleted: ' + name, 'info');
         addActivity('🗑️ ' + (state.user?.username || 'User') + ' deleted: ' + name);
         await loadFiles();
     } catch (e) {
         console.error('Delete failed:', e);
-        showToast('Delete failed.', 'error');
+        showToast('Delete failed: ' + e.message, 'error');
     }
 }
 
@@ -194,18 +276,20 @@ async function deleteFile(name) {
 
 async function aiListFiles() {
     try {
-        const snapshot = await db.collection('fileMetadata')
-            .orderBy('createdAt', 'desc')
-            .get();
+        const { data, error } = await supabase
+            .from('file_metadata')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        if (snapshot.empty) {
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
             return '📂 Your cloud is empty.';
         }
 
         let result = '📂 Files in your cloud:\n\n';
-        snapshot.forEach(doc => {
-            const f = doc.data();
-            result += `- 📄 ${f.name} (${fmtSize(f.size)}) - uploaded by ${f.uploadedBy}\n`;
+        data.forEach(f => {
+            result += `- 📄 ${f.name} (${fmtSize(f.size)}) - uploaded by ${f.uploaded_by}\n`;
         });
 
         return result;
@@ -219,22 +303,30 @@ async function aiReadFile(name) {
 
     try {
         // Get file metadata
-        const doc = await db.collection('fileMetadata').doc(name).get();
-        if (!doc.exists) {
+        const { data: metadata, error: metaError } = await supabase
+            .from('file_metadata')
+            .select('*')
+            .eq('name', name)
+            .single();
+
+        if (metaError || !metadata) {
             return '⚠️ File not found: ' + name;
         }
 
-        const metadata = doc.data();
-        
         // Check if it's a text file
         const textExtensions = /\.(txt|js|ts|py|html|css|json|md|csv|xml|yaml|yml|log|sh|gd)$/i;
         if (!textExtensions.test(name) && !metadata.type?.startsWith('text/')) {
             return `📄 ${name} is a binary file (${fmtSize(metadata.size)}). Cannot display content.`;
         }
 
-        // Fetch content
-        const response = await fetch(metadata.downloadURL);
-        const text = await response.text();
+        // Fetch content from storage
+        const { data: fileData, error: storageError } = await supabase.storage
+            .from(FILE_BUCKET)
+            .download(metadata.storage_path);
+
+        if (storageError) throw storageError;
+
+        const text = await fileData.text();
 
         if (text.length > 10000) {
             return `📄 Content of ${name} (first 10000 chars):\n\n${text.substring(0, 10000)}...\n\n[Truncated]`;
@@ -253,23 +345,44 @@ async function aiWriteFile(name, content) {
     try {
         // Create blob from content
         const blob = new Blob([content || ''], { type: 'text/plain' });
-        
-        // Upload to storage
-        const fileRef = filesRef.child(name);
-        const snapshot = await fileRef.put(blob);
-        const downloadURL = await snapshot.ref.getDownloadURL();
 
-        // Save metadata
-        await db.collection('fileMetadata').doc(name).set({
-            name: name,
-            size: blob.size,
-            type: 'text/plain',
-            downloadURL: downloadURL,
-            uploadedBy: state.user.username,
-            uploadedById: state.user.uid,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
+        // Generate file path
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${name}`;
+        const filePath = `${FILE_PATH}/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(FILE_BUCKET)
+            .upload(filePath, blob, {
+                cacheControl: '3600',
+                upsert: true
+            });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from(FILE_BUCKET)
+            .getPublicUrl(filePath);
+
+        // Save metadata (upsert by name)
+        const { error: dbError } = await supabase
+            .from('file_metadata')
+            .upsert({
+                name: name,
+                storage_path: filePath,
+                size: blob.size,
+                type: 'text/plain',
+                download_url: urlData.publicUrl,
+                uploaded_by: state.user.username,
+                uploaded_by_id: state.user.uid,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'name'
+            });
+
+        if (dbError) throw dbError;
 
         await loadFiles();
         addActivity('🤖 AI saved: ' + name);
@@ -284,12 +397,31 @@ async function aiDeleteFile(name) {
     if (!name) return '⚠️ No file name provided.';
 
     try {
+        // Get file metadata first
+        const { data: metadata, error: metaError } = await supabase
+            .from('file_metadata')
+            .select('storage_path, id')
+            .eq('name', name)
+            .single();
+
+        if (metaError || !metadata) {
+            return '⚠️ File not found: ' + name;
+        }
+
         // Delete from Storage
-        const fileRef = filesRef.child(name);
-        await fileRef.delete().catch(() => {});
+        if (metadata.storage_path) {
+            await supabase.storage
+                .from(FILE_BUCKET)
+                .remove([metadata.storage_path]);
+        }
 
         // Delete metadata
-        await db.collection('fileMetadata').doc(name).delete();
+        const { error: dbError } = await supabase
+            .from('file_metadata')
+            .delete()
+            .eq('id', metadata.id);
+
+        if (dbError) throw dbError;
 
         await loadFiles();
         addActivity('🤖 AI deleted: ' + name);
@@ -307,20 +439,41 @@ async function uploadFileForAI(file) {
     if (!state.user) return null;
 
     try {
-        const fileRef = filesRef.child(file.name);
-        const snapshot = await fileRef.put(file);
-        const downloadURL = await snapshot.ref.getDownloadURL();
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${file.name}`;
+        const filePath = `${FILE_PATH}/${fileName}`;
 
-        await db.collection('fileMetadata').doc(file.name).set({
-            name: file.name,
-            size: file.size,
-            type: file.type || 'application/octet-stream',
-            downloadURL: downloadURL,
-            uploadedBy: state.user.username,
-            uploadedById: state.user.uid,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        });
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(FILE_BUCKET)
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from(FILE_BUCKET)
+            .getPublicUrl(filePath);
+
+        const downloadURL = urlData.publicUrl;
+
+        // Save metadata
+        await supabase
+            .from('file_metadata')
+            .insert({
+                name: file.name,
+                storage_path: filePath,
+                size: file.size,
+                type: file.type || 'application/octet-stream',
+                download_url: downloadURL,
+                uploaded_by: state.user.username,
+                uploaded_by_id: state.user.uid,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
 
         return downloadURL;
     } catch (e) {
