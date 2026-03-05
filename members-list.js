@@ -9,8 +9,8 @@
  */
 const AUTHORIZED_EMAILS = [
     // Photon Studios Core Team
-    'admin@photonstudios.com',
-    'dev@photonstudios.com',
+    'photonstudios.org@gmail.com',
+    
     
     // Add your team members' emails below
     'member1@example.com',
