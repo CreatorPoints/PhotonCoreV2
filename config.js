@@ -414,88 +414,39 @@ function fileIcon(n, d) {
     return icons[e] || '📄';
 }
 
-// ========== CHATGPT-LIKE MARKDOWN RENDERER ==========
+// ========== SIMPLE MARKDOWN FORMATTER (FALLBACK) ==========
 function formatAi(text) {
     if (!text) return '';
 
-    // Check if marked.js is available
-    if (typeof marked === 'undefined') {
-        // Fallback to basic formatting
-        let f = esc(text);
-        f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        f = f.replace(/\*(.+?)\*/g, '<em>$1</em>');
-        f = f.replace(/`([^`]+)`/g, '<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');
-        f = f.replace(/\n/g, '<br>');
-        return f;
+    // Use StreamingMarkdownRenderer if available (from ai.js)
+    if (typeof StreamingMarkdownRenderer !== 'undefined') {
+        const tempDiv = document.createElement('div');
+        const renderer = new StreamingMarkdownRenderer(tempDiv);
+        renderer.appendChunk(text);
+        renderer.finalize();
+        return tempDiv.innerHTML;
     }
 
-    // Configure marked with custom renderer - ONLY override code blocks
-    const renderer = new marked.Renderer();
-
-    // Code blocks with syntax highlighting and copy button
-    renderer.code = function(code, language, escaped) {
-        // Handle both old and new marked API
-        let codeText, lang;
-        if (typeof code === 'object') {
-            codeText = code.text || '';
-            lang = code.lang || '';
-        } else {
-            codeText = code || '';
-            lang = language || '';
-        }
-
-        let highlighted;
-        const validLang = lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang) ? lang : '';
-
-        try {
-            if (validLang && typeof hljs !== 'undefined') {
-                highlighted = hljs.highlight(codeText, { language: validLang }).value;
-            } else if (typeof hljs !== 'undefined') {
-                const auto = hljs.highlightAuto(codeText);
-                highlighted = auto.value;
-            } else {
-                highlighted = esc(codeText);
-            }
-        } catch (e) {
-            highlighted = esc(codeText);
-        }
-
-        const langLabel = validLang || 'plaintext';
-        const escapedCode = encodeURIComponent(codeText);
-
-        return `<div class="ai-code-block" style="margin:16px 0;border-radius:8px;overflow:hidden;background:#0d0d0d;border:1px solid #333;">
-            <div class="ai-code-header" style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#262626;border-bottom:1px solid #333;">
-                <span style="color:#a0a0a0;font-size:12px;font-weight:500;">${langLabel}</span>
-                <button class="ai-copy-btn" data-code="${escapedCode}" style="background:transparent;border:none;color:#a0a0a0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;transition:all 0.15s ease;" onmouseover="this.style.background='#404040';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#a0a0a0'">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    <span class="copy-text">Copy code</span>
-                </button>
-            </div>
-            <pre style="margin:0;padding:16px;overflow-x:auto;background:#0d0d0d;"><code class="hljs language-${langLabel}" style="font-family:'JetBrains Mono',Consolas,'Courier New',monospace;font-size:13px;line-height:1.6;background:transparent;">${highlighted}</code></pre>
-        </div>`;
-    };
-
-    // Set marked options
-    marked.setOptions({
-        renderer: renderer,
-        breaks: true,
-        gfm: true
-    });
-
-    // Parse the markdown
-    let html = marked.parse(text);
-
-    // Sanitize with DOMPurify if available
-    if (typeof DOMPurify !== 'undefined') {
-        html = DOMPurify.sanitize(html, {
-            ADD_TAGS: ['svg', 'path', 'rect', 'polyline', 'line', 'circle'],
-            ADD_ATTR: ['class', 'data-code', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'x', 'y', 'width', 'height', 'rx', 'ry', 'points', 'style', 'onclick', 'onmouseover', 'onmouseout', 'target', 'rel']
-        });
-    }
-
-    return html;
+    // Basic fallback
+    let f = esc(text);
+    
+    // Bold + Italic
+    f = f.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    
+    // Bold
+    f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic
+    f = f.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    
+    // Inline code
+    f = f.replace(/`([^`]+)`/g, '<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');
+    
+    // Line breaks
+    f = f.replace(/\n/g, '<br>');
+    
+    return f;
 }
-
 // Copy code handler - called via event delegation
 function handleCodeCopy(btn) {
     if (!btn || !btn.dataset.code) return;
