@@ -429,7 +429,7 @@ function formatAi(text) {
         return f;
     }
 
-    // Configure marked with custom renderer for ChatGPT-like output
+    // Configure marked with custom renderer - ONLY override code blocks
     const renderer = new marked.Renderer();
 
     // Code blocks with syntax highlighting and copy button
@@ -473,90 +473,6 @@ function formatAi(text) {
             </div>
             <pre style="margin:0;padding:16px;overflow-x:auto;background:#0d0d0d;"><code class="hljs language-${langLabel}" style="font-family:'JetBrains Mono',Consolas,'Courier New',monospace;font-size:13px;line-height:1.6;background:transparent;">${highlighted}</code></pre>
         </div>`;
-    };
-
-    // Inline code
-    renderer.codespan = function(code) {
-        const text = typeof code === 'object' ? code.text : code;
-        return `<code style="background:rgba(110,118,129,0.25);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',Consolas,monospace;font-size:0.875em;color:#e6edf3;">${esc(text)}</code>`;
-    };
-
-    // Paragraphs
-    renderer.paragraph = function(text) {
-        const content = typeof text === 'object' ? text.text : text;
-        return `<p style="margin:0 0 16px 0;line-height:1.75;">${content}</p>`;
-    };
-
-    // Lists
-    renderer.list = function(body, ordered, start) {
-        const content = typeof body === 'object' ? body.body : body;
-        const isOrdered = typeof body === 'object' ? body.ordered : ordered;
-        const tag = isOrdered ? 'ol' : 'ul';
-        return `<${tag} style="margin:0 0 16px 0;padding-left:24px;line-height:1.75;">${content}</${tag}>`;
-    };
-
-    renderer.listitem = function(text) {
-        const content = typeof text === 'object' ? text.text : text;
-        return `<li style="margin:4px 0;">${content}</li>`;
-    };
-
-    // Blockquotes
-    renderer.blockquote = function(quote) {
-        const content = typeof quote === 'object' ? quote.text : quote;
-        return `<blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #6c5ce7;background:rgba(108,92,231,0.1);border-radius:0 8px 8px 0;">${content}</blockquote>`;
-    };
-
-    // Headers
-    renderer.heading = function(text, level, raw) {
-        const content = typeof text === 'object' ? text.text : text;
-        const lvl = typeof text === 'object' ? text.depth : level;
-        const sizes = { 1: '1.75em', 2: '1.5em', 3: '1.25em', 4: '1.1em', 5: '1em', 6: '0.9em' };
-        const margins = { 1: '24px 0 16px', 2: '20px 0 12px', 3: '16px 0 8px', 4: '12px 0 8px', 5: '8px 0 4px', 6: '8px 0 4px' };
-        return `<h${lvl} style="font-size:${sizes[lvl]};font-weight:600;margin:${margins[lvl]};line-height:1.3;">${content}</h${lvl}>`;
-    };
-
-    // Links
-    renderer.link = function(href, title, text) {
-        const url = typeof href === 'object' ? href.href : href;
-        const linkText = typeof href === 'object' ? href.text : text;
-        const linkTitle = typeof href === 'object' ? href.title : title;
-        return `<a href="${esc(url)}" title="${esc(linkTitle || '')}" style="color:#6c5ce7;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank" rel="noopener">${linkText}</a>`;
-    };
-
-    // Bold
-    renderer.strong = function(text) {
-        const content = typeof text === 'object' ? text.text : text;
-        return `<strong style="font-weight:600;">${content}</strong>`;
-    };
-
-    // Italic
-    renderer.em = function(text) {
-        const content = typeof text === 'object' ? text.text : text;
-        return `<em>${content}</em>`;
-    };
-
-    // Horizontal rule
-    renderer.hr = function() {
-        return `<hr style="margin:24px 0;border:none;border-top:1px solid #333;">`;
-    };
-
-    // Tables
-    renderer.table = function(header, body) {
-        const headerContent = typeof header === 'object' ? header.header : header;
-        const bodyContent = typeof header === 'object' ? header.body : body;
-        return `<div style="overflow-x:auto;margin:16px 0;"><table style="width:100%;border-collapse:collapse;border:1px solid #333;border-radius:8px;overflow:hidden;"><thead style="background:#262626;">${headerContent}</thead><tbody>${bodyContent}</tbody></table></div>`;
-    };
-
-    renderer.tablerow = function(content) {
-        const rowContent = typeof content === 'object' ? content.text : content;
-        return `<tr style="border-bottom:1px solid #333;">${rowContent}</tr>`;
-    };
-
-    renderer.tablecell = function(content, flags) {
-        const cellContent = typeof content === 'object' ? content.text : content;
-        const isHeader = typeof content === 'object' ? content.header : (flags && flags.header);
-        const tag = isHeader ? 'th' : 'td';
-        return `<${tag} style="padding:10px 16px;text-align:left;">${cellContent}</${tag}>`;
     };
 
     // Set marked options
