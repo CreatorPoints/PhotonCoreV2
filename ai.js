@@ -1048,8 +1048,12 @@ function createStreamingBubble(name, modelData) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai-message';
 
+    const logoHtml = typeof getAILogo === 'function' 
+        ? getAILogo(modelData?.logoKey || getLogoKeyFromModel(state.selectedModel))
+        : '🤖';
+
     messageDiv.innerHTML = `
-        <div class="message-avatar">${modelData?.logo || '🤖'}</div>
+        <div class="message-avatar">${logoHtml}</div>
         <div class="message-content">
             <div class="message-header">
                 <span class="message-author">${esc(name)}</span>
@@ -1058,7 +1062,6 @@ function createStreamingBubble(name, modelData) {
         </div>
     `;
 
-    // Insert before typing indicator
     const typingIndicator = document.getElementById('typing-indicator');
     if (typingIndicator && typingIndicator.parentNode === inner) {
         inner.insertBefore(messageDiv, typingIndicator);
@@ -1069,7 +1072,6 @@ function createStreamingBubble(name, modelData) {
     const contentTarget = messageDiv.querySelector('.message-text');
     const renderer = new StreamingMarkdownRenderer(contentTarget);
 
-    // Scroll to bottom
     if (dom.aiChat) {
         dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
     }
@@ -1129,12 +1131,18 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     messageDiv.className = 'message ' + (sender === 'user' ? 'user-message' : 'ai-message');
 
     const md = sender === 'ai' ? AI_MODELS[state.selectedModel] : null;
-    const avatar = sender === 'user'
-        ? esc((author || '??').substring(0, 2).toUpperCase())
-        : (md?.logo || '🤖');
+    
+    let avatarHtml;
+    if (sender === 'user') {
+        avatarHtml = esc((author || '??').substring(0, 2).toUpperCase());
+    } else {
+        avatarHtml = typeof getAILogo === 'function' 
+            ? getAILogo(md?.logoKey || getLogoKeyFromModel(state.selectedModel))
+            : '🤖';
+    }
 
     let html = `
-        <div class="message-avatar">${avatar}</div>
+        <div class="message-avatar">${avatarHtml}</div>
         <div class="message-content">
             <div class="message-header">
                 <span class="message-author">${esc(author || modelName)}</span>
@@ -1147,7 +1155,6 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     }
 
     if (sender === 'ai') {
-        // Use streaming renderer for consistent formatting
         const tempDiv = document.createElement('div');
         const renderer = new StreamingMarkdownRenderer(tempDiv);
         renderer.appendChunk(text);
@@ -1158,7 +1165,10 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     }
 
     if (sender === 'ai' && modelName) {
-        html += `<div class="ai-model-tag"><span>${md?.logo || '🤖'}</span> ${esc(modelName)}</div>`;
+        const logoHtml = typeof getAILogo === 'function' 
+            ? getAILogo(md?.logoKey || getLogoKeyFromModel(state.selectedModel))
+            : '🤖';
+        html += `<div class="ai-model-tag">${logoHtml} ${esc(modelName)}</div>`;
     }
 
     if (memorySaved) {
@@ -1168,7 +1178,6 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     html += '</div>';
     messageDiv.innerHTML = html;
 
-    // Insert before typing indicator
     const typingIndicator = document.getElementById('typing-indicator');
     if (typingIndicator && typingIndicator.parentNode === inner) {
         inner.insertBefore(messageDiv, typingIndicator);
@@ -1231,6 +1240,15 @@ function setupAIModelSelector() {
     const btn = document.getElementById('model-selector-btn');
     const search = document.getElementById('model-search');
     const options = document.querySelectorAll('.model-option');
+
+    // Inject logos into model options
+    options.forEach(option => {
+        const logoKey = option.dataset.logo || getLogoKeyFromModel(option.dataset.value);
+        const iconEl = option.querySelector('.model-option-icon');
+        if (iconEl && typeof getAILogo === 'function') {
+            iconEl.innerHTML = getAILogo(logoKey);
+        }
+    });
 
     btn?.addEventListener('click', (e) => {
         e.stopPropagation();
