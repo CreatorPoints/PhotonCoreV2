@@ -99,7 +99,7 @@ const AI_MODELS = {
     'openrouter/free': {
         name: 'Auto Select Best',
         provider: 'OpenRouter',
-        logo: '🎲',
+        logoKey: 'auto',
         badge: 'Smart',
         desc: 'Automatically picks the best available model'
     },
@@ -108,14 +108,14 @@ const AI_MODELS = {
     'meta-llama/llama-3.3-70b-instruct:free': {
         name: 'LLaMA 3.3 70B',
         provider: 'Meta',
-        logo: '🦙',
+        logoKey: 'meta',
         badge: 'Flagship',
         desc: 'Best overall performance, reasoning & coding'
     },
     'meta-llama/llama-3.2-3b-instruct:free': {
         name: 'LLaMA 3.2 3B',
         provider: 'Meta',
-        logo: '🦙',
+        logoKey: 'meta',
         badge: 'Fast',
         desc: 'Lightning fast, good for simple tasks'
     },
@@ -124,35 +124,35 @@ const AI_MODELS = {
     'google/gemma-3-27b-it:free': {
         name: 'Gemma 3 27B',
         provider: 'Google',
-        logo: '💎',
+        logoKey: 'google',
         badge: 'Powerful',
         desc: 'Google\'s best, great reasoning & writing'
     },
     'google/gemma-3-12b-it:free': {
         name: 'Gemma 3 12B',
         provider: 'Google',
-        logo: '💎',
+        logoKey: 'google',
         badge: 'Balanced',
         desc: 'Good balance of speed and quality'
     },
     'google/gemma-3-4b-it:free': {
         name: 'Gemma 3 4B',
         provider: 'Google',
-        logo: '💎',
+        logoKey: 'google',
         badge: 'Fast',
         desc: 'Quick responses, efficient'
     },
     'google/gemma-3n-e4b-it:free': {
         name: 'Gemma 3N E4B',
         provider: 'Google',
-        logo: '💎',
+        logoKey: 'google',
         badge: 'Edge',
         desc: 'Optimized for edge devices'
     },
     'google/gemma-3n-e2b-it:free': {
         name: 'Gemma 3N E2B',
         provider: 'Google',
-        logo: '💎',
+        logoKey: 'google',
         badge: 'Tiny',
         desc: 'Ultra-compact, instant responses'
     },
@@ -161,28 +161,28 @@ const AI_MODELS = {
     'nvidia/nemotron-3-nano-30b-a3b:free': {
         name: 'Nemotron 30B',
         provider: 'NVIDIA',
-        logo: '🟢',
+        logoKey: 'nvidia',
         badge: 'Reasoning',
         desc: 'Strong logical reasoning & math'
     },
     'nvidia/nemotron-nano-12b-v2-vl:free': {
         name: 'Nemotron 12B VL',
         provider: 'NVIDIA',
-        logo: '🟢',
+        logoKey: 'nvidia',
         badge: 'Vision',
         desc: 'Vision-language understanding'
     },
     'nvidia/nemotron-nano-9b-v2:free': {
         name: 'Nemotron 9B',
         provider: 'NVIDIA',
-        logo: '🟢',
+        logoKey: 'nvidia',
         badge: 'Balanced',
         desc: 'Well-rounded performance'
     },
     'nvidia/llama-nemotron-embed-vl-1b-v2:free': {
         name: 'Nemotron Embed 1B',
         provider: 'NVIDIA',
-        logo: '🟢',
+        logoKey: 'nvidia',
         badge: 'Embed',
         desc: 'Embeddings & vision tasks'
     },
@@ -191,21 +191,21 @@ const AI_MODELS = {
     'qwen/qwen3-coder:free': {
         name: 'Qwen3 Coder',
         provider: 'Alibaba',
-        logo: '👨‍💻',
+        logoKey: 'coder',
         badge: 'Code',
         desc: 'Specialized for programming'
     },
     'qwen/qwen3-next-80b-a3b-instruct:free': {
         name: 'Qwen3 Next 80B',
         provider: 'Alibaba',
-        logo: '📘',
+        logoKey: 'qwen',
         badge: 'Large',
         desc: 'Advanced reasoning & analysis'
     },
     'qwen/qwen3-4b:free': {
         name: 'Qwen3 4B',
         provider: 'Alibaba',
-        logo: '📘',
+        logoKey: 'qwen',
         badge: 'Fast',
         desc: 'Quick general assistant'
     },
@@ -214,7 +214,7 @@ const AI_MODELS = {
     'mistralai/mistral-small-3.1-24b-instruct:free': {
         name: 'Mistral Small 24B',
         provider: 'Mistral AI',
-        logo: '🌀',
+        logoKey: 'mistral',
         badge: 'Quality',
         desc: 'Excellent writing & reasoning'
     },
@@ -223,14 +223,14 @@ const AI_MODELS = {
     'openai/gpt-oss-120b:free': {
         name: 'GPT-OSS 120B',
         provider: 'OpenAI',
-        logo: '🤖',
+        logoKey: 'openai',
         badge: 'Massive',
         desc: 'Large open-source GPT model'
     },
     'openai/gpt-oss-20b:free': {
         name: 'GPT-OSS 20B',
         provider: 'OpenAI',
-        logo: '🤖',
+        logoKey: 'openai',
         badge: 'Fast',
         desc: 'Faster open-source GPT'
     },
@@ -239,14 +239,14 @@ const AI_MODELS = {
     'arcee-ai/trinity-large-preview:free': {
         name: 'Arcee Large',
         provider: 'Arcee AI',
-        logo: '🔺',
+        logoKey: 'arcee',
         badge: 'Preview',
         desc: 'Advanced multi-task reasoning'
     },
     'arcee-ai/trinity-mini:free': {
         name: 'Arcee Mini',
         provider: 'Arcee AI',
-        logo: '🔺',
+        logoKey: 'arcee',
         badge: 'Compact',
         desc: 'Lightweight but capable'
     },
@@ -255,7 +255,7 @@ const AI_MODELS = {
     'stepfun/step-3.5-flash:free': {
         name: 'Step 3.5 Flash',
         provider: 'StepFun',
-        logo: '⚡',
+        logoKey: 'stepfun',
         badge: 'Ultra Fast',
         desc: 'Blazing fast responses'
     },
@@ -264,7 +264,7 @@ const AI_MODELS = {
     'z-ai/glm-4.5-air:free': {
         name: 'GLM 4.5 Air',
         provider: 'Z AI',
-        logo: '🇨🇳',
+        logoKey: 'zai',
         badge: 'Bilingual',
         desc: 'Chinese & English specialist'
     },
@@ -273,14 +273,14 @@ const AI_MODELS = {
     'liquid/lfm-2.5-1.2b-thinking:free': {
         name: 'LFM Thinking',
         provider: 'Liquid',
-        logo: '💧',
+        logoKey: 'liquid',
         badge: 'CoT',
         desc: 'Chain-of-thought reasoning'
     },
     'liquid/lfm-2.5-1.2b-instruct:free': {
         name: 'LFM Instruct',
         provider: 'Liquid',
-        logo: '💧',
+        logoKey: 'liquid',
         badge: 'Fast',
         desc: 'Quick instruction following'
     },
@@ -289,7 +289,7 @@ const AI_MODELS = {
     'nousresearch/hermes-3-llama-3.1-405b:free': {
         name: 'Hermes 3 405B',
         provider: 'Nous Research',
-        logo: '🏛️',
+        logoKey: 'nous',
         badge: 'Massive',
         desc: 'Largest free model, best quality'
     },
@@ -298,7 +298,7 @@ const AI_MODELS = {
     'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': {
         name: 'Dolphin Mistral 24B',
         provider: 'Cognitive',
-        logo: '🐬',
+        logoKey: 'cognitive',
         badge: 'Creative',
         desc: 'Uncensored, creative writing'
     }
