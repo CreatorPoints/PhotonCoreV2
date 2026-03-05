@@ -1106,10 +1106,10 @@ function appendUserMessage(text, author, memorySaved = false, fileName = '') {
     const avatar = (author || '??').substring(0, 2).toUpperCase();
 
     let html = `
-        <div class="message-avatar user-avatar">${esc(avatar)}</div>
+        <div class="message-avatar">${esc(avatar)}</div>
         <div class="message-content">
             <div class="message-header">
-                <span class="message-author">👤 ${esc(author)}</span>
+                <span class="message-author">${esc(author)}</span>
             </div>
     `;
 
@@ -1153,12 +1153,10 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
         : (md?.logo || '🤖');
 
     let html = `
-        <div class="message-avatar ${sender === 'user' ? 'user-avatar' : ''}" ${sender === 'ai' ? 'style="background: var(--ai-bg-tertiary); border: 1px solid var(--ai-border);"' : ''}>
-            ${avatar}
-        </div>
+        <div class="message-avatar">${avatar}</div>
         <div class="message-content">
             <div class="message-header">
-                <span class="message-author">${sender === 'user' ? '👤 ' : ''}${esc(author || modelName)}</span>
+                <span class="message-author">${esc(author || modelName)}</span>
             </div>
     `;
 
@@ -1201,7 +1199,6 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
         dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
     }
 }
-
 
 /* ========================================
    AI PAGE CONTROLLER
