@@ -8,7 +8,6 @@ const isAuthPage = (currentPage === 'index.html' || currentPage === '');
 const appPages = ['dashboard.html', 'discussions.html', 'files.html', 'ai.html', 'members.html'];
 const isAppPage = appPages.includes(currentPage);
 
-// Auth mode state
 let isSignUpMode = false;
 
 /**
@@ -39,12 +38,6 @@ function waitForFirebase() {
                 console.log('✓ All Firebase services ready');
                 resolve();
             } else if (attempts >= maxAttempts) {
-                console.error('Firebase services status:', {
-                    auth: !!window.auth,
-                    db: !!window.db,
-                    rtdb: !!window.rtdb,
-                    storage: !!window.storage
-                });
                 reject(new Error('Firebase services failed to initialize'));
             } else {
                 setTimeout(checkFirebase, 100);
@@ -96,10 +89,7 @@ async function handleGoogleSignIn() {
     try {
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `
-                <div class="spinner"></div>
-                Signing in...
-            `;
+            btn.innerHTML = `<div class="spinner"></div> Signing in...`;
         }
         
         showAuthError('');
@@ -111,41 +101,42 @@ async function handleGoogleSignIn() {
         const result = await auth.signInWithPopup(provider);
         console.log('Google sign-in successful:', result.user.email);
         
-        // Check authorization
-        const isAuthorized = await checkEmailAuthorization(result.user);
-        if (!isAuthorized) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `
-                    <svg viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Sign in with Google
-                `;
+        // Check authorization (uses function from members-list.js or auth-guard.js)
+        if (typeof checkEmailAuthorization === 'function') {
+            const isAuthorized = await checkEmailAuthorization(result.user);
+            if (!isAuthorized) {
+                resetGoogleButton(btn);
+                return;
             }
-            return;
+        } else if (typeof isEmailAuthorized === 'function') {
+            if (!isEmailAuthorized(result.user.email)) {
+                showAuthError('Access denied. Email not authorized.');
+                await auth.signOut();
+                resetGoogleButton(btn);
+                return;
+            }
         }
         
-        await createAuthorizedUserDocument(result.user);
+        await createUserDocument(result.user);
     } catch (e) {
         console.error('Google sign-in error:', e);
         showAuthError(getAuthErrorMessage(e.code));
-        
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Sign in with Google
-            `;
-        }
+        resetGoogleButton(btn);
+    }
+}
+
+function resetGoogleButton(btn) {
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Sign in with Google
+        `;
     }
 }
 
@@ -157,19 +148,20 @@ async function handleEmailSignIn(email, password) {
         showAuthError('');
         console.log('Attempting email sign-in for:', email);
         
-        const result = await auth.signInWithEmailAndPassword(email, password);
-        console.log('Email sign-in successful');
-        
-        // Check authorization
-        const isAuthorized = await checkEmailAuthorization(result.user);
-        if (!isAuthorized) {
+        // Check authorization before sign-in
+        if (typeof isEmailAuthorized === 'function' && !isEmailAuthorized(email)) {
+            const msg = typeof getAuthorizationErrorMessage === 'function' 
+                ? getAuthorizationErrorMessage(email) 
+                : 'Access denied. Email not authorized.';
+            showAuthError(msg);
             throw new Error('UNAUTHORIZED_EMAIL');
         }
         
+        await auth.signInWithEmailAndPassword(email, password);
+        console.log('Email sign-in successful');
+        
     } catch (e) {
-        if (e.message === 'UNAUTHORIZED_EMAIL') {
-            throw e;
-        }
+        if (e.message === 'UNAUTHORIZED_EMAIL') throw e;
         console.error('Email sign-in error:', e);
         showAuthError(getAuthErrorMessage(e.code));
         throw e;
@@ -183,9 +175,12 @@ async function handleEmailSignUp(email, password, displayName) {
     try {
         showAuthError('');
         
-        // Check authorization BEFORE creating account
+        // Check authorization before creating account
         if (typeof isEmailAuthorized === 'function' && !isEmailAuthorized(email)) {
-            showAuthError(getAuthorizationErrorMessage(email));
+            const msg = typeof getAuthorizationErrorMessage === 'function' 
+                ? getAuthorizationErrorMessage(email) 
+                : 'Access denied. Email not authorized.';
+            showAuthError(msg);
             throw new Error('UNAUTHORIZED_EMAIL');
         }
         
@@ -196,15 +191,11 @@ async function handleEmailSignUp(email, password, displayName) {
         
         if (displayName && result.user) {
             await result.user.updateProfile({ displayName });
-            console.log('Display name updated');
         }
         
-        await createAuthorizedUserDocument(result.user, displayName);
-        console.log('User document created');
+        await createUserDocument(result.user, displayName);
     } catch (e) {
-        if (e.message === 'UNAUTHORIZED_EMAIL') {
-            throw e;
-        }
+        if (e.message === 'UNAUTHORIZED_EMAIL') throw e;
         console.error('Sign-up error:', e);
         showAuthError(getAuthErrorMessage(e.code));
         throw e;
@@ -212,10 +203,32 @@ async function handleEmailSignUp(email, password, displayName) {
 }
 
 /**
- * Create user document in Firestore (DEPRECATED - use createAuthorizedUserDocument)
+ * Create user document in Firestore
  */
 async function createUserDocument(user, displayName) {
-    return await createAuthorizedUserDocument(user, displayName);
+    if (!user) return;
+    
+    try {
+        const userRef = db.collection('users').doc(user.uid);
+        const snapshot = await userRef.get();
+        
+        if (!snapshot.exists) {
+            await userRef.set({
+                uid: user.uid,
+                email: user.email,
+                displayName: displayName || user.displayName || user.email.split('@')[0],
+                photoURL: user.photoURL || null,
+                role: 'Member',
+                status: 'Active',
+                createdAt: new Date().toISOString(),
+                lastSeen: new Date().toISOString()
+            });
+        } else {
+            await userRef.update({ lastSeen: new Date().toISOString() });
+        }
+    } catch (e) {
+        console.error('Error creating user document:', e);
+    }
 }
 
 /**
@@ -237,7 +250,7 @@ async function handleSignOut() {
 }
 
 /**
- * Toggle between sign-in and sign-up modes
+ * Toggle auth mode
  */
 window.toggleAuthMode = function() {
     isSignUpMode = !isSignUpMode;
@@ -246,27 +259,24 @@ window.toggleAuthMode = function() {
     const submitBtn = document.getElementById('btn-email-auth');
     const toggleText = document.getElementById('auth-toggle-text');
     const toggleLink = document.getElementById('auth-toggle-link');
-    const passwordField = document.getElementById('auth-password');
     
     if (isSignUpMode) {
         if (usernameField) usernameField.classList.remove('hidden');
         if (submitBtn) submitBtn.textContent = 'Sign Up';
         if (toggleText) toggleText.textContent = 'Already have an account?';
         if (toggleLink) toggleLink.textContent = 'Sign In';
-        if (passwordField) passwordField.setAttribute('minlength', '6');
     } else {
         if (usernameField) usernameField.classList.add('hidden');
         if (submitBtn) submitBtn.textContent = 'Sign In';
         if (toggleText) toggleText.textContent = "Don't have an account?";
         if (toggleLink) toggleLink.textContent = 'Sign Up';
-        if (passwordField) passwordField.removeAttribute('minlength');
     }
     
     showAuthError('');
 };
 
 /**
- * Show auth error message
+ * Show auth error
  */
 function showAuthError(message) {
     const errorEl = document.getElementById('auth-error');
@@ -280,7 +290,7 @@ function showAuthError(message) {
 }
 
 /**
- * Get user-friendly error message
+ * Get error message
  */
 function getAuthErrorMessage(code) {
     const messages = {
@@ -291,25 +301,24 @@ function getAuthErrorMessage(code) {
         'auth/email-already-in-use': 'Email already in use.',
         'auth/weak-password': 'Password should be at least 6 characters.',
         'auth/popup-closed-by-user': 'Sign-in popup was closed.',
-        'auth/cancelled-popup-request': 'Sign-in cancelled.',
-        'auth/popup-blocked': 'Sign-in popup was blocked. Please allow popups.',
-        'auth/network-request-failed': 'Network error. Check your connection.',
+        'auth/popup-blocked': 'Sign-in popup was blocked.',
+        'auth/network-request-failed': 'Network error.',
         'auth/too-many-requests': 'Too many attempts. Try again later.',
-        'auth/invalid-credential': 'Invalid email or password.',
-        'auth/operation-not-allowed': 'This sign-in method is not enabled.',
-        'auth/unauthorized-domain': 'This domain is not authorized for sign-in.'
+        'auth/invalid-credential': 'Invalid email or password.'
     };
-    return messages[code] || `Authentication failed (${code || 'unknown error'}). Please try again.`;
+    return messages[code] || 'Authentication failed. Please try again.';
 }
 
 /**
- * Called when user is authenticated and on app page
+ * Called when user is authenticated on app page
  */
 async function onAppPageReady(firebaseUser) {
     try {
-        // Verify user is still authorized
-        const isAuthorized = await verifyExistingUser(firebaseUser);
-        if (!isAuthorized) {
+        // Verify authorization
+        if (typeof isEmailAuthorized === 'function' && !isEmailAuthorized(firebaseUser.email)) {
+            console.warn('User not authorized, signing out');
+            await auth.signOut();
+            window.location.href = 'index.html';
             return;
         }
         
@@ -319,11 +328,10 @@ async function onAppPageReady(firebaseUser) {
         if (userDoc.exists) {
             userData = userDoc.data();
             await db.collection('users').doc(firebaseUser.uid).update({
-                lastSeen: new Date().toISOString(),
-                authorized: true
+                lastSeen: new Date().toISOString()
             });
         } else {
-            await createAuthorizedUserDocument(firebaseUser);
+            await createUserDocument(firebaseUser);
             const newDoc = await db.collection('users').doc(firebaseUser.uid).get();
             userData = newDoc.data();
         }
@@ -342,7 +350,7 @@ async function onAppPageReady(firebaseUser) {
         
         const displayName = state.user.username;
         
-        // Update UI
+        // Update UI elements
         if (dom.userName) dom.userName.textContent = displayName;
         if (dom.userAvatar) {
             if (state.user.photoURL) {
@@ -353,30 +361,28 @@ async function onAppPageReady(firebaseUser) {
         }
         if (dom.welcomeName) dom.welcomeName.textContent = displayName;
         
-        // For new AI page
         const sidebarAvatar = document.getElementById('user-avatar');
         const sidebarName = document.getElementById('user-name');
-        if (sidebarAvatar && state.user.photoURL) {
-            sidebarAvatar.innerHTML = `<img src="${state.user.photoURL}" alt="${displayName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        } else if (sidebarAvatar) {
-            sidebarAvatar.textContent = displayName.substring(0, 2).toUpperCase();
+        if (sidebarAvatar) {
+            if (state.user.photoURL) {
+                sidebarAvatar.innerHTML = `<img src="${state.user.photoURL}" alt="${displayName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                sidebarAvatar.textContent = displayName.substring(0, 2).toUpperCase();
+            }
         }
         if (sidebarName) sidebarName.textContent = displayName;
         
-        // Show app, hide auth
         const appEl = document.getElementById('app');
         const authEl = document.getElementById('auth-screen');
         if (appEl) appEl.classList.remove('hidden');
         if (authEl) authEl.classList.add('hidden');
         
-        // Welcome toast
         const justSignedIn = sessionStorage.getItem('photon_just_signed_in');
         if (justSignedIn && typeof showToast === 'function') {
             showToast('Welcome, ' + displayName + '! ⚡', 'success');
             sessionStorage.removeItem('photon_just_signed_in');
         }
         
-        // Initialize app data
         await initAppData();
         
     } catch (error) {
@@ -385,7 +391,7 @@ async function onAppPageReady(firebaseUser) {
 }
 
 /**
- * Initialize app data after auth
+ * Initialize app data
  */
 async function initAppData() {
     state.filesReady = true;
@@ -405,28 +411,24 @@ async function initAppData() {
 }
 
 /**
- * Setup auth event listeners
+ * Setup auth listeners
  */
 function setupAuthListeners() {
     console.log('Setting up auth listeners...');
     
-    // Google sign-in button
     const googleBtn = document.getElementById('btn-google-signin');
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Google button clicked');
             handleGoogleSignIn();
         });
         console.log('Google sign-in listener attached');
     }
     
-    // Email/password form
     const authForm = document.getElementById('auth-form');
     if (authForm) {
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Form submitted');
             
             const email = document.getElementById('auth-email')?.value?.trim();
             const password = document.getElementById('auth-password')?.value;
@@ -466,14 +468,12 @@ function setupAuthListeners() {
         console.log('Auth form listener attached');
     }
     
-    // Sign out button
     const signOutBtn = document.getElementById('btn-sign-out');
     if (signOutBtn) {
         signOutBtn.addEventListener('click', handleSignOut);
     }
 }
 
-// Make functions globally accessible
 window.initAuth = initAuth;
 window.handleSignOut = handleSignOut;
 window.handleGoogleSignIn = handleGoogleSignIn;
