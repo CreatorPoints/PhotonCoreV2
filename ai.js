@@ -8,19 +8,12 @@ class StreamingMarkdownRenderer {
     constructor(targetElement) {
         this.target = targetElement;
         this.buffer = '';
-        this.codeBlockOpen = false;
-        this.codeBlockLang = '';
-        this.codeBlockContent = '';
-        this.inlineBuffer = '';
-        this.blockBuffer = [];
-        this.lastRenderTime = 0;
         this.renderThrottle = 16; // ~60fps
+        this.lastRenderTime = 0;
     }
 
-    // Process incoming chunk and render immediately
     appendChunk(chunk) {
         if (!chunk) return;
-        
         this.buffer += chunk;
         this.processBuffer();
     }
@@ -36,11 +29,9 @@ class StreamingMarkdownRenderer {
     }
 
     render() {
-        // Parse and render the full buffer each time for consistency
         const html = this.parseMarkdown(this.buffer);
         this.target.innerHTML = html;
         
-        // Scroll to bottom
         if (dom.aiChat) {
             dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
         }
@@ -50,139 +41,147 @@ class StreamingMarkdownRenderer {
         if (!text) return '';
 
         let html = '';
-        let i = 0;
         const lines = text.split('\n');
-        let inCodeBlock = false;
-        let codeBlockLang = '';
-        let codeBlockLines = [];
-        let inList = false;
-        let listItems = [];
-        let listType = '';
+        let i = 0;
 
-        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-            const line = lines[lineIdx];
-            const nextLine = lines[lineIdx + 1];
+        while (i < lines.length) {
+            const line = lines[i];
 
-            // Code block start/end
+            // Code block
             if (line.startsWith('```')) {
-                if (!inCodeBlock) {
-                    // Flush any pending list
-                    if (inList) {
-                        html += this.renderList(listItems, listType);
-                        listItems = [];
-                        inList = false;
-                    }
-                    inCodeBlock = true;
-                    codeBlockLang = line.slice(3).trim() || 'plaintext';
-                    codeBlockLines = [];
-                } else {
-                    // End code block
-                    html += this.renderCodeBlock(codeBlockLines.join('\n'), codeBlockLang);
-                    inCodeBlock = false;
-                    codeBlockLang = '';
-                    codeBlockLines = [];
+                const lang = line.slice(3).trim() || 'plaintext';
+                const codeLines = [];
+                i++;
+                
+                while (i < lines.length && !lines[i].startsWith('```')) {
+                    codeLines.push(lines[i]);
+                    i++;
                 }
+                
+                html += this.renderCodeBlock(codeLines.join('\n'), lang, i >= lines.length);
+                i++;
                 continue;
             }
 
-            if (inCodeBlock) {
-                codeBlockLines.push(line);
+            // Table detection (starts with |)
+            if (line.trim().startsWith('|')) {
+                const tableLines = [];
+                
+                while (i < lines.length && lines[i].trim().startsWith('|')) {
+                    tableLines.push(lines[i]);
+                    i++;
+                }
+                
+                html += this.renderTable(tableLines);
                 continue;
             }
 
             // Headers
             const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
             if (headerMatch) {
-                if (inList) {
-                    html += this.renderList(listItems, listType);
-                    listItems = [];
-                    inList = false;
-                }
                 const level = headerMatch[1].length;
                 html += this.renderHeader(headerMatch[2], level);
+                i++;
                 continue;
             }
 
             // Horizontal rule
             if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
-                if (inList) {
-                    html += this.renderList(listItems, listType);
-                    listItems = [];
-                    inList = false;
-                }
-                html += '<hr style="margin:16px 0;border:none;border-top:1px solid rgba(255,255,255,0.1);">';
+                html += '<hr style="margin:20px 0;border:none;border-top:1px solid rgba(255,255,255,0.1);">';
+                i++;
                 continue;
             }
 
             // Unordered list
             const ulMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
             if (ulMatch) {
-                if (!inList || listType !== 'ul') {
-                    if (inList) {
-                        html += this.renderList(listItems, listType);
-                        listItems = [];
-                    }
-                    inList = true;
-                    listType = 'ul';
+                const listItems = [];
+                
+                while (i < lines.length) {
+                    const itemMatch = lines[i].match(/^(\s*)[-*+]\s+(.+)$/);
+                    if (!itemMatch) break;
+                    listItems.push(itemMatch[2]);
+                    i++;
                 }
-                listItems.push(ulMatch[2]);
+                
+                html += this.renderList(listItems, 'ul');
                 continue;
             }
 
             // Ordered list
             const olMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
             if (olMatch) {
-                if (!inList || listType !== 'ol') {
-                    if (inList) {
-                        html += this.renderList(listItems, listType);
-                        listItems = [];
-                    }
-                    inList = true;
-                    listType = 'ol';
+                const listItems = [];
+                
+                while (i < lines.length) {
+                    const itemMatch = lines[i].match(/^(\s*)\d+\.\s+(.+)$/);
+                    if (!itemMatch) break;
+                    listItems.push(itemMatch[2]);
+                    i++;
                 }
-                listItems.push(olMatch[2]);
+                
+                html += this.renderList(listItems, 'ol');
                 continue;
             }
 
             // Blockquote
             const quoteMatch = line.match(/^>\s*(.*)$/);
             if (quoteMatch) {
-                if (inList) {
-                    html += this.renderList(listItems, listType);
-                    listItems = [];
-                    inList = false;
-                }
                 html += this.renderBlockquote(quoteMatch[1]);
+                i++;
                 continue;
             }
 
             // Empty line
             if (line.trim() === '') {
-                if (inList) {
-                    html += this.renderList(listItems, listType);
-                    listItems = [];
-                    inList = false;
-                }
+                i++;
                 continue;
             }
 
             // Regular paragraph
-            if (inList) {
-                html += this.renderList(listItems, listType);
-                listItems = [];
-                inList = false;
-            }
             html += this.renderParagraph(line);
+            i++;
         }
 
-        // Flush remaining content
-        if (inCodeBlock && codeBlockLines.length > 0) {
-            // Code block still open (streaming) - render partial
-            html += this.renderCodeBlock(codeBlockLines.join('\n'), codeBlockLang, true);
+        return html;
+    }
+
+    renderTable(lines) {
+        if (lines.length < 2) return '';
+
+        const rows = lines.map(line => {
+            return line.split('|')
+                .map(cell => cell.trim())
+                .filter(cell => cell !== '');
+        });
+
+        // Check if second row is separator
+        const isSeparator = rows[1] && rows[1].every(cell => /^[-:]+$/.test(cell));
+        const headerRow = rows[0];
+        const dataRows = isSeparator ? rows.slice(2) : rows.slice(1);
+
+        let html = '<div style="overflow-x:auto;margin:20px 0;"><table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.03);border-radius:12px;overflow:hidden;">';
+
+        // Header
+        if (headerRow && headerRow.length > 0) {
+            html += '<thead style="background:rgba(108,92,231,0.15);"><tr>';
+            headerRow.forEach(cell => {
+                html += `<th style="padding:14px 18px;text-align:left;font-weight:600;font-size:14px;border-bottom:2px solid var(--ai-accent);">${this.renderInlineFormatting(cell)}</th>`;
+            });
+            html += '</tr></thead>';
         }
-        if (inList) {
-            html += this.renderList(listItems, listType);
-        }
+
+        // Body
+        html += '<tbody>';
+        dataRows.forEach((row, idx) => {
+            const bgColor = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+            html += `<tr style="background:${bgColor};">`;
+            row.forEach(cell => {
+                html += `<td style="padding:12px 18px;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.05);">${this.renderInlineFormatting(cell)}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
 
         return html;
     }
@@ -192,7 +191,7 @@ class StreamingMarkdownRenderer {
         
         let result = this.escapeHtml(text);
         
-        // Bold + Italic (must come first)
+        // Bold + Italic
         result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
         result = result.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
         
@@ -205,39 +204,41 @@ class StreamingMarkdownRenderer {
         result = result.replace(/_(.+?)_/g, '<em>$1</em>');
         
         // Strikethrough
-        result = result.replace(/~~(.+?)~~/g, '<del>$1</del>');
+        result = result.replace(/~~(.+?)~~/g, '<del style="opacity:0.7;">$1</del>');
         
         // Inline code
-        result = result.replace(/`([^`]+)`/g, '<code style="background:rgba(110,118,129,0.4);padding:2px 6px;border-radius:4px;font-family:\'JetBrains Mono\',Consolas,monospace;font-size:0.875em;">$1</code>');
+        result = result.replace(/`([^`]+)`/g, '<code style="background:rgba(110,118,129,0.4);padding:3px 7px;border-radius:5px;font-family:\'JetBrains Mono\',Consolas,monospace;font-size:0.9em;color:#e8d4ff;">$1</code>');
         
         // Links
-        result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#6c5ce7;text-decoration:none;">$1</a>');
+        result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--ai-accent-light);text-decoration:none;border-bottom:1px solid transparent;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\'var(--ai-accent-light)\'" onmouseout="this.style.borderColor=\'transparent\'">$1</a>');
         
         return result;
     }
 
     renderHeader(text, level) {
-        const sizes = { 1: '1.75em', 2: '1.5em', 3: '1.25em', 4: '1.1em', 5: '1em', 6: '0.9em' };
+        const sizes = { 1: '2em', 2: '1.7em', 3: '1.4em', 4: '1.2em', 5: '1.1em', 6: '1em' };
+        const margins = { 1: '28px 0 16px', 2: '24px 0 14px', 3: '20px 0 12px', 4: '16px 0 10px', 5: '14px 0 8px', 6: '12px 0 6px' };
         const formatted = this.renderInlineFormatting(text);
-        return `<h${level} style="font-size:${sizes[level]};font-weight:600;margin:20px 0 12px 0;line-height:1.3;">${formatted}</h${level}>`;
+        return `<h${level} style="font-size:${sizes[level]};font-weight:700;margin:${margins[level]};line-height:1.3;color:var(--ai-text-primary);">${formatted}</h${level}>`;
     }
 
     renderParagraph(text) {
         const formatted = this.renderInlineFormatting(text);
-        return `<p style="margin:0 0 12px 0;line-height:1.7;">${formatted}</p>`;
+        return `<p style="margin:0 0 14px 0;line-height:1.75;color:var(--ai-text-primary);">${formatted}</p>`;
     }
 
     renderList(items, type) {
         const tag = type === 'ol' ? 'ol' : 'ul';
+        const style = type === 'ol' ? 'list-style:decimal;' : 'list-style:disc;';
         const itemsHtml = items.map(item => 
-            `<li style="margin:4px 0;line-height:1.6;">${this.renderInlineFormatting(item)}</li>`
+            `<li style="margin:6px 0;line-height:1.7;color:var(--ai-text-primary);">${this.renderInlineFormatting(item)}</li>`
         ).join('');
-        return `<${tag} style="margin:12px 0;padding-left:24px;">${itemsHtml}</${tag}>`;
+        return `<${tag} style="${style}margin:16px 0;padding-left:28px;">${itemsHtml}</${tag}>`;
     }
 
     renderBlockquote(text) {
         const formatted = this.renderInlineFormatting(text);
-        return `<blockquote style="margin:12px 0;padding:8px 16px;border-left:3px solid #6c5ce7;background:rgba(108,92,231,0.1);border-radius:0 4px 4px 0;">${formatted}</blockquote>`;
+        return `<blockquote style="margin:16px 0;padding:12px 20px;border-left:4px solid var(--ai-accent);background:rgba(108,92,231,0.08);border-radius:0 8px 8px 0;color:var(--ai-text-secondary);font-style:italic;">${formatted}</blockquote>`;
     }
 
     renderCodeBlock(code, lang, isStreaming = false) {
@@ -257,17 +258,17 @@ class StreamingMarkdownRenderer {
 
         const langLabel = lang || 'plaintext';
         const encodedCode = encodeURIComponent(code);
-        const streamingIndicator = isStreaming ? '<span class="streaming-cursor">▊</span>' : '';
+        const streamingCursor = isStreaming ? '<span style="display:inline-block;width:2px;height:1.2em;background:var(--ai-accent);margin-left:2px;animation:blink 1s infinite;"></span>' : '';
 
-        return `<div class="ai-code-block" style="margin:16px 0;border-radius:8px;overflow:hidden;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);">
-            <div class="ai-code-header" style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.1);">
-                <span style="color:rgba(255,255,255,0.6);font-size:12px;font-weight:500;">${langLabel}</span>
-                <button class="ai-copy-btn" data-code="${encodedCode}" style="background:transparent;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;transition:all 0.15s ease;">
+        return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(108,92,231,0.1);border-bottom:1px solid rgba(108,92,231,0.2);">
+                <span style="color:var(--ai-accent-light);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${langLabel}</span>
+                <button class="ai-copy-btn" data-code="${encodedCode}" style="background:rgba(108,92,231,0.2);border:1px solid rgba(108,92,231,0.3);color:var(--ai-text-secondary);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(108,92,231,0.3)';this.style.borderColor='var(--ai-accent)';this.style.color='var(--ai-text-primary)'" onmouseout="this.style.background='rgba(108,92,231,0.2)';this.style.borderColor='rgba(108,92,231,0.3)';this.style.color='var(--ai-text-secondary)'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     <span class="copy-text">Copy</span>
                 </button>
             </div>
-            <pre style="margin:0;padding:16px;overflow-x:auto;background:transparent;"><code class="hljs" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:13px;line-height:1.5;background:transparent;">${highlighted}${streamingIndicator}</code></pre>
+            <pre style="margin:0;padding:18px;overflow-x:auto;background:transparent;"><code class="hljs" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:13.5px;line-height:1.6;background:transparent;color:#e8e8f0;">${highlighted}${streamingCursor}</code></pre>
         </div>`;
     }
 
@@ -277,19 +278,16 @@ class StreamingMarkdownRenderer {
         return div.innerHTML;
     }
 
-    // Finalize rendering (remove streaming indicators)
     finalize() {
         this.render();
-        // Remove any streaming cursors
-        this.target.querySelectorAll('.streaming-cursor').forEach(el => el.remove());
+        // Remove streaming cursors
+        this.target.querySelectorAll('[style*="animation:blink"]').forEach(el => el.remove());
     }
 
-    // Get the full text
     getText() {
         return this.buffer;
     }
 }
-
 
 // === MEMORY FUNCTIONS ===
 
