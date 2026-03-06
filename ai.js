@@ -1005,7 +1005,16 @@ function listenChatSessions() {
         });
 }
 
+let isCreatingChat = false;
+
 async function createNewChat() {
+    // Prevent double creation
+    if (isCreatingChat) {
+        console.log('⚠️ Already creating chat, skipping');
+        return;
+    }
+    isCreatingChat = true;
+
     const username = state.user?.username || 'Anonymous';
 
     try {
@@ -1022,6 +1031,11 @@ async function createNewChat() {
     } catch (e) {
         console.error('Failed to create chat:', e);
         showToast('Failed to create chat.', 'error');
+    } finally {
+        // Reset flag after a short delay
+        setTimeout(() => {
+            isCreatingChat = false;
+        }, 500);
     }
 }
 
@@ -1601,8 +1615,16 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
    AI PAGE CONTROLLER
 ======================================== */
 
+let aiPageInitialized = false;
+
 function initAIPageController() {
     if (!document.querySelector('.ai-page-wrapper')) return;
+    
+    if (aiPageInitialized) {
+        console.log('⚠️ AI Page already initialized, skipping');
+        return;
+    }
+    aiPageInitialized = true;
 
     console.log('🎨 Initializing AI Page Controller...');
 
@@ -1612,33 +1634,9 @@ function initAIPageController() {
     setupAIInput();
     setupAISuggestions();
     setupCopyButtons();
-    setupActionButtons(); // NEW
+    setupActionButtons();
 
     console.log('✅ AI Page Controller ready!');
-}
-
-function setupAISidebar() {
-    const sidebar = document.getElementById('ai-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const toggleBtn = document.getElementById('btn-toggle-sidebar');
-
-    toggleBtn?.addEventListener('click', () => {
-        sidebar?.classList.toggle('open');
-        overlay?.classList.toggle('visible');
-    });
-
-    overlay?.addEventListener('click', () => {
-        sidebar?.classList.remove('open');
-        document.getElementById('memory-panel')?.classList.add('collapsed');
-        overlay?.classList.remove('visible');
-    });
-
-    const newChatBtn = document.getElementById('btn-new-chat');
-    newChatBtn?.addEventListener('click', () => {
-        createNewChat();
-        sidebar?.classList.remove('open');
-        overlay?.classList.remove('visible');
-    });
 }
 
 function setupAIModelSelector() {
@@ -1792,25 +1790,31 @@ function setupAISuggestions() {
 }
 
 // === NEW: SETUP ACTION BUTTONS ===
+let actionButtonsInitialized = false;
+
 function setupActionButtons() {
+    if (actionButtonsInitialized) {
+        console.log('⚠️ Action buttons already initialized, skipping');
+        return;
+    }
+    actionButtonsInitialized = true;
+
     const rememberBtn = document.getElementById('btn-action-remember');
     const addCloudBtn = document.getElementById('btn-action-add-cloud');
     const listCloudBtn = document.getElementById('btn-action-list-cloud');
     const removeCloudBtn = document.getElementById('btn-action-remove-cloud');
     const createCloudBtn = document.getElementById('btn-action-create-cloud');
 
-    rememberBtn?.addEventListener('click', handleActionRemember);
-    addCloudBtn?.addEventListener('click', handleActionAddToCloud);
-    listCloudBtn?.addEventListener('click', handleActionListCloud);
-    removeCloudBtn?.addEventListener('click', handleActionRemoveFromCloud);
-    createCloudBtn?.addEventListener('click', handleActionCreateOnCloud);
+    // Use onclick to prevent stacking
+    if (rememberBtn) rememberBtn.onclick = handleActionRemember;
+    if (addCloudBtn) addCloudBtn.onclick = handleActionAddToCloud;
+    if (listCloudBtn) listCloudBtn.onclick = handleActionListCloud;
+    if (removeCloudBtn) removeCloudBtn.onclick = handleActionRemoveFromCloud;
+    if (createCloudBtn) createCloudBtn.onclick = handleActionCreateOnCloud;
 
-    // Initialize button states
     updateActionButtonStates();
-
-    console.log('✓ Action buttons initialized');
+    console.log('✓ Action buttons initialized (once)');
 }
-
 function setupCopyButtons() {
     document.addEventListener('click', function(e) {
         const copyBtn = e.target.closest('.ai-copy-btn');
