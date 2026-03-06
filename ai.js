@@ -1005,7 +1005,7 @@ function listenChatSessions() {
         });
 }
 
-let isCreatingChat = false;
+
 
 async function createNewChat() {
     // Prevent double creation
