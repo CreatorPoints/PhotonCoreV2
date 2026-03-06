@@ -451,53 +451,92 @@
                     </div>
 
                     <!-- Input Area -->
-                    <div class="input-area">
-                        <div class="input-wrapper">
-                            <div class="input-box">
-                                
-                                <!-- Attachment Preview -->
-                                <div class="attachment-preview" id="attachment-preview">
-                                    <div class="attachment-info">
-                                        <span class="attachment-icon" id="attachment-icon">📄</span>
-                                        <div>
-                                            <div class="attachment-name" id="attachment-name">file.txt</div>
-                                            <div class="attachment-size" id="attachment-size">0 KB</div>
-                                        </div>
-                                    </div>
-                                    <button class="attachment-remove" id="btn-remove-attachment">✕</button>
-                                </div>
-
-                                <div class="input-row">
-                                    <div class="input-actions-left">
-                                        <button class="input-btn" id="btn-attach" title="Attach file">
-                                            📎
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="input-field-wrapper">
-                                        <textarea 
-                                            class="input-field" 
-                                            id="ai-input" 
-                                            placeholder="Message Photon AI..."
-                                            rows="1"
-                                        ></textarea>
-                                    </div>
-                                    
-                                    <button class="btn-send" id="btn-send" title="Send message">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="input-footer">
-                                Photon AI can make mistakes. Consider checking important info.
-                            </div>
-                        </div>
+<div class="input-area">
+    <div class="input-wrapper">
+        <div class="input-box">
+            
+            <!-- Attachment Preview -->
+            <div class="attachment-preview hidden" id="attachment-preview">
+                <div class="attachment-info">
+                    <span class="attachment-icon" id="attachment-icon">📄</span>
+                    <div>
+                        <div class="attachment-name" id="attachment-name">file.txt</div>
+                        <div class="attachment-size" id="attachment-size">0 KB</div>
                     </div>
-
                 </div>
+                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
+            </div>
+
+            <!-- Action Buttons Bar -->
+            <div class="input-actions-bar" id="input-actions-bar">
+                <button class="action-btn" id="btn-action-remember" title="Save current message to team memory">
+                    <span class="action-icon">🧠</span>
+                    <span class="action-text">Remember</span>
+                </button>
+                <button class="action-btn" id="btn-action-add-cloud" title="Upload attached file to cloud" disabled>
+                    <span class="action-icon">☁️</span>
+                    <span class="action-text">Add to Cloud</span>
+                </button>
+                <button class="action-btn" id="btn-action-list-cloud" title="List all cloud files">
+                    <span class="action-icon">📋</span>
+                    <span class="action-text">List Cloud</span>
+                </button>
+                <button class="action-btn" id="btn-action-remove-cloud" title="Remove file from cloud">
+                    <span class="action-icon">🗑️</span>
+                    <span class="action-text">Remove</span>
+                </button>
+                <button class="action-btn" id="btn-action-create-cloud" title="Create new file on cloud">
+                    <span class="action-icon">📝</span>
+                    <span class="action-text">Create</span>
+                </button>
+            </div>
+
+            <div class="input-row">
+                <div class="input-actions-left">
+                    <button class="input-btn" id="btn-attach" title="Attach file">
+                        📎
+                    </button>
+                </div>
+                
+                <div class="input-field-wrapper">
+                    <textarea 
+                        class="input-field" 
+                        id="ai-input" 
+                        placeholder="Message Photon AI..."
+                        rows="1"
+                    ></textarea>
+                </div>
+                
+                <button class="btn-send" id="btn-send" title="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="input-footer">
+            Photon AI can make mistakes. Consider checking important info.
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Remove/Create dialogs -->
+<div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal-dialog" id="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Dialog</h3>
+            <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <!-- Dynamic content -->
+        </div>
+        <div class="modal-footer" id="modal-footer">
+            <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
 
                 <!-- Memory Panel -->
                 <aside class="memory-panel collapsed" id="memory-panel">

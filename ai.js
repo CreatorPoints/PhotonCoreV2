@@ -1,6 +1,6 @@
 /* ========================================
    PHOTON CORE — ai.js
-   AI Chat with Real-Time Streaming + Formatting
+   AI Chat with Action Buttons
    ======================================== */
 
 // === STREAMING MARKDOWN RENDERER ===
@@ -8,7 +8,7 @@ class StreamingMarkdownRenderer {
     constructor(targetElement) {
         this.target = targetElement;
         this.buffer = '';
-        this.renderThrottle = 16; // ~60fps
+        this.renderThrottle = 16;
         this.lastRenderTime = 0;
     }
 
@@ -63,7 +63,7 @@ class StreamingMarkdownRenderer {
                 continue;
             }
 
-            // Table detection (starts with |)
+            // Table detection
             if (line.trim().startsWith('|')) {
                 const tableLines = [];
                 
@@ -155,14 +155,12 @@ class StreamingMarkdownRenderer {
                 .filter(cell => cell !== '');
         });
 
-        // Check if second row is separator
         const isSeparator = rows[1] && rows[1].every(cell => /^[-:]+$/.test(cell));
         const headerRow = rows[0];
         const dataRows = isSeparator ? rows.slice(2) : rows.slice(1);
 
         let html = '<div style="overflow-x:auto;margin:20px 0;"><table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.03);border-radius:12px;overflow:hidden;">';
 
-        // Header
         if (headerRow && headerRow.length > 0) {
             html += '<thead style="background:rgba(108,92,231,0.15);"><tr>';
             headerRow.forEach(cell => {
@@ -171,7 +169,6 @@ class StreamingMarkdownRenderer {
             html += '</tr></thead>';
         }
 
-        // Body
         html += '<tbody>';
         dataRows.forEach((row, idx) => {
             const bgColor = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
@@ -191,26 +188,15 @@ class StreamingMarkdownRenderer {
         
         let result = this.escapeHtml(text);
         
-        // Bold + Italic
         result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
         result = result.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
-        
-        // Bold
         result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         result = result.replace(/__(.+?)__/g, '<strong>$1</strong>');
-        
-        // Italic
         result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
         result = result.replace(/_(.+?)_/g, '<em>$1</em>');
-        
-        // Strikethrough
         result = result.replace(/~~(.+?)~~/g, '<del style="opacity:0.7;">$1</del>');
-        
-        // Inline code
         result = result.replace(/`([^`]+)`/g, '<code style="background:rgba(110,118,129,0.4);padding:3px 7px;border-radius:5px;font-family:\'JetBrains Mono\',Consolas,monospace;font-size:0.9em;color:#e8d4ff;">$1</code>');
-        
-        // Links
-        result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--ai-accent-light);text-decoration:none;border-bottom:1px solid transparent;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\'var(--ai-accent-light)\'" onmouseout="this.style.borderColor=\'transparent\'">$1</a>');
+        result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--ai-accent-light);text-decoration:none;border-bottom:1px solid transparent;">$1</a>');
         
         return result;
     }
@@ -263,7 +249,7 @@ class StreamingMarkdownRenderer {
         return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(108,92,231,0.1);border-bottom:1px solid rgba(108,92,231,0.2);">
                 <span style="color:var(--ai-accent-light);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${langLabel}</span>
-                <button class="ai-copy-btn" data-code="${encodedCode}" style="background:rgba(108,92,231,0.2);border:1px solid rgba(108,92,231,0.3);color:var(--ai-text-secondary);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(108,92,231,0.3)';this.style.borderColor='var(--ai-accent)';this.style.color='var(--ai-text-primary)'" onmouseout="this.style.background='rgba(108,92,231,0.2)';this.style.borderColor='rgba(108,92,231,0.3)';this.style.color='var(--ai-text-secondary)'">
+                <button class="ai-copy-btn" data-code="${encodedCode}" style="background:rgba(108,92,231,0.2);border:1px solid rgba(108,92,231,0.3);color:var(--ai-text-secondary);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:all 0.2s ease;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     <span class="copy-text">Copy</span>
                 </button>
@@ -280,13 +266,92 @@ class StreamingMarkdownRenderer {
 
     finalize() {
         this.render();
-        // Remove streaming cursors
         this.target.querySelectorAll('[style*="animation:blink"]').forEach(el => el.remove());
     }
 
     getText() {
         return this.buffer;
     }
+}
+
+// === MODAL SYSTEM ===
+
+function showModal(options) {
+    const overlay = document.getElementById('modal-overlay');
+    const dialog = document.getElementById('modal-dialog');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    const footer = document.getElementById('modal-footer');
+    const closeBtn = document.getElementById('modal-close');
+    const cancelBtn = document.getElementById('modal-cancel');
+    const confirmBtn = document.getElementById('modal-confirm');
+
+    if (!overlay) return;
+
+    title.textContent = options.title || 'Dialog';
+    body.innerHTML = options.body || '';
+    
+    if (options.confirmText) {
+        confirmBtn.textContent = options.confirmText;
+    }
+    
+    if (options.cancelText) {
+        cancelBtn.textContent = options.cancelText;
+    }
+
+    if (options.hideCancel) {
+        cancelBtn.style.display = 'none';
+    } else {
+        cancelBtn.style.display = '';
+    }
+
+    if (options.hideConfirm) {
+        confirmBtn.style.display = 'none';
+    } else {
+        confirmBtn.style.display = '';
+    }
+
+    // Event handlers
+    const cleanup = () => {
+        overlay.classList.add('hidden');
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+        closeBtn.onclick = null;
+    };
+
+    closeBtn.onclick = () => {
+        cleanup();
+        if (options.onCancel) options.onCancel();
+    };
+
+    cancelBtn.onclick = () => {
+        cleanup();
+        if (options.onCancel) options.onCancel();
+    };
+
+    confirmBtn.onclick = () => {
+        if (options.onConfirm) {
+            const result = options.onConfirm();
+            if (result !== false) {
+                cleanup();
+            }
+        } else {
+            cleanup();
+        }
+    };
+
+    overlay.classList.remove('hidden');
+
+    // Focus first input if exists
+    setTimeout(() => {
+        const firstInput = body.querySelector('input, textarea');
+        if (firstInput) firstInput.focus();
+    }, 100);
+}
+
+function hideModal() {
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.classList.add('hidden');
 }
 
 // === MEMORY FUNCTIONS ===
@@ -304,51 +369,12 @@ function listenMemories() {
         });
 }
 
-function shouldRemember(msg) {
-    if (!msg) return false;
-    const l = msg.toLowerCase();
-    const kw = ['remember', "don't forget", 'keep in mind', 'note that', 'important:', 'fyi', 'save this', 'memorize'];
-
-    for (const k of kw) {
-        if (l.includes(k)) return true;
-    }
-
-    return [
-        /our game is/i,
-        /game name is/i,
-        /project is called/i,
-        /my name is/i,
-        /deadline is/i,
-        /we decided/i,
-        /the plan is/i,
-        /from now on/i,
-        /our (studio|team)/i,
-        /we('re| are) making/i
-    ].some(p => p.test(msg));
-}
-
-function extractMemory(msg) {
-    if (!msg) return '';
-
-    const pats = [
-        /remember\s+that\s+(.+)/i,
-        /remember\s*:\s*(.+)/i,
-        /remember\s+(.+)/i,
-        /don't forget\s+(.+)/i,
-        /note that\s+(.+)/i,
-        /important:\s*(.+)/i
-    ];
-
-    for (const p of pats) {
-        const m = msg.match(p);
-        if (m) return m[1].trim();
-    }
-    return msg.trim();
-}
-
 async function addMemory(text, user) {
     if (!text) return;
-    if (state.memories.some(m => m.text && m.text.toLowerCase() === text.toLowerCase())) return;
+    if (state.memories.some(m => m.text && m.text.toLowerCase() === text.toLowerCase())) {
+        showToast('Memory already exists', 'info');
+        return;
+    }
 
     try {
         await db.collection('memories').add({
@@ -356,7 +382,7 @@ async function addMemory(text, user) {
             user,
             timestamp: new Date().toISOString()
         });
-        showToast('🧠 Saved!', 'success');
+        showToast('🧠 Saved to memory!', 'success');
     } catch (e) {
         console.error('Failed to add memory:', e);
         showToast('Failed to save memory.', 'error');
@@ -368,7 +394,7 @@ async function deleteMemory(id) {
 
     try {
         await db.collection('memories').doc(id).delete();
-        showToast('Removed.', 'info');
+        showToast('Memory removed.', 'info');
     } catch (e) {
         console.error('Failed to delete memory:', e);
         showToast('Failed to remove memory.', 'error');
@@ -397,7 +423,6 @@ function renderMemories() {
 
     if (emptyEl) emptyEl.style.display = 'none';
 
-    // Clear only memory items, keep tip and empty state
     dom.memoryList.querySelectorAll('.memory-item').forEach(el => el.remove());
 
     state.memories.forEach(m => {
@@ -412,7 +437,6 @@ function renderMemories() {
         dom.memoryList.appendChild(item);
     });
 
-    // Event delegation for delete buttons
     dom.memoryList.querySelectorAll('.memory-item-delete').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -426,6 +450,396 @@ function getMemoryContext() {
     return '\n\nTEAM MEMORIES:\n' + state.memories.map(m => '- ' + m.text + ' (by ' + m.user + ')').join('\n') + '\n';
 }
 
+// === ACTION BUTTON HANDLERS ===
+
+async function handleActionRemember() {
+    const input = document.getElementById('ai-input');
+    const text = input?.value?.trim();
+    const username = state.user?.username || 'Anonymous';
+
+    if (!text) {
+        showModal({
+            title: '🧠 Save to Memory',
+            body: `
+                <div class="modal-field">
+                    <label class="modal-label">What should I remember?</label>
+                    <textarea class="modal-input modal-textarea" id="remember-input" placeholder="Enter something to remember..."></textarea>
+                </div>
+            `,
+            confirmText: 'Save',
+            onConfirm: () => {
+                const memoryText = document.getElementById('remember-input')?.value?.trim();
+                if (memoryText) {
+                    addMemory(memoryText, username);
+                    return true;
+                }
+                showToast('Please enter something to remember', 'error');
+                return false;
+            }
+        });
+    } else {
+        await addMemory(text, username);
+        input.value = '';
+        input.style.height = 'auto';
+    }
+}
+
+async function handleActionAddToCloud() {
+    if (!state.attachedFile) {
+        showToast('Please attach a file first', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-action-add-cloud');
+    if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+    }
+
+    try {
+        const arrayBuffer = await state.attachedFile.arrayBuffer();
+        await puter.fs.write(
+            'PhotonCore/files/' + state.attachedFileName,
+            new Blob([arrayBuffer], { type: state.attachedFile.type }),
+            { dedupeName: false, overwrite: true }
+        );
+        
+        showToast(`☁️ "${state.attachedFileName}" uploaded!`, 'success');
+        clearAttachment();
+        
+        // Refresh files list if on files page
+        if (typeof loadFiles === 'function') {
+            await loadFiles();
+        }
+
+        // Add system message to chat
+        addSystemMessage(`☁️ Uploaded "${state.attachedFileName}" to cloud storage`);
+
+    } catch (e) {
+        console.error('Upload failed:', e);
+        showToast('Upload failed: ' + (e.message || 'Unknown error'), 'error');
+    } finally {
+        if (btn) {
+            btn.classList.remove('loading');
+            updateActionButtonStates();
+        }
+    }
+}
+
+async function handleActionListCloud() {
+    const btn = document.getElementById('btn-action-list-cloud');
+    if (btn) {
+        btn.classList.add('loading');
+    }
+
+    try {
+        const result = await aiListFiles();
+        addSystemMessage(result);
+    } catch (e) {
+        console.error('List files failed:', e);
+        showToast('Failed to list files', 'error');
+    } finally {
+        if (btn) {
+            btn.classList.remove('loading');
+        }
+    }
+}
+
+async function handleActionRemoveFromCloud() {
+    const btn = document.getElementById('btn-action-remove-cloud');
+    if (btn) {
+        btn.classList.add('loading');
+    }
+
+    try {
+        // Get list of files
+        const items = await puter.fs.readdir('PhotonCore/files');
+        const files = items.filter(i => !i.is_dir);
+
+        if (files.length === 0) {
+            showModal({
+                title: '🗑️ Remove from Cloud',
+                body: `
+                    <div class="modal-empty">
+                        <div class="modal-empty-icon">📂</div>
+                        <p>No files in cloud storage</p>
+                    </div>
+                `,
+                hideConfirm: true,
+                cancelText: 'Close'
+            });
+            return;
+        }
+
+        // Build file selection list
+        const fileListHtml = files.map(f => `
+            <div class="file-select-item" data-name="${esc(f.name)}">
+                <span class="file-select-icon">${fileIcon(f.name, false)}</span>
+                <div class="file-select-info">
+                    <div class="file-select-name">${esc(f.name)}</div>
+                    <div class="file-select-size">${fmtSize(f.size || 0)}</div>
+                </div>
+                <div class="file-select-check"></div>
+            </div>
+        `).join('');
+
+        showModal({
+            title: '🗑️ Remove from Cloud',
+            body: `
+                <p style="margin-bottom:16px;color:var(--ai-text-secondary);font-size:14px;">Select a file to remove:</p>
+                <div class="file-select-list" id="file-select-list">
+                    ${fileListHtml}
+                </div>
+            `,
+            confirmText: 'Remove',
+            onConfirm: async () => {
+                const selected = document.querySelector('.file-select-item.selected');
+                if (!selected) {
+                    showToast('Please select a file', 'error');
+                    return false;
+                }
+
+                const fileName = selected.dataset.name;
+                try {
+                    await puter.fs.delete('PhotonCore/files/' + fileName);
+                    showToast(`🗑️ "${fileName}" removed`, 'success');
+                    
+                    if (typeof loadFiles === 'function') {
+                        await loadFiles();
+                    }
+
+                    addSystemMessage(`🗑️ Removed "${fileName}" from cloud storage`);
+                    return true;
+                } catch (e) {
+                    console.error('Delete failed:', e);
+                    showToast('Failed to remove file', 'error');
+                    return false;
+                }
+            }
+        });
+
+        // Add click handlers for file selection
+        setTimeout(() => {
+            document.querySelectorAll('.file-select-item').forEach(item => {
+                item.onclick = () => {
+                    document.querySelectorAll('.file-select-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                };
+            });
+        }, 50);
+
+    } catch (e) {
+        console.error('Failed to list files:', e);
+        showToast('Failed to load files', 'error');
+    } finally {
+        if (btn) {
+            btn.classList.remove('loading');
+        }
+    }
+}
+
+async function handleActionCreateOnCloud() {
+    showModal({
+        title: '📝 Create File on Cloud',
+        body: `
+            <div class="modal-field">
+                <label class="modal-label">File name (with extension)</label>
+                <input type="text" class="modal-input" id="create-filename" placeholder="example.txt">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">File content</label>
+                <textarea class="modal-input modal-textarea" id="create-content" placeholder="Enter file content..."></textarea>
+            </div>
+        `,
+        confirmText: 'Create',
+        onConfirm: async () => {
+            const filename = document.getElementById('create-filename')?.value?.trim();
+            const content = document.getElementById('create-content')?.value || '';
+
+            if (!filename) {
+                showToast('Please enter a filename', 'error');
+                return false;
+            }
+
+            // Validate filename
+            if (!/^[\w\-. ]+\.\w+$/.test(filename)) {
+                showToast('Invalid filename. Use: name.extension', 'error');
+                return false;
+            }
+
+            try {
+                await puter.fs.write(
+                    'PhotonCore/files/' + filename,
+                    new Blob([content], { type: 'text/plain' }),
+                    { dedupeName: false, overwrite: true }
+                );
+                
+                showToast(`📝 "${filename}" created!`, 'success');
+                
+                if (typeof loadFiles === 'function') {
+                    await loadFiles();
+                }
+
+                addSystemMessage(`📝 Created "${filename}" on cloud storage`);
+                return true;
+            } catch (e) {
+                console.error('Create failed:', e);
+                showToast('Failed to create file: ' + (e.message || 'Unknown error'), 'error');
+                return false;
+            }
+        }
+    });
+}
+
+// Add system message to chat
+function addSystemMessage(text) {
+    const inner = dom.aiChat?.querySelector('.chat-messages-inner');
+    if (!inner) return;
+
+    const welcome = document.getElementById('welcome-message');
+    if (welcome) welcome.style.display = 'none';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message system-message';
+    messageDiv.innerHTML = `
+        <div class="message-avatar" style="background: rgba(108, 92, 231, 0.2);">⚙️</div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-author">System</span>
+            </div>
+            <div class="message-text">${formatSystemMessage(text)}</div>
+        </div>
+    `;
+
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator && typingIndicator.parentNode === inner) {
+        inner.insertBefore(messageDiv, typingIndicator);
+    } else {
+        inner.appendChild(messageDiv);
+    }
+
+    if (dom.aiChat) {
+        dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
+    }
+
+    // Also save to chat if active
+    if (state.currentChatId) {
+        state.currentChatMessages.push({
+            text: text,
+            sender: 'system',
+            author: 'System',
+            timestamp: new Date().toISOString()
+        });
+        saveCurrentChat();
+    }
+}
+
+function formatSystemMessage(text) {
+    // Parse file listings with better formatting
+    if (text.includes('📂 Your cloud files')) {
+        return text.replace(/\n/g, '<br>');
+    }
+    return esc(text);
+}
+
+// Update action button states based on current state
+function updateActionButtonStates() {
+    const addCloudBtn = document.getElementById('btn-action-add-cloud');
+    
+    if (addCloudBtn) {
+        if (state.attachedFile) {
+            addCloudBtn.disabled = false;
+            addCloudBtn.classList.add('active');
+        } else {
+            addCloudBtn.disabled = true;
+            addCloudBtn.classList.remove('active');
+        }
+    }
+}
+
+// === FILE HELPER FUNCTIONS ===
+
+async function aiListFiles() {
+    try {
+        const items = await puter.fs.readdir('PhotonCore/files');
+        
+        if (!items || items.length === 0) {
+            return '📂 Your cloud is empty. Use "Add to Cloud" to upload files!';
+        }
+        
+        const fileList = items.map(item => {
+            const icon = fileIcon(item.name, item.is_dir);
+            const size = item.is_dir ? '' : ` (${fmtSize(item.size || 0)})`;
+            return `${icon} ${item.name}${size}`;
+        }).join('\n');
+        
+        return `📂 Your cloud files:\n\n${fileList}\n\n📊 Total: ${items.length} item(s)`;
+    } catch (e) {
+        console.error('List files error:', e);
+        return '⚠️ Failed to list files: ' + (e.message || 'Unknown error');
+    }
+}
+
+async function aiReadFile(name) {
+    if (!name) return '⚠️ Please specify a file name.';
+    
+    try {
+        const content = await puter.fs.read('PhotonCore/files/' + name);
+        const text = typeof content === 'string' ? content : await content.text();
+        
+        if (text.length > 5000) {
+            return `📄 **${name}** (truncated):\n\`\`\`\n${text.substring(0, 5000)}...\n\`\`\`\n\n⚠️ File truncated (${fmtSize(text.length)} total)`;
+        }
+        
+        return `📄 **${name}**:\n\`\`\`\n${text}\n\`\`\``;
+    } catch (e) {
+        console.error('Read file error:', e);
+        return '⚠️ Failed to read file: ' + (e.message || 'File not found');
+    }
+}
+
+async function aiDeleteFile(name) {
+    if (!name) return '⚠️ Please specify a file name.';
+    
+    try {
+        await puter.fs.delete('PhotonCore/files/' + name);
+        if (typeof loadFiles === 'function') await loadFiles();
+        return `🗑️ Deleted "${name}"`;
+    } catch (e) {
+        console.error('Delete file error:', e);
+        return '⚠️ Failed to delete: ' + (e.message || 'File not found');
+    }
+}
+
+async function aiWriteFile(name, content) {
+    if (!name) return '⚠️ Please specify a file name.';
+    
+    try {
+        // Extract content from the message
+        let fileContent = content;
+        
+        // Try to extract code block content
+        const codeMatch = content.match(/```[\w]*\n?([\s\S]*?)```/);
+        if (codeMatch) {
+            fileContent = codeMatch[1];
+        } else {
+            // Remove the command part
+            fileContent = content.replace(/^.*?(create|write|save|make).*?["'][\w.]+["']\s*(with|containing|:)?\s*/i, '');
+        }
+        
+        await puter.fs.write(
+            'PhotonCore/files/' + name,
+            new Blob([fileContent], { type: 'text/plain' }),
+            { dedupeName: false, overwrite: true }
+        );
+        
+        if (typeof loadFiles === 'function') await loadFiles();
+        return `📝 Created "${name}" (${fmtSize(fileContent.length)})`;
+    } catch (e) {
+        console.error('Write file error:', e);
+        return '⚠️ Failed to create file: ' + (e.message || 'Unknown error');
+    }
+}
 
 // === ACTIVITY FUNCTIONS ===
 
@@ -471,8 +885,7 @@ function renderActivity(list) {
     ).join('');
 }
 
-
-// === CHAT SESSIONS — REAL-TIME ===
+// === CHAT SESSIONS ===
 
 let activeChatUnsubscribe = null;
 
@@ -485,7 +898,6 @@ function listenChatSessions() {
             snap.forEach(doc => state.chatSessions.push({ id: doc.id, ...doc.data() }));
             renderChatHistory();
 
-            // Auto-load first chat if none selected
             if (!state.currentChatId && state.chatSessions.length) {
                 loadChat(state.chatSessions[0].id);
             }
@@ -507,7 +919,7 @@ async function createNewChat() {
             createdBy: username
         });
         loadChat(ref.id);
-        showToast('New chat! 💬', 'success');
+        showToast('New chat created! 💬', 'success');
     } catch (e) {
         console.error('Failed to create chat:', e);
         showToast('Failed to create chat.', 'error');
@@ -517,7 +929,6 @@ async function createNewChat() {
 function loadChat(id) {
     if (!id) return;
 
-    // Unsubscribe from previous chat listener
     if (activeChatUnsubscribe) {
         activeChatUnsubscribe();
         activeChatUnsubscribe = null;
@@ -528,7 +939,6 @@ function loadChat(id) {
     clearChatUI();
     renderChatHistory();
 
-    // Start real-time listener on this specific chat
     activeChatUnsubscribe = db.collection('chatSessions').doc(id).onSnapshot(doc => {
         if (!doc.exists) {
             console.warn('Chat document does not exist:', id);
@@ -538,7 +948,6 @@ function loadChat(id) {
         const data = doc.data();
         const newMessages = data.messages || [];
 
-        // Deep comparison to detect changes properly
         const currentLength = state.currentChatMessages.length;
         const newLength = newMessages.length;
 
@@ -557,14 +966,16 @@ function loadChat(id) {
                 ? (dom.aiChat.scrollTop + dom.aiChat.clientHeight >= dom.aiChat.scrollHeight - 100)
                 : true;
 
-            // Clone messages to avoid reference issues
             state.currentChatMessages = JSON.parse(JSON.stringify(newMessages));
 
-            // Only re-render if not currently typing
             if (!state.isTyping) {
                 clearChatUI();
                 newMessages.forEach(m => {
-                    appendStatic(m.text, m.sender, m.modelName, m.author, m.memorySaved, m.fileName);
+                    if (m.sender === 'system') {
+                        addSystemMessage(m.text);
+                    } else {
+                        appendStatic(m.text, m.sender, m.modelName, m.author, m.memorySaved, m.fileName);
+                    }
                 });
 
                 if (shouldScroll && dom.aiChat) {
@@ -614,7 +1025,7 @@ async function deleteChat(id) {
 
     try {
         await db.collection('chatSessions').doc(id).delete();
-        showToast('Deleted.', 'info');
+        showToast('Chat deleted.', 'info');
     } catch (e) {
         console.error('Failed to delete chat:', e);
         showToast('Failed to delete chat.', 'error');
@@ -629,7 +1040,6 @@ function renderChatHistory() {
         return;
     }
 
-    // Group by date
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -673,7 +1083,6 @@ function renderChatHistory() {
 
     dom.chatHistoryList.innerHTML = html;
 
-    // Event delegation for chat items
     dom.chatHistoryList.querySelectorAll('.chat-item').forEach(item => {
         item.onclick = (e) => {
             if (!e.target.closest('.chat-item-btn')) {
@@ -702,20 +1111,16 @@ function renderChatItem(c) {
 function clearChatUI() {
     if (!dom.aiChat) return;
     
-    // Find the welcome message and keep it, or create a fresh one
     const inner = dom.aiChat.querySelector('.chat-messages-inner');
     if (inner) {
-        // Remove all messages except welcome
         inner.querySelectorAll('.message').forEach(el => el.remove());
         
-        // Show welcome message
         const welcome = document.getElementById('welcome-message');
         if (welcome) {
             welcome.style.display = 'flex';
         }
     }
 }
-
 
 // === FILE ATTACHMENT ===
 
@@ -753,6 +1158,9 @@ async function handleFileAttach(e) {
     if (fileInput) fileInput.value = '';
 
     showToast('📎 ' + file.name + ' attached', 'info');
+    
+    // Update action button states
+    updateActionButtonStates();
 }
 
 function clearAttachment() {
@@ -762,10 +1170,12 @@ function clearAttachment() {
     
     const preview = document.getElementById('attachment-preview');
     if (preview) preview.classList.add('hidden');
+    
+    // Update action button states
+    updateActionButtonStates();
 }
 
-
-// === AI SEND WITH STREAMING ===
+// === AI SEND WITH STREAMING (SIMPLIFIED - NO AUTO FILE/MEMORY DETECTION) ===
 
 async function sendAiMessage() {
     const input = document.getElementById('ai-input');
@@ -774,20 +1184,17 @@ async function sendAiMessage() {
     const msg = input.value.trim();
     if (!msg && !state.attachedFile) return;
 
-    // === PREVENT DOUBLE SEND ===
     if (state.isTyping || state.isSending) {
         console.log('⚠️ Already sending, skipping duplicate');
         return;
     }
     state.isSending = true;
-    // ===========================
 
     const modelId = state.selectedModel;
     const md = AI_MODELS[modelId];
     const modelName = md?.name || modelId;
     const username = state.user?.username || 'Anon';
 
-    // Hide welcome message
     const welcome = document.getElementById('welcome-message');
     if (welcome) welcome.style.display = 'none';
 
@@ -813,14 +1220,7 @@ async function sendAiMessage() {
         }
     }
 
-    // Memory detection
-    let memorySaved = false;
-    if (msg && shouldRemember(msg)) {
-        await addMemory(extractMemory(msg), username);
-        memorySaved = true;
-    }
-
-    // Handle file attachment
+    // Handle file attachment context (for AI to analyze)
     let displayMsg = msg;
     let fileCtx = '';
     let fileName = '';
@@ -831,46 +1231,28 @@ async function sendAiMessage() {
 
     if (attachedFile) {
         fileName = attachedFileName;
-        displayMsg = msg || 'Analyze: ' + fileName;
+        displayMsg = msg || 'Analyze this file: ' + fileName;
 
         if (attachedFileContent && attachedFileContent.length < 50000) {
             fileCtx = '\n\n--- FILE: ' + fileName + ' ---\n' + attachedFileContent + '\n--- END ---\n';
         } else {
             fileCtx = '\n\n[Attached: ' + fileName + ']';
         }
-
-        // Handle save to cloud request
-        const lowerMsg = msg.toLowerCase();
-        if (lowerMsg.includes('save to cloud') || lowerMsg.includes('store this')) {
-            try {
-                const arrayBuffer = await attachedFile.arrayBuffer();
-                await puter.fs.write(
-                    'PhotonCore/files/' + fileName,
-                    new Blob([arrayBuffer], { type: attachedFile.type }),
-                    { dedupeName: false, overwrite: true }
-                );
-                showToast('☁️ Saved!', 'success');
-                if (typeof loadFiles === 'function') loadFiles();
-            } catch (e) {
-                console.error('Failed to save to cloud:', e);
-                showToast('Save failed.', 'error');
-            }
-        }
     }
 
-    // Add user message and save immediately
+    // Add user message
     const userMsg = {
         text: displayMsg,
         sender: 'user',
         author: username,
         modelName: '',
-        memorySaved,
+        memorySaved: false,
         fileName,
         timestamp: new Date().toISOString()
     };
 
     state.currentChatMessages.push(userMsg);
-    appendUserMessage(displayMsg, username, memorySaved, fileName);
+    appendUserMessage(displayMsg, username, false, fileName);
     await saveCurrentChat();
 
     // Clear input and attachment
@@ -878,79 +1260,12 @@ async function sendAiMessage() {
     input.style.height = 'auto';
     clearAttachment();
 
-    // Detect file operations
-    const fileOp = typeof detectFileOperation === 'function' ? detectFileOperation(msg) : null;
-
-    if (fileOp) {
-        let result = '';
-
-        try {
-            switch (fileOp.op) {
-                case 'list':
-                    result = await aiListFiles();
-                    break;
-                case 'read':
-                    result = await aiReadFile(fileOp.name);
-                    break;
-                case 'delete':
-                    result = await aiDeleteFile(fileOp.name);
-                    break;
-                case 'write':
-                    result = await aiWriteFile(fileOp.name, msg);
-                    break;
-                case 'upload-attached':
-                    if (!attachedFile) {
-                        result = '⚠️ No attached file to upload.';
-                    } else {
-                        try {
-                            const arrayBuffer = await attachedFile.arrayBuffer();
-                            await puter.fs.write(
-                                'PhotonCore/files/' + attachedFileName,
-                                new Blob([arrayBuffer], { type: attachedFile.type }),
-                                { dedupeName: false, overwrite: true }
-                            );
-                            if (typeof loadFiles === 'function') await loadFiles();
-                            result = `☁️ Uploaded "${attachedFileName}" to cloud!`;
-                        } catch (e) {
-                            result = '⚠️ Upload failed: ' + (e.message || 'Unknown error');
-                        }
-                    }
-                    break;
-                default:
-                    result = '⚠️ Unknown file operation.';
-            }
-        } catch (e) {
-            console.error('File operation error:', e);
-            result = '⚠️ Operation failed: ' + (e.message || 'Unknown error');
-        }
-
-        const aiMsg = {
-            text: result,
-            sender: 'ai',
-            author: modelName,
-            modelName,
-            timestamp: new Date().toISOString()
-        };
-
-        state.currentChatMessages.push(aiMsg);
-        appendStatic(result, 'ai', modelName, modelName);
-        await saveCurrentChat();
-
-        addActivity('📂 ' + username + ' used cloud');
-        state.aiQueryCount = (state.aiQueryCount || 0) + 1;
-        if (dom.statAi) dom.statAi.textContent = state.aiQueryCount;
-
-        state.isSending = false;
-        return;
-    }
-
     // === AI STREAMING RESPONSE ===
     state.isTyping = true;
     
     const typingIndicator = document.getElementById('typing-indicator');
     if (typingIndicator) typingIndicator.classList.remove('hidden');
 
-    // Create streaming message bubble
     const { messageDiv, contentTarget, renderer } = createStreamingBubble(modelName, md);
 
     try {
@@ -976,7 +1291,6 @@ async function sendAiMessage() {
         let fullText = '';
 
         try {
-            // Stream the response
             const stream = openRouterChatStream(messages, modelId);
             
             for await (const chunk of stream) {
@@ -987,21 +1301,17 @@ async function sendAiMessage() {
             }
         } catch (streamError) {
             console.warn('Stream fallback to non-streaming:', streamError);
-            // Fallback to non-streaming
             fullText = await openRouterChat(messages, modelId);
             renderer.appendChunk(fullText);
         }
 
-        // Finalize the rendering
         renderer.finalize();
 
-        // Add model tag
         const modelTag = document.createElement('div');
         modelTag.className = 'ai-model-tag';
         modelTag.innerHTML = `<span>${md?.logo || '🤖'}</span> ${esc(modelName)}`;
         messageDiv.querySelector('.message-content').appendChild(modelTag);
 
-        // Save AI response
         const aiMsg = {
             text: fullText,
             sender: 'ai',
@@ -1033,7 +1343,6 @@ async function sendAiMessage() {
         await saveCurrentChat();
     }
 
-    // Reset UI state
     state.isTyping = false;
     state.isSending = false;
     if (typingIndicator) typingIndicator.classList.add('hidden');
@@ -1110,7 +1419,6 @@ function appendUserMessage(text, author, memorySaved = false, fileName = '') {
     html += '</div>';
     messageDiv.innerHTML = html;
 
-    // Insert before typing indicator
     const typingIndicator = document.getElementById('typing-indicator');
     if (typingIndicator && typingIndicator.parentNode === inner) {
         inner.insertBefore(messageDiv, typingIndicator);
@@ -1192,7 +1500,6 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
 
 /* ========================================
    AI PAGE CONTROLLER
-   ChatGPT-like UI Integration
 ======================================== */
 
 function initAIPageController() {
@@ -1206,6 +1513,7 @@ function initAIPageController() {
     setupAIInput();
     setupAISuggestions();
     setupCopyButtons();
+    setupActionButtons(); // NEW
 
     console.log('✅ AI Page Controller ready!');
 }
@@ -1226,7 +1534,6 @@ function setupAISidebar() {
         overlay?.classList.remove('visible');
     });
 
-    // New chat button
     const newChatBtn = document.getElementById('btn-new-chat');
     newChatBtn?.addEventListener('click', () => {
         createNewChat();
@@ -1241,7 +1548,6 @@ function setupAIModelSelector() {
     const search = document.getElementById('model-search');
     const options = document.querySelectorAll('.model-option');
 
-    // Inject logos into model options
     options.forEach(option => {
         const logoKey = option.dataset.logo || getLogoKeyFromModel(option.dataset.value);
         const iconEl = option.querySelector('.model-option-icon');
@@ -1343,7 +1649,6 @@ function setupAIInput() {
 
     if (!input || !sendBtn) return;
 
-    // Prevent duplicate listeners
     if (sendBtn.dataset.listenerAttached === 'true') {
         console.log('✓ Input listeners already attached, skipping');
         return;
@@ -1352,13 +1657,11 @@ function setupAIInput() {
 
     console.log('✓ Attaching AI input listeners');
 
-    // Auto-resize textarea
     input.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 200) + 'px';
     });
 
-    // Send on Enter
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -1366,10 +1669,8 @@ function setupAIInput() {
         }
     });
 
-    // Send button
     sendBtn.onclick = () => sendAiMessage();
 
-    // Attachments
     if (attachBtn) attachBtn.onclick = () => fileInput?.click();
     if (fileInput) fileInput.onchange = handleFileAttach;
     if (removeBtn) removeBtn.onclick = clearAttachment;
@@ -1391,7 +1692,26 @@ function setupAISuggestions() {
     });
 }
 
-// Event delegation for copy buttons (works for dynamically created buttons)
+// === NEW: SETUP ACTION BUTTONS ===
+function setupActionButtons() {
+    const rememberBtn = document.getElementById('btn-action-remember');
+    const addCloudBtn = document.getElementById('btn-action-add-cloud');
+    const listCloudBtn = document.getElementById('btn-action-list-cloud');
+    const removeCloudBtn = document.getElementById('btn-action-remove-cloud');
+    const createCloudBtn = document.getElementById('btn-action-create-cloud');
+
+    rememberBtn?.addEventListener('click', handleActionRemember);
+    addCloudBtn?.addEventListener('click', handleActionAddToCloud);
+    listCloudBtn?.addEventListener('click', handleActionListCloud);
+    removeCloudBtn?.addEventListener('click', handleActionRemoveFromCloud);
+    createCloudBtn?.addEventListener('click', handleActionCreateOnCloud);
+
+    // Initialize button states
+    updateActionButtonStates();
+
+    console.log('✓ Action buttons initialized');
+}
+
 function setupCopyButtons() {
     document.addEventListener('click', function(e) {
         const copyBtn = e.target.closest('.ai-copy-btn');
