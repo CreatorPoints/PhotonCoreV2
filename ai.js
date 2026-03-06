@@ -497,23 +497,51 @@ async function handleActionAddToCloud() {
     }
 
     try {
-        const arrayBuffer = await state.attachedFile.arrayBuffer();
-        await puter.fs.write(
-            'PhotonCore/files/' + state.attachedFileName,
-            new Blob([arrayBuffer], { type: state.attachedFile.type }),
-            { dedupeName: false, overwrite: true }
-        );
-        
-        showToast(`☁️ "${state.attachedFileName}" uploaded!`, 'success');
-        clearAttachment();
-        
+        // Use the same upload function as files.js
+        if (typeof aiUploadFile === 'function') {
+            const url = await aiUploadFile(state.attachedFile);
+            if (url) {
+                showToast(`☁️ "${state.attachedFileName}" uploaded!`, 'success');
+                addSystemMessage(`☁️ Uploaded "${state.attachedFileName}" to cloud storage`);
+                clearAttachment();
+            } else {
+                throw new Error('Upload failed');
+            }
+        } else {
+            // Fallback: convert to base64 and upload via API
+            const fileData = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(state.attachedFile);
+            });
+
+            const response = await fetch('/api/files/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileData,
+                    fileName: state.attachedFileName,
+                    fileType: state.attachedFile.type,
+                    uploadedBy: state.user.username,
+                    uploadedById: state.user.uid
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Upload failed');
+            }
+
+            showToast(`☁️ "${state.attachedFileName}" uploaded!`, 'success');
+            addSystemMessage(`☁️ Uploaded "${state.attachedFileName}" to cloud storage`);
+            clearAttachment();
+        }
+
         // Refresh files list if on files page
         if (typeof loadFiles === 'function') {
             await loadFiles();
         }
-
-        // Add system message to chat
-        addSystemMessage(`☁️ Uploaded "${state.attachedFileName}" to cloud storage`);
 
     } catch (e) {
         console.error('Upload failed:', e);
@@ -552,9 +580,12 @@ async function handleActionRemoveFromCloud() {
     }
 
     try {
-        // Get list of files
-        const items = await puter.fs.readdir('PhotonCore/files');
-        const files = items.filter(i => !i.is_dir);
+        // Get list of files from Supabase
+        const response = await fetch('/api/files/list');
+        if (!response.ok) throw new Error('Failed to load files');
+        
+        const data = await response.json();
+        const files = data.files || [];
 
         if (files.length === 0) {
             showModal({
@@ -573,7 +604,7 @@ async function handleActionRemoveFromCloud() {
 
         // Build file selection list
         const fileListHtml = files.map(f => `
-            <div class="file-select-item" data-name="${esc(f.name)}">
+            <div class="file-select-item" data-id="${esc(f.id)}" data-name="${esc(f.name)}" data-path="${esc(f.storage_path)}">
                 <span class="file-select-icon">${fileIcon(f.name, false)}</span>
                 <div class="file-select-info">
                     <div class="file-select-name">${esc(f.name)}</div>
@@ -599,9 +630,25 @@ async function handleActionRemoveFromCloud() {
                     return false;
                 }
 
+                const fileId = selected.dataset.id;
                 const fileName = selected.dataset.name;
+                const storagePath = selected.dataset.path;
+
                 try {
-                    await puter.fs.delete('PhotonCore/files/' + fileName);
+                    const deleteResponse = await fetch('/api/files/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: fileId,
+                            storagePath: storagePath
+                        })
+                    });
+
+                    if (!deleteResponse.ok) {
+                        const error = await deleteResponse.json();
+                        throw new Error(error.error || 'Delete failed');
+                    }
+
                     showToast(`🗑️ "${fileName}" removed`, 'success');
                     
                     if (typeof loadFiles === 'function') {
@@ -668,11 +715,21 @@ async function handleActionCreateOnCloud() {
             }
 
             try {
-                await puter.fs.write(
-                    'PhotonCore/files/' + filename,
-                    new Blob([content], { type: 'text/plain' }),
-                    { dedupeName: false, overwrite: true }
-                );
+                const response = await fetch('/api/files/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: filename,
+                        content: content,
+                        uploadedBy: state.user.username,
+                        uploadedById: state.user.uid
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Create failed');
+                }
                 
                 showToast(`📝 "${filename}" created!`, 'success');
                 
@@ -761,86 +818,128 @@ function updateActionButtonStates() {
 
 async function aiListFiles() {
     try {
-        const items = await puter.fs.readdir('PhotonCore/files');
+        const response = await fetch('/api/files/list');
+        if (!response.ok) throw new Error('Failed to list files');
         
-        if (!items || items.length === 0) {
-            return '📂 Your cloud is empty. Use "Add to Cloud" to upload files!';
+        const data = await response.json();
+        const files = data.files || [];
+
+        if (!files.length) {
+            return '📂 Your cloud is empty. Upload some files!';
         }
-        
-        const fileList = items.map(item => {
-            const icon = fileIcon(item.name, item.is_dir);
-            const size = item.is_dir ? '' : ` (${fmtSize(item.size || 0)})`;
-            return `${icon} ${item.name}${size}`;
-        }).join('\n');
-        
-        return `📂 Your cloud files:\n\n${fileList}\n\n📊 Total: ${items.length} item(s)`;
+
+        let result = '📂 **Files in your cloud:**\n\n';
+        files.forEach(f => {
+            result += `- 📄 **${f.name}** (${fmtSize(f.size)}) - by ${f.uploaded_by}\n`;
+        });
+        result += `\n📊 **Total:** ${files.length} files`;
+
+        return result;
     } catch (e) {
         console.error('List files error:', e);
-        return '⚠️ Failed to list files: ' + (e.message || 'Unknown error');
+        return '⚠️ Error reading cloud: ' + e.message;
     }
 }
 
 async function aiReadFile(name) {
-    if (!name) return '⚠️ Please specify a file name.';
-    
+    if (!name) return '⚠️ No file name provided.';
+
     try {
-        const content = await puter.fs.read('PhotonCore/files/' + name);
-        const text = typeof content === 'string' ? content : await content.text();
-        
-        if (text.length > 5000) {
-            return `📄 **${name}** (truncated):\n\`\`\`\n${text.substring(0, 5000)}...\n\`\`\`\n\n⚠️ File truncated (${fmtSize(text.length)} total)`;
+        const response = await fetch(`/api/files/read?name=${encodeURIComponent(name)}`);
+        if (!response.ok) {
+            const error = await response.json();
+            return `⚠️ ${error.error || error.message || 'File not found'}`;
         }
         
-        return `📄 **${name}**:\n\`\`\`\n${text}\n\`\`\``;
+        const data = await response.json();
+        
+        if (data.isBinary) {
+            return `📄 **${data.name}** is a binary file (${fmtSize(data.size)}). Cannot display content.`;
+        }
+
+        const text = data.content || '';
+        if (text.length > 8000) {
+            return `📄 **${data.name}** (first 8000 chars):\n\n\`\`\`\n${text.substring(0, 8000)}\n\`\`\`\n\n*[Content truncated]*`;
+        }
+
+        return `📄 **${data.name}**:\n\n\`\`\`\n${text}\n\`\`\``;
     } catch (e) {
         console.error('Read file error:', e);
-        return '⚠️ Failed to read file: ' + (e.message || 'File not found');
-    }
-}
-
-async function aiDeleteFile(name) {
-    if (!name) return '⚠️ Please specify a file name.';
-    
-    try {
-        await puter.fs.delete('PhotonCore/files/' + name);
-        if (typeof loadFiles === 'function') await loadFiles();
-        return `🗑️ Deleted "${name}"`;
-    } catch (e) {
-        console.error('Delete file error:', e);
-        return '⚠️ Failed to delete: ' + (e.message || 'File not found');
+        return '⚠️ Error reading file: ' + e.message;
     }
 }
 
 async function aiWriteFile(name, content) {
-    if (!name) return '⚠️ Please specify a file name.';
-    
+    if (!name) return '⚠️ No file name provided.';
+    if (!state.user) return '⚠️ Please sign in to save files.';
+
     try {
-        // Extract content from the message
-        let fileContent = content;
+        const response = await fetch('/api/files/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                content: content || '',
+                uploadedBy: state.user.username,
+                uploadedById: state.user.uid
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || error.message || 'Write failed');
+        }
+
+        const data = await response.json();
         
-        // Try to extract code block content
-        const codeMatch = content.match(/```[\w]*\n?([\s\S]*?)```/);
-        if (codeMatch) {
-            fileContent = codeMatch[1];
-        } else {
-            // Remove the command part
-            fileContent = content.replace(/^.*?(create|write|save|make).*?["'][\w.]+["']\s*(with|containing|:)?\s*/i, '');
+        // Refresh files list if available
+        if (typeof loadFiles === 'function') {
+            await loadFiles();
         }
         
-        await puter.fs.write(
-            'PhotonCore/files/' + name,
-            new Blob([fileContent], { type: 'text/plain' }),
-            { dedupeName: false, overwrite: true }
-        );
-        
-        if (typeof loadFiles === 'function') await loadFiles();
-        return `📝 Created "${name}" (${fmtSize(fileContent.length)})`;
+        if (typeof addActivity === 'function') {
+            addActivity(`📝 AI created: ${name}`);
+        }
+
+        return `✅ Created "${name}" in cloud storage! (${fmtSize(data.size || 0)})`;
     } catch (e) {
         console.error('Write file error:', e);
-        return '⚠️ Failed to create file: ' + (e.message || 'Unknown error');
+        return '⚠️ Error saving file: ' + e.message;
     }
 }
 
+async function aiDeleteFile(name) {
+    if (!name) return '⚠️ No file name provided.';
+
+    try {
+        const response = await fetch('/api/files/delete-by-name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            return `⚠️ ${error.error || error.message || 'Delete failed'}`;
+        }
+
+        const data = await response.json();
+        
+        // Refresh files list if available
+        if (typeof loadFiles === 'function') {
+            await loadFiles();
+        }
+        
+        if (typeof addActivity === 'function') {
+            addActivity(`🗑️ AI deleted: ${data.name}`);
+        }
+
+        return `🗑️ Deleted "${data.name}" from cloud storage.`;
+    } catch (e) {
+        console.error('Delete file error:', e);
+        return '⚠️ Error deleting file: ' + e.message;
+    }
+}
 // === ACTIVITY FUNCTIONS ===
 
 function listenActivity() {
