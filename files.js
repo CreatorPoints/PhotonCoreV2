@@ -10,22 +10,32 @@ let currentView = 'grid';
 let searchQuery = '';
 let selectedFile = null;
 let fileToDelete = null;
-let uploadListenersAttached = false; // Prevent double listeners
 
 // ========================================
-// INITIALIZATION
+// INITIALIZATION - BULLETPROOF
 // ========================================
+
+// Use a flag on window to prevent double init across all scripts
+if (window._filesPageInitialized) {
+    console.log('📁 Files page already initialized, skipping...');
+} else {
+    window._filesPageInitialized = true;
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFilesPage, { once: true });
+    } else {
+        initFilesPage();
+    }
+}
 
 function initFilesPage() {
     if (!document.getElementById('files-list')) return;
+    if (window._filesPageSetupDone) return;
+    window._filesPageSetupDone = true;
     
-    console.log('📁 Initializing Files Page...');
+    console.log('📁 Initializing Files Page (once)...');
     
-    if (!uploadListenersAttached) {
-        setupUploadZone();
-        uploadListenersAttached = true;
-    }
-    
+    setupUploadZone();
     setupViewToggle();
     setupSearch();
     setupModals();
@@ -35,59 +45,89 @@ function initFilesPage() {
 }
 
 // ========================================
-// UPLOAD ZONE - FIXED FOR DOUBLE LISTENERS
+// UPLOAD ZONE - CLONE TO REMOVE OLD LISTENERS
 // ========================================
 
 function setupUploadZone() {
-    const uploadZone = document.getElementById('upload-zone');
-    const fileInput = document.getElementById('file-input');
-    const uploadBtn = document.getElementById('btn-upload-files');
+    const oldUploadZone = document.getElementById('upload-zone');
+    const oldFileInput = document.getElementById('file-input');
+    const oldUploadBtn = document.getElementById('btn-upload-files');
     
-    if (!uploadZone || !fileInput) return;
+    if (!oldUploadZone || !oldFileInput) return;
     
-    console.log('Setting up upload zone (once)');
+    // Clone elements to remove ALL existing event listeners
+    const uploadZone = oldUploadZone.cloneNode(true);
+    oldUploadZone.parentNode.replaceChild(uploadZone, oldUploadZone);
     
-    // Click to upload
+    // Clone file input
+    const fileInput = oldFileInput.cloneNode(true);
+    oldFileInput.parentNode.replaceChild(fileInput, oldFileInput);
+    
+    // Clone upload button if exists
+    let uploadBtn = null;
+    if (oldUploadBtn) {
+        uploadBtn = oldUploadBtn.cloneNode(true);
+        oldUploadBtn.parentNode.replaceChild(uploadBtn, oldUploadBtn);
+    }
+    
+    console.log('📁 Upload zone setup (listeners cleared)');
+    
+    // Now add fresh listeners
+    
+    // Upload zone click
     uploadZone.addEventListener('click', (e) => {
-        console.log('Upload zone clicked');
-        fileInput.click();
-    }, { once: false });
-    
-    uploadBtn?.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('Upload button clicked');
+        e.stopPropagation();
         fileInput.click();
     });
     
-    // File input change
-    fileInput.addEventListener('change', (e) => {
-        console.log('File input changed', e.target.files?.length);
-        if (e.target.files?.length) {
-            uploadFiles(Array.from(e.target.files));
-        }
-    });
+    // Upload button click
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+    }
+    
+    // File input change - only one listener
+    fileInput.addEventListener('change', handleFileSelect);
     
     // Drag & Drop
     uploadZone.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         uploadZone.classList.add('drag-over');
     });
     
     uploadZone.addEventListener('dragleave', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         uploadZone.classList.remove('drag-over');
     });
     
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         uploadZone.classList.remove('drag-over');
         
         const files = Array.from(e.dataTransfer.files);
-        console.log('Files dropped:', files.length);
         if (files.length) {
             uploadFiles(files);
         }
     });
+}
+
+// Separate function for file select to avoid duplicates
+function handleFileSelect(e) {
+    const files = e.target.files;
+    console.log('📁 Files selected:', files?.length);
+    
+    if (files?.length) {
+        uploadFiles(Array.from(files));
+    }
+    
+    // Reset input so same file can be selected again
+    e.target.value = '';
 }
 
 // ========================================
@@ -99,18 +139,26 @@ function setupViewToggle() {
     const listBtn = document.getElementById('btn-list-view');
     const filesList = document.getElementById('files-list');
     
-    gridBtn?.addEventListener('click', () => {
+    if (!gridBtn || !listBtn) return;
+    
+    // Clone to remove old listeners
+    const newGridBtn = gridBtn.cloneNode(true);
+    const newListBtn = listBtn.cloneNode(true);
+    gridBtn.parentNode.replaceChild(newGridBtn, gridBtn);
+    listBtn.parentNode.replaceChild(newListBtn, listBtn);
+    
+    newGridBtn.addEventListener('click', () => {
         currentView = 'grid';
-        gridBtn.classList.add('active');
-        listBtn?.classList.remove('active');
+        newGridBtn.classList.add('active');
+        newListBtn.classList.remove('active');
         filesList?.classList.remove('list-view');
         renderFiles();
     });
     
-    listBtn?.addEventListener('click', () => {
+    newListBtn.addEventListener('click', () => {
         currentView = 'list';
-        listBtn.classList.add('active');
-        gridBtn?.classList.remove('active');
+        newListBtn.classList.add('active');
+        newGridBtn.classList.remove('active');
         filesList?.classList.add('list-view');
         renderFiles();
     });
@@ -121,10 +169,15 @@ function setupViewToggle() {
 // ========================================
 
 function setupSearch() {
-    const searchInput = document.getElementById('files-search-input');
+    const oldSearchInput = document.getElementById('files-search-input');
+    if (!oldSearchInput) return;
+    
+    // Clone to remove old listeners
+    const searchInput = oldSearchInput.cloneNode(true);
+    oldSearchInput.parentNode.replaceChild(searchInput, oldSearchInput);
     
     let debounceTimeout;
-    searchInput?.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
             searchQuery = e.target.value.toLowerCase().trim();
@@ -137,13 +190,23 @@ function setupSearch() {
 // UPLOAD FILES - USING BASE64
 // ========================================
 
+let isUploading = false; // Prevent double uploads
+
 async function uploadFiles(fileList) {
     if (!fileList?.length) return;
     
-    console.log('uploadFiles called with', fileList.length, 'files');
+    // Prevent double uploads
+    if (isUploading) {
+        console.log('📁 Already uploading, skipping...');
+        return;
+    }
+    isUploading = true;
+    
+    console.log('📁 Starting upload of', fileList.length, 'file(s)');
     
     if (!state.user) {
         showToast('Please sign in to upload files.', 'error');
+        isUploading = false;
         return;
     }
 
@@ -159,8 +222,6 @@ async function uploadFiles(fileList) {
 
     for (const file of fileList) {
         try {
-            console.log('Uploading:', file.name);
-            
             // Update progress UI
             if (progressCount) progressCount.textContent = `${uploaded + 1}/${total}`;
             if (progressCurrent) progressCurrent.textContent = `Uploading: ${file.name}`;
@@ -180,8 +241,6 @@ async function uploadFiles(fileList) {
                 reader.readAsDataURL(file);
             });
 
-            console.log('File converted to base64');
-
             // Upload via API using base64
             const response = await fetch('/api/files/upload', {
                 method: 'POST',
@@ -194,8 +253,6 @@ async function uploadFiles(fileList) {
                     uploadedById: state.user.uid
                 })
             });
-
-            console.log('Upload response status:', response.status);
 
             if (!response.ok) {
                 const error = await response.json();
@@ -226,8 +283,7 @@ async function uploadFiles(fileList) {
 
     await loadFiles();
     
-    const fileInput = document.getElementById('file-input');
-    if (fileInput) fileInput.value = '';
+    isUploading = false;
 }
 
 // ========================================
@@ -351,30 +407,30 @@ function renderListCard(file) {
 
 function attachFileCardListeners() {
     document.querySelectorAll('.file-card').forEach(card => {
-        card.addEventListener('click', (e) => {
+        card.onclick = (e) => {
             if (e.target.closest('.file-action-btn')) return;
             const fileId = card.dataset.fileId;
             const file = state.files.find(f => f.id == fileId);
             if (file) showFilePreview(file);
-        });
+        };
     });
 
     document.querySelectorAll('.download-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
             e.stopPropagation();
             const fileId = btn.dataset.fileId;
             const file = state.files.find(f => f.id == fileId);
             if (file) downloadFile(file);
-        });
+        };
     });
 
     document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
             e.stopPropagation();
             const fileId = btn.dataset.fileId;
             const file = state.files.find(f => f.id == fileId);
             if (file) confirmDelete(file);
-        });
+        };
     });
 }
 
@@ -399,45 +455,63 @@ function updateStats() {
 // MODALS
 // ========================================
 
+let modalsSetup = false;
+
 function setupModals() {
+    if (modalsSetup) return;
+    modalsSetup = true;
+    
     const fileModal = document.getElementById('file-modal');
     const modalClose = document.getElementById('modal-close');
     const modalBtnDownload = document.getElementById('modal-btn-download');
     const modalBtnCopyLink = document.getElementById('modal-btn-copy-link');
     
-    modalClose?.addEventListener('click', () => fileModal?.classList.add('hidden'));
-    fileModal?.addEventListener('click', (e) => {
-        if (e.target === fileModal) fileModal.classList.add('hidden');
-    });
+    if (modalClose) {
+        modalClose.onclick = () => fileModal?.classList.add('hidden');
+    }
     
-    modalBtnDownload?.addEventListener('click', () => {
-        if (selectedFile) downloadFile(selectedFile);
-    });
+    if (fileModal) {
+        fileModal.onclick = (e) => {
+            if (e.target === fileModal) fileModal.classList.add('hidden');
+        };
+    }
     
-    modalBtnCopyLink?.addEventListener('click', () => {
-        if (selectedFile?.downloadURL) {
-            navigator.clipboard.writeText(selectedFile.downloadURL)
-                .then(() => showToast('Link copied!', 'success'))
-                .catch(() => showToast('Failed to copy', 'error'));
-        }
-    });
+    if (modalBtnDownload) {
+        modalBtnDownload.onclick = () => {
+            if (selectedFile) downloadFile(selectedFile);
+        };
+    }
+    
+    if (modalBtnCopyLink) {
+        modalBtnCopyLink.onclick = () => {
+            if (selectedFile?.downloadURL) {
+                navigator.clipboard.writeText(selectedFile.downloadURL)
+                    .then(() => showToast('Link copied!', 'success'))
+                    .catch(() => showToast('Failed to copy', 'error'));
+            }
+        };
+    }
 
     const deleteModal = document.getElementById('delete-modal');
     const deleteCancel = document.getElementById('delete-cancel');
     const deleteConfirm = document.getElementById('delete-confirm');
     
-    deleteCancel?.addEventListener('click', () => {
-        deleteModal?.classList.add('hidden');
-        fileToDelete = null;
-    });
-    
-    deleteConfirm?.addEventListener('click', async () => {
-        if (fileToDelete) {
-            await deleteFile(fileToDelete);
+    if (deleteCancel) {
+        deleteCancel.onclick = () => {
             deleteModal?.classList.add('hidden');
             fileToDelete = null;
-        }
-    });
+        };
+    }
+    
+    if (deleteConfirm) {
+        deleteConfirm.onclick = async () => {
+            if (fileToDelete) {
+                await deleteFile(fileToDelete);
+                deleteModal?.classList.add('hidden');
+                fileToDelete = null;
+            }
+        };
+    }
 }
 
 async function showFilePreview(file) {
@@ -676,7 +750,6 @@ async function aiUploadFile(file) {
     if (!state.user) return null;
 
     try {
-        // Convert to base64
         const fileData = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
@@ -708,19 +781,17 @@ async function aiUploadFile(file) {
 }
 
 // ========================================
-// INITIALIZE
+// EXPORTS - Don't re-initialize!
 // ========================================
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initFilesPage);
-} else {
-    initFilesPage();
-}
-
-// Export for AI integration
 window.aiListFiles = aiListFiles;
 window.aiReadFile = aiReadFile;
 window.aiWriteFile = aiWriteFile;
 window.aiDeleteFile = aiDeleteFile;
 window.aiUploadFile = aiUploadFile;
 window.loadFiles = loadFiles;
+
+// Remove any duplicate init calls from other scripts
+window.initFilesPage = function() {
+    console.log('📁 initFilesPage called externally - already initialized');
+};
