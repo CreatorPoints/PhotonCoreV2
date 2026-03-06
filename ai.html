@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     <!-- Secret Guard - MUST be first script, blocks rendering -->
+    <!-- Secret Guard - MUST be first script, blocks rendering -->
     <script src="secret-guard.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant — Photon Core</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="Photon_Core.png">
-     <link rel="stylesheet" href="ai-logos.css">
+    <link rel="stylesheet" href="ai-logos.css">
 
     <!-- Firebase - ALL REQUIRED SCRIPTS -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -29,8 +29,6 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
-    
-   
 </head>
 
 <body>
@@ -66,7 +64,6 @@
             <div class="chat-history" id="chat-history-list">
                 <div class="chat-history-section">
                     <div class="chat-history-label">Today</div>
-                    <!-- Chat items will be populated here -->
                 </div>
             </div>
 
@@ -104,268 +101,125 @@
                         </button>
 
                         <div class="model-dropdown" id="model-dropdown">
-    <div class="model-dropdown-header">
-        <input type="text" class="model-search" id="model-search" placeholder="Search models...">
-    </div>
+                            <div class="model-dropdown-header">
+                                <input type="text" class="model-search" id="model-search" placeholder="Search models...">
+                            </div>
 
-    <!-- AUTO -->
-    <div class="model-group">
-        <div class="model-group-label">🎲 Auto Select</div>
-        <div class="model-option selected" data-value="openrouter/free" data-icon="🎲" data-name="Auto Select Best">
-            <span class="model-option-icon">🎲</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Auto Select Best</div>
-                <div class="model-option-desc">Automatically picks the best model</div>
-            </div>
-            <span class="model-option-badge">Smart</span>
-        </div>
-    </div>
+                            <!-- AUTO -->
+                            <div class="model-group">
+                                <div class="model-group-label">🎲 Auto Select</div>
+                                <div class="model-option selected" data-value="openrouter/free" data-icon="🎲" data-name="Auto Select Best">
+                                    <span class="model-option-icon">🎲</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Auto Select Best</div>
+                                        <div class="model-option-desc">Automatically picks the best model</div>
+                                    </div>
+                                    <span class="model-option-badge">Smart</span>
+                                </div>
+                            </div>
 
-    <!-- META LLAMA -->
-    <div class="model-group">
-        <div class="model-group-label">🦙 Meta LLaMA</div>
-        <div class="model-option" data-value="meta-llama/llama-3.3-70b-instruct:free" data-logo="meta" data-name="LLaMA 3.3 70B">
-            <span class="model-option-icon">🦙</span>
-            <div class="model-option-info">
-                <div class="model-option-name">LLaMA 3.3 70B</div>
-                <div class="model-option-desc">Best overall, reasoning & coding</div>
-            </div>
-            <span class="model-option-badge">Flagship</span>
-        </div>
-        <div class="model-option" data-value="meta-llama/llama-3.2-3b-instruct:free" data-logo="meta" data-name="LLaMA 3.2 3B">
-            <span class="model-option-icon">🦙</span>
-            <div class="model-option-info">
-                <div class="model-option-name">LLaMA 3.2 3B</div>
-                <div class="model-option-desc">Fast for simple tasks</div>
-            </div>
-            <span class="model-option-badge">Fast</span>
-        </div>
-    </div>
+                            <!-- META LLAMA -->
+                            <div class="model-group">
+                                <div class="model-group-label">🦙 Meta LLaMA</div>
+                                <div class="model-option" data-value="meta-llama/llama-3.3-70b-instruct:free" data-logo="meta" data-name="LLaMA 3.3 70B">
+                                    <span class="model-option-icon">🦙</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">LLaMA 3.3 70B</div>
+                                        <div class="model-option-desc">Best overall, reasoning & coding</div>
+                                    </div>
+                                    <span class="model-option-badge">Flagship</span>
+                                </div>
+                                <div class="model-option" data-value="meta-llama/llama-3.2-3b-instruct:free" data-logo="meta" data-name="LLaMA 3.2 3B">
+                                    <span class="model-option-icon">🦙</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">LLaMA 3.2 3B</div>
+                                        <div class="model-option-desc">Fast for simple tasks</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
+                            </div>
 
-    <!-- GOOGLE GEMMA -->
-    <div class="model-group">
-        <div class="model-group-label">💎 Google Gemma</div>
-        <div class="model-option" data-value="google/gemma-3-27b-it:free" data-logo="meta" data-name="Gemma 3 27B">
-            <span class="model-option-icon">💎</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Gemma 3 27B</div>
-                <div class="model-option-desc">Great reasoning & writing</div>
-            </div>
-            <span class="model-option-badge">Powerful</span>
-        </div>
-        <div class="model-option" data-value="google/gemma-3-12b-it:free" data-logo="meta" data-name="Gemma 3 12B">
-            <span class="model-option-icon">💎</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Gemma 3 12B</div>
-                <div class="model-option-desc">Speed & quality balance</div>
-            </div>
-            <span class="model-option-badge">Balanced</span>
-        </div>
-        <div class="model-option" data-value="google/gemma-3-4b-it:free" data-logo="meta" data-name="Gemma 3 4B">
-            <span class="model-option-icon">💎</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Gemma 3 4B</div>
-                <div class="model-option-desc">Quick responses</div>
-            </div>
-            <span class="model-option-badge">Fast</span>
-        </div>
-        <div class="model-option" data-value="google/gemma-3n-e4b-it:free" data-logo="meta" data-name="Gemma 3N E4B">
-            <span class="model-option-icon">💎</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Gemma 3N E4B</div>
-                <div class="model-option-desc">Edge optimized</div>
-            </div>
-            <span class="model-option-badge">Edge</span>
-        </div>
-        <div class="model-option" data-value="google/gemma-3n-e2b-it:free" data-logo="meta" data-name="Gemma 3N E2B">
-            <span class="model-option-icon">💎</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Gemma 3N E2B</div>
-                <div class="model-option-desc">Ultra-compact</div>
-            </div>
-            <span class="model-option-badge">Tiny</span>
-        </div>
-    </div>
+                            <!-- GOOGLE GEMMA -->
+                            <div class="model-group">
+                                <div class="model-group-label">💎 Google Gemma</div>
+                                <div class="model-option" data-value="google/gemma-3-27b-it:free" data-logo="google" data-name="Gemma 3 27B">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemma 3 27B</div>
+                                        <div class="model-option-desc">Great reasoning & writing</div>
+                                    </div>
+                                    <span class="model-option-badge">Powerful</span>
+                                </div>
+                                <div class="model-option" data-value="google/gemma-3-12b-it:free" data-logo="google" data-name="Gemma 3 12B">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemma 3 12B</div>
+                                        <div class="model-option-desc">Speed & quality balance</div>
+                                    </div>
+                                    <span class="model-option-badge">Balanced</span>
+                                </div>
+                                <div class="model-option" data-value="google/gemma-3-4b-it:free" data-logo="google" data-name="Gemma 3 4B">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemma 3 4B</div>
+                                        <div class="model-option-desc">Quick responses</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
+                            </div>
 
-    <!-- NVIDIA -->
-    <div class="model-group">
-        <div class="model-group-label">🟢 NVIDIA</div>
-        <div class="model-option" data-value="nvidia/nemotron-3-nano-30b-a3b:free" data-logo="meta" data-name="Nemotron 30B">
-            <span class="model-option-icon">🟢</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Nemotron 30B</div>
-                <div class="model-option-desc">Strong logical reasoning</div>
-            </div>
-            <span class="model-option-badge">Reasoning</span>
-        </div>
-        <div class="model-option" data-value="nvidia/nemotron-nano-12b-v2-vl:free" data-logo="meta" data-name="Nemotron 12B VL">
-            <span class="model-option-icon">🟢</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Nemotron 12B VL</div>
-                <div class="model-option-desc">Vision-language model</div>
-            </div>
-            <span class="model-option-badge">Vision</span>
-        </div>
-        <div class="model-option" data-value="nvidia/nemotron-nano-9b-v2:free" data-logo="meta" data-name="Nemotron 9B">
-            <span class="model-option-icon">🟢</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Nemotron 9B</div>
-                <div class="model-option-desc">Well-rounded</div>
-            </div>
-            <span class="model-option-badge">Balanced</span>
-        </div>
-        <div class="model-option" data-value="nvidia/llama-nemotron-embed-vl-1b-v2:free" data-logo="meta" data-name="Nemotron Embed 1B">
-            <span class="model-option-icon">🟢</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Nemotron Embed 1B</div>
-                <div class="model-option-desc">Embeddings & vision</div>
-            </div>
-            <span class="model-option-badge">Embed</span>
-        </div>
-    </div>
+                            <!-- NVIDIA -->
+                            <div class="model-group">
+                                <div class="model-group-label">🟢 NVIDIA</div>
+                                <div class="model-option" data-value="nvidia/nemotron-3-nano-30b-a3b:free" data-logo="nvidia" data-name="Nemotron 30B">
+                                    <span class="model-option-icon">🟢</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Nemotron 30B</div>
+                                        <div class="model-option-desc">Strong logical reasoning</div>
+                                    </div>
+                                    <span class="model-option-badge">Reasoning</span>
+                                </div>
+                            </div>
 
-    <!-- QWEN -->
-    <div class="model-group">
-        <div class="model-group-label">📘 Qwen (Alibaba)</div>
-        <div class="model-option" data-value="qwen/qwen3-next-80b-a3b-instruct:free" data-logo="meta" data-name="Qwen3 Next 80B">
-            <span class="model-option-icon">📘</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Qwen3 Next 80B</div>
-                <div class="model-option-desc">Advanced reasoning</div>
-            </div>
-            <span class="model-option-badge">Large</span>
-        </div>
-        <div class="model-option" data-value="qwen/qwen3-coder:free" data-logo="meta" data-name="Qwen3 Coder">
-            <span class="model-option-icon">👨‍💻</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Qwen3 Coder</div>
-                <div class="model-option-desc">Code specialist</div>
-            </div>
-            <span class="model-option-badge">Code</span>
-        </div>
-        <div class="model-option" data-value="qwen/qwen3-4b:free" data-logo="meta" data-name="Qwen3 4B">
-            <span class="model-option-icon">📘</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Qwen3 4B</div>
-                <div class="model-option-desc">Quick general tasks</div>
-            </div>
-            <span class="model-option-badge">Fast</span>
-        </div>
-    </div>
+                            <!-- QWEN -->
+                            <div class="model-group">
+                                <div class="model-group-label">📘 Qwen (Alibaba)</div>
+                                <div class="model-option" data-value="qwen/qwen3-coder:free" data-logo="qwen" data-name="Qwen3 Coder">
+                                    <span class="model-option-icon">👨‍💻</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Qwen3 Coder</div>
+                                        <div class="model-option-desc">Code specialist</div>
+                                    </div>
+                                    <span class="model-option-badge">Code</span>
+                                </div>
+                            </div>
 
-    <!-- OPENAI OSS -->
-    <div class="model-group">
-        <div class="model-group-label">🤖 OpenAI OSS</div>
-        <div class="model-option" data-value="openai/gpt-oss-120b:free" data-logo="meta" data-name="GPT-OSS 120B">
-            <span class="model-option-icon">🤖</span>
-            <div class="model-option-info">
-                <div class="model-option-name">GPT-OSS 120B</div>
-                <div class="model-option-desc">Large open-source GPT</div>
-            </div>
-            <span class="model-option-badge">Massive</span>
-        </div>
-        <div class="model-option" data-value="openai/gpt-oss-20b:free" data-logo="meta" data-name="GPT-OSS 20B">
-            <span class="model-option-icon">🤖</span>
-            <div class="model-option-info">
-                <div class="model-option-name">GPT-OSS 20B</div>
-                <div class="model-option-desc">Faster GPT variant</div>
-            </div>
-            <span class="model-option-badge">Fast</span>
-        </div>
-    </div>
+                            <!-- MISTRAL -->
+                            <div class="model-group">
+                                <div class="model-group-label">🌀 Mistral AI</div>
+                                <div class="model-option" data-value="mistralai/mistral-small-3.1-24b-instruct:free" data-logo="mistral" data-name="Mistral Small 24B">
+                                    <span class="model-option-icon">🌀</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Mistral Small 24B</div>
+                                        <div class="model-option-desc">Excellent writing & reasoning</div>
+                                    </div>
+                                    <span class="model-option-badge">Quality</span>
+                                </div>
+                            </div>
 
-    <!-- MISTRAL -->
-    <div class="model-group">
-        <div class="model-group-label">🌀 Mistral AI</div>
-        <div class="model-option" data-value="mistralai/mistral-small-3.1-24b-instruct:free" data-logo="meta" data-name="Mistral Small 24B">
-            <span class="model-option-icon">🌀</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Mistral Small 24B</div>
-                <div class="model-option-desc">Excellent writing & reasoning</div>
-            </div>
-            <span class="model-option-badge">Quality</span>
-        </div>
-        <div class="model-option" data-value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" data-logo="meta" data-name="Dolphin Mistral 24B">
-            <span class="model-option-icon">🐬</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Dolphin Mistral 24B</div>
-                <div class="model-option-desc">Creative & uncensored</div>
-            </div>
-            <span class="model-option-badge">Creative</span>
-        </div>
-    </div>
-
-    <!-- NOUS RESEARCH -->
-    <div class="model-group">
-        <div class="model-group-label">🏛️ Nous Research</div>
-        <div class="model-option" data-value="nousresearch/hermes-3-llama-3.1-405b:free" data-logo="meta" data-name="Hermes 3 405B">
-            <span class="model-option-icon">🏛️</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Hermes 3 405B</div>
-                <div class="model-option-desc">Largest free model</div>
-            </div>
-            <span class="model-option-badge">Massive</span>
-        </div>
-    </div>
-
-    <!-- ARCEE AI -->
-<div class="model-group">
-    <div class="model-group-label">🔺 Arcee AI</div>
-    <div class="model-option" data-value="arcee-ai/trinity-large-preview:free" data-logo="meta" data-name="Arcee Large">
-        <span class="model-option-icon">🔺</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Arcee Large</div>
-            <div class="model-option-desc">Multi-task reasoning</div>
-        </div>
-        <span class="model-option-badge">Preview</span>
-    </div>
-    <div class="model-option" data-value="arcee-ai/trinity-mini:free" data-logo="meta" data-name="Arcee Mini">
-        <span class="model-option-icon">🔺</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Arcee Mini</div>
-            <div class="model-option-desc">Lightweight & capable</div>
-        </div>
-        <span class="model-option-badge">Compact</span>
-    </div>
-</div>
-
-    <!-- OTHER -->
-    <div class="model-group">
-        <div class="model-group-label">⚡ Other</div>
-        <div class="model-option" data-value="stepfun/step-3.5-flash:free" data-logo="meta" data-name="Step 3.5 Flash">
-            <span class="model-option-icon">⚡</span>
-            <div class="model-option-info">
-                <div class="model-option-name">Step 3.5 Flash</div>
-                <div class="model-option-desc">Blazing fast</div>
-            </div>
-            <span class="model-option-badge">Ultra Fast</span>
-        </div>
-        <div class="model-option" data-value="z-ai/glm-4.5-air:free" data-icon="🇨🇳" data-name="GLM 4.5 Air">
-            <span class="model-option-icon">🇨🇳</span>
-            <div class="model-option-info">
-                <div class="model-option-name">GLM 4.5 Air</div>
-                <div class="model-option-desc">Chinese & English</div>
-            </div>
-            <span class="model-option-badge">Bilingual</span>
-        </div>
-        <div class="model-option" data-value="liquid/lfm-2.5-1.2b-thinking:free" data-logo="meta" data-name="LFM Thinking">
-            <span class="model-option-icon">💧</span>
-            <div class="model-option-info">
-                <div class="model-option-name">LFM Thinking</div>
-                <div class="model-option-desc">Chain-of-thought</div>
-            </div>
-            <span class="model-option-badge">CoT</span>
-        </div>
-        <div class="model-option" data-value="liquid/lfm-2.5-1.2b-instruct:free" data-logo="meta" data-name="LFM Instruct">
-            <span class="model-option-icon">💧</span>
-            <div class="model-option-info">
-                <div class="model-option-name">LFM Instruct</div>
-                <div class="model-option-desc">Quick instructions</div>
-            </div>
-            <span class="model-option-badge">Fast</span>
-        </div>
-    </div>
-</div>
+                            <!-- NOUS RESEARCH -->
+                            <div class="model-group">
+                                <div class="model-group-label">🏛️ Nous Research</div>
+                                <div class="model-option" data-value="nousresearch/hermes-3-llama-3.1-405b:free" data-logo="nous" data-name="Hermes 3 405B">
+                                    <span class="model-option-icon">🏛️</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Hermes 3 405B</div>
+                                        <div class="model-option-desc">Largest free model</div>
+                                    </div>
+                                    <span class="model-option-badge">Massive</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -377,7 +231,7 @@
                     <a href="dashboard.html" class="nav-link" title="Dashboard">🏠</a>
                     <a href="discussions.html" class="nav-link" title="Discussions">💬</a>
                     <a href="files.html" class="nav-link" title="Files">📁</a>
-                    <a href="members.html" class="nav-link" title="Members">👥</a>a>
+                    <a href="members.html" class="nav-link" title="Members">👥</a>
                 </div>
             </header>
 
@@ -385,7 +239,7 @@
             <div class="chat-container">
                 <div class="chat-area">
                     
-                    <!-- Messages -->
+                    <!-- Messages Area -->
                     <div class="chat-messages" id="ai-chat">
                         <div class="chat-messages-inner">
                             
@@ -421,22 +275,14 @@
                                     <button class="suggestion-chip" data-prompt="What can you help me with?">
                                         What can you do?
                                     </button>
-                                    <button class="suggestion-chip" data-prompt="List my files">
-                                        📁 List my files
-                                    </button>
-                                    <button class="suggestion-chip" data-prompt="Remember our deadline is Friday">
-                                        💾 Save a memory
-                                    </button>
                                     <button class="suggestion-chip" data-prompt="Help me write code">
                                         👨‍💻 Help with code
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Messages will be inserted here -->
-
                             <!-- Typing Indicator -->
-                            <div class="typing-indicator" id="typing-indicator">
+                            <div class="typing-indicator hidden" id="typing-indicator">
                                 <div class="message-avatar" style="background: var(--ai-bg-tertiary); border: 1px solid var(--ai-border);">
                                     🤖
                                 </div>
@@ -451,92 +297,79 @@
                     </div>
 
                     <!-- Input Area -->
-<div class="input-area">
-    <div class="input-wrapper">
-        <div class="input-box">
-            
-            <!-- Attachment Preview -->
-            <div class="attachment-preview hidden" id="attachment-preview">
-                <div class="attachment-info">
-                    <span class="attachment-icon" id="attachment-icon">📄</span>
-                    <div>
-                        <div class="attachment-name" id="attachment-name">file.txt</div>
-                        <div class="attachment-size" id="attachment-size">0 KB</div>
+                    <div class="input-area">
+                        <div class="input-wrapper">
+                            <div class="input-box">
+                                
+                                <!-- Attachment Preview -->
+                                <div class="attachment-preview hidden" id="attachment-preview">
+                                    <div class="attachment-info">
+                                        <span class="attachment-icon" id="attachment-icon">📄</span>
+                                        <div>
+                                            <div class="attachment-name" id="attachment-name">file.txt</div>
+                                            <div class="attachment-size" id="attachment-size">0 KB</div>
+                                        </div>
+                                    </div>
+                                    <button class="attachment-remove" id="btn-remove-attachment">✕</button>
+                                </div>
+
+                                <!-- Action Buttons Bar -->
+                                <div class="input-actions-bar" id="input-actions-bar">
+                                    <button class="action-btn" id="btn-action-remember" title="Save current message to team memory">
+                                        <span class="action-icon">🧠</span>
+                                        <span class="action-text">Remember</span>
+                                    </button>
+                                    <button class="action-btn" id="btn-action-add-cloud" title="Upload attached file to cloud" disabled>
+                                        <span class="action-icon">☁️</span>
+                                        <span class="action-text">Add to Cloud</span>
+                                    </button>
+                                    <button class="action-btn" id="btn-action-list-cloud" title="List all cloud files">
+                                        <span class="action-icon">📋</span>
+                                        <span class="action-text">List Cloud</span>
+                                    </button>
+                                    <button class="action-btn" id="btn-action-remove-cloud" title="Remove file from cloud">
+                                        <span class="action-icon">🗑️</span>
+                                        <span class="action-text">Remove</span>
+                                    </button>
+                                    <button class="action-btn" id="btn-action-create-cloud" title="Create new file on cloud">
+                                        <span class="action-icon">📝</span>
+                                        <span class="action-text">Create</span>
+                                    </button>
+                                </div>
+
+                                <div class="input-row">
+                                    <div class="input-actions-left">
+                                        <button class="input-btn" id="btn-attach" title="Attach file">
+                                            📎
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="input-field-wrapper">
+                                        <textarea 
+                                            class="input-field" 
+                                            id="ai-input" 
+                                            placeholder="Message Photon AI..."
+                                            rows="1"
+                                        ></textarea>
+                                    </div>
+                                    
+                                    <button class="btn-send" id="btn-send" title="Send message">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="input-footer">
+                                Photon AI can make mistakes. Consider checking important info.
+                            </div>
+                        </div>
                     </div>
+                    <!-- END Input Area -->
+
                 </div>
-                <button class="attachment-remove" id="btn-remove-attachment">✕</button>
-            </div>
-
-            <!-- Action Buttons Bar -->
-            <div class="input-actions-bar" id="input-actions-bar">
-                <button class="action-btn" id="btn-action-remember" title="Save current message to team memory">
-                    <span class="action-icon">🧠</span>
-                    <span class="action-text">Remember</span>
-                </button>
-                <button class="action-btn" id="btn-action-add-cloud" title="Upload attached file to cloud" disabled>
-                    <span class="action-icon">☁️</span>
-                    <span class="action-text">Add to Cloud</span>
-                </button>
-                <button class="action-btn" id="btn-action-list-cloud" title="List all cloud files">
-                    <span class="action-icon">📋</span>
-                    <span class="action-text">List Cloud</span>
-                </button>
-                <button class="action-btn" id="btn-action-remove-cloud" title="Remove file from cloud">
-                    <span class="action-icon">🗑️</span>
-                    <span class="action-text">Remove</span>
-                </button>
-                <button class="action-btn" id="btn-action-create-cloud" title="Create new file on cloud">
-                    <span class="action-icon">📝</span>
-                    <span class="action-text">Create</span>
-                </button>
-            </div>
-
-            <div class="input-row">
-                <div class="input-actions-left">
-                    <button class="input-btn" id="btn-attach" title="Attach file">
-                        📎
-                    </button>
-                </div>
-                
-                <div class="input-field-wrapper">
-                    <textarea 
-                        class="input-field" 
-                        id="ai-input" 
-                        placeholder="Message Photon AI..."
-                        rows="1"
-                    ></textarea>
-                </div>
-                
-                <button class="btn-send" id="btn-send" title="Send message">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <div class="input-footer">
-            Photon AI can make mistakes. Consider checking important info.
-        </div>
-    </div>
-</div>
-
-<!-- Modal for Remove/Create dialogs -->
-<div class="modal-overlay hidden" id="modal-overlay">
-    <div class="modal-dialog" id="modal-dialog">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modal-title">Dialog</h3>
-            <button class="modal-close" id="modal-close">✕</button>
-        </div>
-        <div class="modal-body" id="modal-body">
-            <!-- Dynamic content -->
-        </div>
-        <div class="modal-footer" id="modal-footer">
-            <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
-            <button class="btn btn-primary" id="modal-confirm">Confirm</button>
-        </div>
-    </div>
-</div>
+                <!-- END chat-area -->
 
                 <!-- Memory Panel -->
                 <aside class="memory-panel collapsed" id="memory-panel">
@@ -551,17 +384,15 @@
                     <div class="memory-content" id="memory-list">
                         <div class="memory-tip" id="memory-tip">
                             <span class="memory-tip-icon">💡</span>
-                            <span>Say <strong>"remember that..."</strong> or <strong>"note that..."</strong> to save information!</span>
+                            <span>Click <strong>"Remember"</strong> button to save information!</span>
                             <button class="memory-tip-close" id="btn-dismiss-tip">✕</button>
                         </div>
 
                         <div class="memory-empty" id="memory-empty">
                             <span class="memory-empty-icon">🧠</span>
                             <p>No memories saved yet</p>
-                            <p style="font-size: 12px; margin-top: 4px;">Start a conversation to build team memory</p>
+                            <p style="font-size: 12px; margin-top: 4px;">Use the Remember button to save team memories</p>
                         </div>
-
-                        <!-- Memory items will be inserted here -->
                     </div>
 
                     <div class="stats-grid">
@@ -585,8 +416,31 @@
                         </div>
                     </div>
                 </aside>
-            </div>
+                <!-- END Memory Panel -->
 
+            </div>
+            <!-- END chat-container -->
+
+        </div>
+        <!-- END ai-main -->
+
+    </div>
+    <!-- END app -->
+
+    <!-- Modal for dialogs - PLACED AT BODY LEVEL -->
+    <div class="modal-overlay hidden" id="modal-overlay">
+        <div class="modal-dialog" id="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Dialog</h3>
+                <button class="modal-close" id="modal-close">✕</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer" id="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="modal-confirm">Confirm</button>
+            </div>
         </div>
     </div>
 
@@ -622,18 +476,16 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-     <script src="members-list.js"></script>
-<script src="auth-guard.js"></script>
+    <script src="members-list.js"></script>
+    <script src="auth-guard.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
     <script src="discussions.js"></script>
     <script src="files.js"></script>
-     <script src="ai-logos.js"></script>
+    <script src="ai-logos.js"></script>
     <script src="ai.js"></script>
     <script src="ui.js"></script>
     <script src="boot.js"></script>
-
-  
 </body>
 </html>
