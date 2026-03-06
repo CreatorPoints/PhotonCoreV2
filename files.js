@@ -10,6 +10,7 @@ let currentView = 'grid';
 let searchQuery = '';
 let selectedFile = null;
 let fileToDelete = null;
+let uploadListenersAttached = false; // Prevent double listeners
 
 // ========================================
 // INITIALIZATION
@@ -20,7 +21,11 @@ function initFilesPage() {
     
     console.log('📁 Initializing Files Page...');
     
-    setupUploadZone();
+    if (!uploadListenersAttached) {
+        setupUploadZone();
+        uploadListenersAttached = true;
+    }
+    
     setupViewToggle();
     setupSearch();
     setupModals();
@@ -30,7 +35,7 @@ function initFilesPage() {
 }
 
 // ========================================
-// UPLOAD ZONE
+// UPLOAD ZONE - FIXED FOR DOUBLE LISTENERS
 // ========================================
 
 function setupUploadZone() {
@@ -40,12 +45,23 @@ function setupUploadZone() {
     
     if (!uploadZone || !fileInput) return;
     
+    console.log('Setting up upload zone (once)');
+    
     // Click to upload
-    uploadZone.addEventListener('click', () => fileInput.click());
-    uploadBtn?.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('click', (e) => {
+        console.log('Upload zone clicked');
+        fileInput.click();
+    }, { once: false });
+    
+    uploadBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Upload button clicked');
+        fileInput.click();
+    });
     
     // File input change
     fileInput.addEventListener('change', (e) => {
+        console.log('File input changed', e.target.files?.length);
         if (e.target.files?.length) {
             uploadFiles(Array.from(e.target.files));
         }
@@ -67,6 +83,7 @@ function setupUploadZone() {
         uploadZone.classList.remove('drag-over');
         
         const files = Array.from(e.dataTransfer.files);
+        console.log('Files dropped:', files.length);
         if (files.length) {
             uploadFiles(files);
         }
@@ -117,11 +134,14 @@ function setupSearch() {
 }
 
 // ========================================
-// UPLOAD FILES (via Vercel API)
+// UPLOAD FILES - USING BASE64
 // ========================================
 
 async function uploadFiles(fileList) {
     if (!fileList?.length) return;
+    
+    console.log('uploadFiles called with', fileList.length, 'files');
+    
     if (!state.user) {
         showToast('Please sign in to upload files.', 'error');
         return;
@@ -139,6 +159,8 @@ async function uploadFiles(fileList) {
 
     for (const file of fileList) {
         try {
+            console.log('Uploading:', file.name);
+            
             // Update progress UI
             if (progressCount) progressCount.textContent = `${uploaded + 1}/${total}`;
             if (progressCurrent) progressCurrent.textContent = `Uploading: ${file.name}`;
@@ -150,22 +172,34 @@ async function uploadFiles(fileList) {
                 continue;
             }
 
-            // Create FormData
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('fileName', file.name);
-            formData.append('uploadedBy', state.user.username);
-            formData.append('uploadedById', state.user.uid);
+            // Convert to base64
+            const fileData = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
 
-            // Upload via API
+            console.log('File converted to base64');
+
+            // Upload via API using base64
             const response = await fetch('/api/files/upload', {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileData,
+                    fileName: file.name,
+                    fileType: file.type || 'application/octet-stream',
+                    uploadedBy: state.user.username,
+                    uploadedById: state.user.uid
+                })
             });
+
+            console.log('Upload response status:', response.status);
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.message || 'Upload failed');
+                throw new Error(error.error || error.message || 'Upload failed');
             }
 
             uploaded++;
@@ -503,7 +537,7 @@ async function deleteFile(file) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.message || 'Delete failed');
+            throw new Error(error.error || error.message || 'Delete failed');
         }
 
         showToast(`🗑️ Deleted: ${file.name}`, 'info');
@@ -555,7 +589,7 @@ async function aiReadFile(name) {
         const response = await fetch(`/api/files/read?name=${encodeURIComponent(name)}`);
         if (!response.ok) {
             const error = await response.json();
-            return `⚠️ ${error.message || 'File not found'}`;
+            return `⚠️ ${error.error || error.message || 'File not found'}`;
         }
         
         const data = await response.json();
@@ -593,7 +627,7 @@ async function aiWriteFile(name, content) {
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.message || 'Write failed');
+            throw new Error(error.error || error.message || 'Write failed');
         }
 
         const data = await response.json();
@@ -621,7 +655,7 @@ async function aiDeleteFile(name) {
 
         if (!response.ok) {
             const error = await response.json();
-            return `⚠️ ${error.message || 'Delete failed'}`;
+            return `⚠️ ${error.error || error.message || 'Delete failed'}`;
         }
 
         const data = await response.json();
@@ -642,15 +676,24 @@ async function aiUploadFile(file) {
     if (!state.user) return null;
 
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('fileName', file.name);
-        formData.append('uploadedBy', state.user.username);
-        formData.append('uploadedById', state.user.uid);
+        // Convert to base64
+        const fileData = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
 
         const response = await fetch('/api/files/upload', {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fileData,
+                fileName: file.name,
+                fileType: file.type || 'application/octet-stream',
+                uploadedBy: state.user.username,
+                uploadedById: state.user.uid
+            })
         });
 
         if (!response.ok) throw new Error('Upload failed');
