@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const FILE_BUCKET = 'photon-files';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             .eq('id', id);
 
         if (dbError) {
-            console.error('Database delete error:', dbError);
+            console.error('DB delete error:', dbError);
             return res.status(500).json({ error: dbError.message });
         }
 
@@ -60,4 +60,4 @@ export default async function handler(req, res) {
         console.error('Delete error:', e);
         return res.status(500).json({ error: e.message || 'Delete failed' });
     }
-}
+};

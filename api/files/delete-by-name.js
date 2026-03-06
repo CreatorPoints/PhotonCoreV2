@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const FILE_BUCKET = 'photon-files';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -36,12 +36,12 @@ export default async function handler(req, res) {
         const { data: metadata, error: findError } = await supabase
             .from('file_metadata')
             .select('*')
-            .ilike('name', `%${name}%`)
+            .ilike('name', '%' + name + '%')
             .limit(1)
             .single();
 
         if (findError || !metadata) {
-            return res.status(404).json({ error: `File not found: ${name}` });
+            return res.status(404).json({ error: 'File not found: ' + name });
         }
 
         // Delete from storage
@@ -70,4 +70,4 @@ export default async function handler(req, res) {
         console.error('Delete by name error:', e);
         return res.status(500).json({ error: e.message || 'Delete failed' });
     }
-}
+};

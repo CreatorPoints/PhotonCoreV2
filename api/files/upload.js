@@ -1,17 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '50mb',
-        },
-    },
-};
+const { createClient } = require('@supabase/supabase-js');
 
 const FILE_BUCKET = 'photon-files';
 const FILE_PATH = 'shared';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -30,7 +22,7 @@ export default async function handler(req, res) {
         const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
-            console.error('Missing Supabase credentials');
+            console.error('Missing env vars');
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
@@ -43,15 +35,18 @@ export default async function handler(req, res) {
         }
 
         // Convert base64 to buffer
-        const base64Data = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+        let base64Data = fileData;
+        if (fileData.includes(',')) {
+            base64Data = fileData.split(',')[1];
+        }
         const buffer = Buffer.from(base64Data, 'base64');
 
         // Generate unique path
         const timestamp = Date.now();
         const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const storagePath = `${FILE_PATH}/${timestamp}_${sanitizedName}`;
+        const storagePath = FILE_PATH + '/' + timestamp + '_' + sanitizedName;
 
-        console.log('Uploading to:', storagePath, 'Size:', buffer.length);
+        console.log('Uploading:', storagePath, 'Size:', buffer.length);
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -63,7 +58,7 @@ export default async function handler(req, res) {
             });
 
         if (uploadError) {
-            console.error('Storage upload error:', uploadError);
+            console.error('Storage error:', uploadError);
             return res.status(500).json({ error: uploadError.message });
         }
 
@@ -72,11 +67,11 @@ export default async function handler(req, res) {
             .from(FILE_BUCKET)
             .getPublicUrl(storagePath);
 
-        const downloadURL = urlData?.publicUrl || '';
+        const downloadURL = urlData ? urlData.publicUrl : '';
 
-        console.log('Upload successful, URL:', downloadURL);
+        console.log('Uploaded, URL:', downloadURL);
 
-        // Save metadata to database
+        // Save metadata
         const { data: dbData, error: dbError } = await supabase
             .from('file_metadata')
             .insert({
@@ -94,8 +89,8 @@ export default async function handler(req, res) {
             .single();
 
         if (dbError) {
-            console.error('Database error:', dbError);
-            // Try to delete the uploaded file since metadata failed
+            console.error('DB error:', dbError);
+            // Cleanup uploaded file
             await supabase.storage.from(FILE_BUCKET).remove([storagePath]);
             return res.status(500).json({ error: dbError.message });
         }
@@ -104,11 +99,20 @@ export default async function handler(req, res) {
             success: true,
             downloadURL: downloadURL,
             name: fileName,
-            id: dbData?.id
+            id: dbData ? dbData.id : null
         });
 
     } catch (e) {
-        console.error('Upload handler error:', e);
+        console.error('Upload error:', e);
         return res.status(500).json({ error: e.message || 'Upload failed' });
     }
-}
+};
+
+// Config for body size
+module.exports.config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '50mb',
+        },
+    },
+};

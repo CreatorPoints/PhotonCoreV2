@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
-            console.error('Missing Supabase credentials');
+            console.error('Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
@@ -41,4 +41,4 @@ export default async function handler(req, res) {
         console.error('List files error:', e);
         return res.status(500).json({ error: e.message || 'Unknown error' });
     }
-}
+};

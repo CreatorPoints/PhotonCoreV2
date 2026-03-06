@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const FILE_BUCKET = 'photon-files';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
         const { id, name } = req.query;
 
-        let metadata;
+        let metadata = null;
 
         if (id) {
             const { data, error } = await supabase
@@ -46,12 +46,12 @@ export default async function handler(req, res) {
             const { data, error } = await supabase
                 .from('file_metadata')
                 .select('*')
-                .ilike('name', `%${name}%`)
+                .ilike('name', '%' + name + '%')
                 .limit(1)
                 .single();
 
             if (error || !data) {
-                return res.status(404).json({ error: `File not found: ${name}` });
+                return res.status(404).json({ error: 'File not found: ' + name });
             }
             metadata = data;
 
@@ -60,8 +60,8 @@ export default async function handler(req, res) {
         }
 
         // Check if text file
-        const textExtensions = /\.(txt|js|ts|py|html|css|json|md|csv|xml|yaml|yml|log|sh|gd|cs|cpp|c|h)$/i;
-        const isText = textExtensions.test(metadata.name) || (metadata.type && metadata.type.startsWith('text/'));
+        var textExtensions = /\.(txt|js|ts|py|html|css|json|md|csv|xml|yaml|yml|log|sh|gd|cs|cpp|c|h)$/i;
+        var isText = textExtensions.test(metadata.name) || (metadata.type && metadata.type.startsWith('text/'));
 
         if (!isText) {
             return res.status(200).json({
@@ -71,14 +71,14 @@ export default async function handler(req, res) {
             });
         }
 
-        // Download content from storage
+        // Download content
         const { data: fileData, error: storageError } = await supabase.storage
             .from(FILE_BUCKET)
             .download(metadata.storage_path);
 
         if (storageError) {
             console.error('Storage read error:', storageError);
-            return res.status(500).json({ error: 'Failed to read file content' });
+            return res.status(500).json({ error: 'Failed to read file' });
         }
 
         const content = await fileData.text();
@@ -94,4 +94,4 @@ export default async function handler(req, res) {
         console.error('Read error:', e);
         return res.status(500).json({ error: e.message || 'Read failed' });
     }
-}
+};

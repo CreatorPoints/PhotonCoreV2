@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const FILE_BUCKET = 'photon-files';
 const FILE_PATH = 'shared';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         const buffer = Buffer.from(content || '', 'utf-8');
         const timestamp = Date.now();
         const sanitizedName = name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const storagePath = `${FILE_PATH}/${timestamp}_${sanitizedName}`;
+        const storagePath = FILE_PATH + '/' + timestamp + '_' + sanitizedName;
 
         // Upload
         const { error: uploadError } = await supabase.storage
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
                 storage_path: storagePath,
                 size: buffer.length,
                 type: 'text/plain',
-                download_url: urlData?.publicUrl || '',
+                download_url: urlData ? urlData.publicUrl : '',
                 uploaded_by: uploadedBy || 'AI',
                 uploaded_by_id: uploadedById || '',
                 created_at: new Date().toISOString(),
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             });
 
         if (dbError) {
-            console.error('Database write error:', dbError);
+            console.error('DB write error:', dbError);
             await supabase.storage.from(FILE_BUCKET).remove([storagePath]);
             return res.status(500).json({ error: dbError.message });
         }
@@ -80,11 +80,11 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             size: buffer.length,
-            downloadURL: urlData?.publicUrl
+            downloadURL: urlData ? urlData.publicUrl : ''
         });
 
     } catch (e) {
         console.error('Write error:', e);
         return res.status(500).json({ error: e.message || 'Write failed' });
     }
-}
+};
