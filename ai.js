@@ -1737,6 +1737,8 @@ function setupAIMemoryPanel() {
     }
 }
 
+let inputInitialized = false;
+
 function setupAIInput() {
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('btn-send');
@@ -1744,33 +1746,57 @@ function setupAIInput() {
     const fileInput = document.getElementById('ai-file-input');
     const removeBtn = document.getElementById('btn-remove-attachment');
 
-    if (!input || !sendBtn) return;
-
-    if (sendBtn.dataset.listenerAttached === 'true') {
-        console.log('✓ Input listeners already attached, skipping');
+    if (!input || !sendBtn) {
+        console.error('❌ AI input elements not found');
         return;
     }
-    sendBtn.dataset.listenerAttached = 'true';
 
-    console.log('✓ Attaching AI input listeners');
+    if (inputInitialized) {
+        console.log('⚠️ Input already initialized, skipping');
+        return;
+    }
+    inputInitialized = true;
 
-    input.addEventListener('input', function() {
+    console.log('✓ Setting up AI input...');
+
+    // Auto-resize textarea
+    input.oninput = function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 200) + 'px';
-    });
+    };
 
-    input.addEventListener('keydown', (e) => {
+    // Send on Enter
+    input.onkeydown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            console.log('📤 Enter pressed, sending message...');
             sendAiMessage();
         }
-    });
+    };
 
-    sendBtn.onclick = () => sendAiMessage();
+    // Send button click
+    sendBtn.onclick = (e) => {
+        e.preventDefault();
+        console.log('📤 Send button clicked...');
+        sendAiMessage();
+    };
 
-    if (attachBtn) attachBtn.onclick = () => fileInput?.click();
-    if (fileInput) fileInput.onchange = handleFileAttach;
-    if (removeBtn) removeBtn.onclick = clearAttachment;
+    // Attach button
+    if (attachBtn) {
+        attachBtn.onclick = () => fileInput?.click();
+    }
+
+    // File input change
+    if (fileInput) {
+        fileInput.onchange = handleFileAttach;
+    }
+
+    // Remove attachment button
+    if (removeBtn) {
+        removeBtn.onclick = clearAttachment;
+    }
+
+    console.log('✓ AI input setup complete');
 }
 
 function setupAISuggestions() {
