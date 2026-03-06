@@ -1018,6 +1018,24 @@ async function createNewChat() {
     const username = state.user?.username || 'Anonymous';
 
     try {
+        // Clear current chat UI first
+        clearChatUI();
+        
+        // Hide welcome message
+        const welcome = document.getElementById('welcome-message');
+        if (welcome) welcome.style.display = 'none';
+
+        // Unsubscribe from previous chat
+        if (activeChatUnsubscribe) {
+            activeChatUnsubscribe();
+            activeChatUnsubscribe = null;
+        }
+
+        // Reset state
+        state.currentChatId = null;
+        state.currentChatMessages = [];
+
+        // Create new chat in database
         const ref = await db.collection('chatSessions').add({
             title: 'New Chat',
             model: state.selectedModel,
@@ -1026,13 +1044,15 @@ async function createNewChat() {
             updatedAt: new Date().toISOString(),
             createdBy: username
         });
+
+        // Load the new chat
         loadChat(ref.id);
         showToast('New chat created! 💬', 'success');
+
     } catch (e) {
         console.error('Failed to create chat:', e);
         showToast('Failed to create chat.', 'error');
     } finally {
-        // Reset flag after a short delay
         setTimeout(() => {
             isCreatingChat = false;
         }, 500);
@@ -1041,6 +1061,10 @@ async function createNewChat() {
 
 function loadChat(id) {
     if (!id) return;
+
+    // Hide welcome message when loading a chat
+    const welcome = document.getElementById('welcome-message');
+    if (welcome) welcome.style.display = 'none';
 
     if (activeChatUnsubscribe) {
         activeChatUnsubscribe();
@@ -1060,6 +1084,12 @@ function loadChat(id) {
 
         const data = doc.data();
         const newMessages = data.messages || [];
+
+        // Hide welcome if there are messages
+        if (newMessages.length > 0) {
+            const welcomeEl = document.getElementById('welcome-message');
+            if (welcomeEl) welcomeEl.style.display = 'none';
+        }
 
         const currentLength = state.currentChatMessages.length;
         const newLength = newMessages.length;
@@ -1082,7 +1112,12 @@ function loadChat(id) {
             state.currentChatMessages = JSON.parse(JSON.stringify(newMessages));
 
             if (!state.isTyping) {
-                clearChatUI();
+                // Clear messages but keep welcome hidden
+                const inner = dom.aiChat?.querySelector('.chat-messages-inner');
+                if (inner) {
+                    inner.querySelectorAll('.message').forEach(el => el.remove());
+                }
+
                 newMessages.forEach(m => {
                     if (m.sender === 'system') {
                         addSystemMessage(m.text);
@@ -1226,15 +1261,20 @@ function clearChatUI() {
     
     const inner = dom.aiChat.querySelector('.chat-messages-inner');
     if (inner) {
+        // Remove all messages
         inner.querySelectorAll('.message').forEach(el => el.remove());
-        
-        const welcome = document.getElementById('welcome-message');
-        if (welcome) {
+    }
+    
+    // Show welcome message only if no current chat
+    const welcome = document.getElementById('welcome-message');
+    if (welcome) {
+        if (state.currentChatId && state.currentChatMessages.length > 0) {
+            welcome.style.display = 'none';
+        } else {
             welcome.style.display = 'flex';
         }
     }
 }
-
 // === FILE ATTACHMENT ===
 
 async function handleFileAttach(e) {
