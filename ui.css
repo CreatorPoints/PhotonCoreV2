@@ -1,0 +1,50 @@
+/* ================================
+   GLOBAL UI / LAYOUT
+================================ */
+
+.main-content{flex:1;margin-left:var(--sidebar-width);display:flex;flex-direction:column;min-height:100vh}
+.top-header{height:var(--header-height);padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg-secondary);position:sticky;top:0;z-index:50}
+
+.header-left{display:flex;align-items:center;gap:16px}
+.header-left h2{font-size:1.15rem;font-weight:600}
+
+.content-area{flex:1;padding:32px;overflow-y:auto}
+
+.card{
+background:var(--bg-card);
+border:1px solid var(--border);
+border-radius:var(--radius-md);
+padding:24px
+}
+
+.input,.textarea,.select{
+width:100%;
+padding:10px 14px;
+background:var(--bg-input);
+border:1px solid var(--border);
+border-radius:var(--radius-sm);
+color:var(--text-primary);
+font-family:var(--font-main);
+font-size:.9rem;
+transition:all .2s ease
+}
+
+.input:focus,.textarea:focus,.select:focus{
+outline:none;
+border-color:var(--accent-primary);
+box-shadow:0 0 0 3px var(--accent-subtle)
+}
+
+.textarea{resize:vertical;min-height:80px}
+
+.form-group{margin-bottom:16px}
+
+.form-group label{
+display:block;
+font-size:.82rem;
+font-weight:600;
+color:var(--text-secondary);
+margin-bottom:6px;
+text-transform:uppercase;
+letter-spacing:.5px
+}
