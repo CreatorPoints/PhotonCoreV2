@@ -1615,48 +1615,82 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
    AI PAGE CONTROLLER
 ======================================== */
 
+// Initialization flags - prevent double setup
 let aiPageInitialized = false;
+let sidebarInitialized = false;
+let modelSelectorInitialized = false;
+let memoryPanelInitialized = false;
+let inputInitialized = false;
+let suggestionsInitialized = false;
+let copyButtonsInitialized = false;
+let actionButtonsInitialized = false;
+let isCreatingChat = false;
 
-function initAIPageController() {
-    if (!document.querySelector('.ai-page-wrapper')) return;
-    
-    if (aiPageInitialized) {
-        console.log('⚠️ AI Page already initialized, skipping');
+// === SETUP FUNCTIONS (must be defined before initAIPageController) ===
+
+function setupAISidebar() {
+    if (sidebarInitialized) {
+        console.log('⚠️ Sidebar already initialized, skipping');
         return;
     }
-    aiPageInitialized = true;
+    sidebarInitialized = true;
 
-    console.log('🎨 Initializing AI Page Controller...');
+    const sidebar = document.getElementById('ai-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const toggleBtn = document.getElementById('btn-toggle-sidebar');
+    const newChatBtn = document.getElementById('btn-new-chat');
 
-    setupAISidebar();
-    setupAIModelSelector();
-    setupAIMemoryPanel();
-    setupAIInput();
-    setupAISuggestions();
-    setupCopyButtons();
-    setupActionButtons();
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            sidebar?.classList.toggle('open');
+            overlay?.classList.toggle('visible');
+        };
+    }
 
-    console.log('✅ AI Page Controller ready!');
+    if (overlay) {
+        overlay.onclick = () => {
+            sidebar?.classList.remove('open');
+            document.getElementById('memory-panel')?.classList.add('collapsed');
+            overlay?.classList.remove('visible');
+        };
+    }
+
+    if (newChatBtn) {
+        newChatBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            createNewChat();
+            sidebar?.classList.remove('open');
+            overlay?.classList.remove('visible');
+        };
+    }
+    
+    console.log('✓ Sidebar initialized');
 }
 
 function setupAIModelSelector() {
+    if (modelSelectorInitialized) return;
+    modelSelectorInitialized = true;
+
     const selector = document.getElementById('model-selector');
     const btn = document.getElementById('model-selector-btn');
     const search = document.getElementById('model-search');
     const options = document.querySelectorAll('.model-option');
 
     options.forEach(option => {
-        const logoKey = option.dataset.logo || getLogoKeyFromModel(option.dataset.value);
+        const logoKey = option.dataset.logo || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(option.dataset.value) : null);
         const iconEl = option.querySelector('.model-option-icon');
-        if (iconEl && typeof getAILogo === 'function') {
+        if (iconEl && typeof getAILogo === 'function' && logoKey) {
             iconEl.innerHTML = getAILogo(logoKey);
         }
     });
 
-    btn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selector?.classList.toggle('open');
-    });
+    if (btn) {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            selector?.classList.toggle('open');
+        };
+    }
 
     document.addEventListener('click', (e) => {
         if (!selector?.contains(e.target)) {
@@ -1665,15 +1699,20 @@ function setupAIModelSelector() {
     });
 
     options.forEach(option => {
-        option.addEventListener('click', () => {
+        option.onclick = () => {
             const value = option.dataset.value;
             const icon = option.dataset.icon;
             const name = option.dataset.name;
 
-            document.getElementById('model-icon').textContent = icon;
-            document.getElementById('model-name').textContent = name;
-            document.getElementById('model-logo-panel').textContent = icon;
-            document.getElementById('model-name-panel').textContent = name;
+            const modelIcon = document.getElementById('model-icon');
+            const modelName = document.getElementById('model-name');
+            const modelLogoPanel = document.getElementById('model-logo-panel');
+            const modelNamePanel = document.getElementById('model-name-panel');
+
+            if (modelIcon) modelIcon.textContent = icon;
+            if (modelName) modelName.textContent = name;
+            if (modelLogoPanel) modelLogoPanel.textContent = icon;
+            if (modelNamePanel) modelNamePanel.textContent = name;
 
             options.forEach(o => o.classList.remove('selected'));
             option.classList.add('selected');
@@ -1685,61 +1724,79 @@ function setupAIModelSelector() {
 
             selector?.classList.remove('open');
             showToast(`Switched to ${name} ✨`, 'success');
-        });
+        };
     });
 
-    search?.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        
-        document.querySelectorAll('.model-group').forEach(group => {
-            let hasVisible = false;
-            group.querySelectorAll('.model-option').forEach(option => {
-                const name = option.dataset.name?.toLowerCase() || '';
-                const desc = option.querySelector('.model-option-desc')?.textContent?.toLowerCase() || '';
-                const visible = name.includes(query) || desc.includes(query);
-                option.style.display = visible ? '' : 'none';
-                if (visible) hasVisible = true;
+    if (search) {
+        search.oninput = (e) => {
+            const query = e.target.value.toLowerCase();
+            
+            document.querySelectorAll('.model-group').forEach(group => {
+                let hasVisible = false;
+                group.querySelectorAll('.model-option').forEach(option => {
+                    const name = option.dataset.name?.toLowerCase() || '';
+                    const desc = option.querySelector('.model-option-desc')?.textContent?.toLowerCase() || '';
+                    const visible = name.includes(query) || desc.includes(query);
+                    option.style.display = visible ? '' : 'none';
+                    if (visible) hasVisible = true;
+                });
+                group.style.display = hasVisible ? '' : 'none';
             });
-            group.style.display = hasVisible ? '' : 'none';
-        });
-    });
+        };
+    }
+    
+    console.log('✓ Model selector initialized');
 }
 
 function setupAIMemoryPanel() {
+    if (memoryPanelInitialized) return;
+    memoryPanelInitialized = true;
+
     const panel = document.getElementById('memory-panel');
     const memoryBtn = document.getElementById('btn-memory');
     const closeBtn = document.getElementById('btn-close-memory');
     const overlay = document.getElementById('sidebar-overlay');
     const dismissTip = document.getElementById('btn-dismiss-tip');
 
-    memoryBtn?.addEventListener('click', () => {
-        panel?.classList.toggle('collapsed');
-        panel?.classList.toggle('open');
+    if (memoryBtn) {
+        memoryBtn.onclick = () => {
+            panel?.classList.toggle('collapsed');
+            panel?.classList.toggle('open');
 
-        if (window.innerWidth <= 1024) {
-            overlay?.classList.toggle('visible');
-        }
-    });
+            if (window.innerWidth <= 1024) {
+                overlay?.classList.toggle('visible');
+            }
+        };
+    }
 
-    closeBtn?.addEventListener('click', () => {
-        panel?.classList.add('collapsed');
-        panel?.classList.remove('open');
-        overlay?.classList.remove('visible');
-    });
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            panel?.classList.add('collapsed');
+            panel?.classList.remove('open');
+            overlay?.classList.remove('visible');
+        };
+    }
 
-    dismissTip?.addEventListener('click', () => {
-        document.getElementById('memory-tip')?.remove();
-        localStorage.setItem('memoryTipDismissed', 'true');
-    });
+    if (dismissTip) {
+        dismissTip.onclick = () => {
+            document.getElementById('memory-tip')?.remove();
+            localStorage.setItem('memoryTipDismissed', 'true');
+        };
+    }
 
     if (localStorage.getItem('memoryTipDismissed') === 'true') {
         document.getElementById('memory-tip')?.remove();
     }
+    
+    console.log('✓ Memory panel initialized');
 }
 
-let inputInitialized = false;
-
 function setupAIInput() {
+    if (inputInitialized) {
+        console.log('⚠️ Input already initialized, skipping');
+        return;
+    }
+    
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('btn-send');
     const attachBtn = document.getElementById('btn-attach');
@@ -1751,13 +1808,7 @@ function setupAIInput() {
         return;
     }
 
-    if (inputInitialized) {
-        console.log('⚠️ Input already initialized, skipping');
-        return;
-    }
     inputInitialized = true;
-
-    console.log('✓ Setting up AI input...');
 
     // Auto-resize textarea
     input.oninput = function() {
@@ -1769,7 +1820,6 @@ function setupAIInput() {
     input.onkeydown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            console.log('📤 Enter pressed, sending message...');
             sendAiMessage();
         }
     };
@@ -1777,7 +1827,6 @@ function setupAIInput() {
     // Send button click
     sendBtn.onclick = (e) => {
         e.preventDefault();
-        console.log('📤 Send button clicked...');
         sendAiMessage();
     };
 
@@ -1796,52 +1845,34 @@ function setupAIInput() {
         removeBtn.onclick = clearAttachment;
     }
 
-    console.log('✓ AI input setup complete');
+    console.log('✓ AI input initialized');
 }
 
 function setupAISuggestions() {
+    if (suggestionsInitialized) return;
+    suggestionsInitialized = true;
+
     const chips = document.querySelectorAll('.suggestion-chip');
     const input = document.getElementById('ai-input');
 
     chips.forEach(chip => {
-        chip.addEventListener('click', () => {
+        chip.onclick = () => {
             const prompt = chip.dataset.prompt;
             if (input && prompt) {
                 input.value = prompt;
                 input.focus();
                 sendAiMessage();
             }
-        });
+        };
     });
+    
+    console.log('✓ Suggestions initialized');
 }
 
-// === NEW: SETUP ACTION BUTTONS ===
-let actionButtonsInitialized = false;
-
-function setupActionButtons() {
-    if (actionButtonsInitialized) {
-        console.log('⚠️ Action buttons already initialized, skipping');
-        return;
-    }
-    actionButtonsInitialized = true;
-
-    const rememberBtn = document.getElementById('btn-action-remember');
-    const addCloudBtn = document.getElementById('btn-action-add-cloud');
-    const listCloudBtn = document.getElementById('btn-action-list-cloud');
-    const removeCloudBtn = document.getElementById('btn-action-remove-cloud');
-    const createCloudBtn = document.getElementById('btn-action-create-cloud');
-
-    // Use onclick to prevent stacking
-    if (rememberBtn) rememberBtn.onclick = handleActionRemember;
-    if (addCloudBtn) addCloudBtn.onclick = handleActionAddToCloud;
-    if (listCloudBtn) listCloudBtn.onclick = handleActionListCloud;
-    if (removeCloudBtn) removeCloudBtn.onclick = handleActionRemoveFromCloud;
-    if (createCloudBtn) createCloudBtn.onclick = handleActionCreateOnCloud;
-
-    updateActionButtonStates();
-    console.log('✓ Action buttons initialized (once)');
-}
 function setupCopyButtons() {
+    if (copyButtonsInitialized) return;
+    copyButtonsInitialized = true;
+
     document.addEventListener('click', function(e) {
         const copyBtn = e.target.closest('.ai-copy-btn');
         if (copyBtn) {
@@ -1867,11 +1898,61 @@ function setupCopyButtons() {
             });
         }
     });
+    
+    console.log('✓ Copy buttons initialized');
 }
 
-// Auto-init when DOM ready
+function setupActionButtons() {
+    if (actionButtonsInitialized) {
+        console.log('⚠️ Action buttons already initialized, skipping');
+        return;
+    }
+    actionButtonsInitialized = true;
+
+    const rememberBtn = document.getElementById('btn-action-remember');
+    const addCloudBtn = document.getElementById('btn-action-add-cloud');
+    const listCloudBtn = document.getElementById('btn-action-list-cloud');
+    const removeCloudBtn = document.getElementById('btn-action-remove-cloud');
+    const createCloudBtn = document.getElementById('btn-action-create-cloud');
+
+    if (rememberBtn) rememberBtn.onclick = handleActionRemember;
+    if (addCloudBtn) addCloudBtn.onclick = handleActionAddToCloud;
+    if (listCloudBtn) listCloudBtn.onclick = handleActionListCloud;
+    if (removeCloudBtn) removeCloudBtn.onclick = handleActionRemoveFromCloud;
+    if (createCloudBtn) createCloudBtn.onclick = handleActionCreateOnCloud;
+
+    updateActionButtonStates();
+    console.log('✓ Action buttons initialized');
+}
+
+// === MAIN INIT FUNCTION (after all setup functions) ===
+
+function initAIPageController() {
+    if (!document.querySelector('.ai-page-wrapper')) return;
+    
+    if (aiPageInitialized) {
+        console.log('⚠️ AI Page already initialized, skipping');
+        return;
+    }
+    aiPageInitialized = true;
+
+    console.log('🎨 Initializing AI Page Controller...');
+
+    setupAISidebar();
+    setupAIModelSelector();
+    setupAIMemoryPanel();
+    setupAIInput();
+    setupAISuggestions();
+    setupCopyButtons();
+    setupActionButtons();
+
+    console.log('✅ AI Page Controller ready!');
+}
+
+// === AUTO-INIT (at the very end) ===
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAIPageController);
+    document.addEventListener('DOMContentLoaded', initAIPageController, { once: true });
 } else {
     initAIPageController();
 }
