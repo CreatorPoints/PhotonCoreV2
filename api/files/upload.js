@@ -1,95 +1,114 @@
 import { createClient } from '@supabase/supabase-js';
-import formidable from 'formidable';
-import fs from 'fs';
 
 export const config = {
-    api: { bodyParser: false }
+    api: {
+        bodyParser: {
+            sizeLimit: '50mb',
+        },
+    },
 };
-
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-);
 
 const FILE_BUCKET = 'photon-files';
 const FILE_PATH = 'shared';
 
 export default async function handler(req, res) {
+    // CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const form = formidable({ maxFileSize: 50 * 1024 * 1024 });
-        
-        const [fields, files] = await new Promise((resolve, reject) => {
-            form.parse(req, (err, fields, files) => {
-                if (err) reject(err);
-                else resolve([fields, files]);
-            });
-        });
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
-        const file = files.file?.[0] || files.file;
-        if (!file) {
-            return res.status(400).json({ message: 'No file provided' });
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Missing Supabase credentials');
+            return res.status(500).json({ error: 'Server configuration error' });
         }
 
-        const fileName = fields.fileName?.[0] || fields.fileName || file.originalFilename;
-        const uploadedBy = fields.uploadedBy?.[0] || fields.uploadedBy || 'Unknown';
-        const uploadedById = fields.uploadedById?.[0] || fields.uploadedById || '';
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Read file
-        const fileBuffer = fs.readFileSync(file.filepath);
-        
+        const { fileData, fileName, fileType, uploadedBy, uploadedById } = req.body;
+
+        if (!fileData || !fileName) {
+            return res.status(400).json({ error: 'Missing file data or name' });
+        }
+
+        // Convert base64 to buffer
+        const base64Data = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+        const buffer = Buffer.from(base64Data, 'base64');
+
         // Generate unique path
         const timestamp = Date.now();
         const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
         const storagePath = `${FILE_PATH}/${timestamp}_${sanitizedName}`;
 
+        console.log('Uploading to:', storagePath, 'Size:', buffer.length);
+
         // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
             .from(FILE_BUCKET)
-            .upload(storagePath, fileBuffer, {
-                contentType: file.mimetype || 'application/octet-stream',
+            .upload(storagePath, buffer, {
+                contentType: fileType || 'application/octet-stream',
                 cacheControl: '3600',
                 upsert: false
             });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            return res.status(500).json({ error: uploadError.message });
+        }
 
         // Get public URL
         const { data: urlData } = supabase.storage
             .from(FILE_BUCKET)
             .getPublicUrl(storagePath);
 
-        // Save metadata
-        const { error: dbError } = await supabase
+        const downloadURL = urlData?.publicUrl || '';
+
+        console.log('Upload successful, URL:', downloadURL);
+
+        // Save metadata to database
+        const { data: dbData, error: dbError } = await supabase
             .from('file_metadata')
             .insert({
                 name: fileName,
                 storage_path: storagePath,
-                size: file.size,
-                type: file.mimetype || 'application/octet-stream',
-                download_url: urlData.publicUrl,
-                uploaded_by: uploadedBy,
-                uploaded_by_id: uploadedById,
+                size: buffer.length,
+                type: fileType || 'application/octet-stream',
+                download_url: downloadURL,
+                uploaded_by: uploadedBy || 'Unknown',
+                uploaded_by_id: uploadedById || '',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
-            });
+            })
+            .select()
+            .single();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+            console.error('Database error:', dbError);
+            // Try to delete the uploaded file since metadata failed
+            await supabase.storage.from(FILE_BUCKET).remove([storagePath]);
+            return res.status(500).json({ error: dbError.message });
+        }
 
-        // Cleanup temp file
-        fs.unlinkSync(file.filepath);
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            downloadURL: urlData.publicUrl,
-            name: fileName
+            downloadURL: downloadURL,
+            name: fileName,
+            id: dbData?.id
         });
 
     } catch (e) {
-        console.error('Upload error:', e);
-        res.status(500).json({ message: e.message });
+        console.error('Upload handler error:', e);
+        return res.status(500).json({ error: e.message || 'Upload failed' });
     }
 }

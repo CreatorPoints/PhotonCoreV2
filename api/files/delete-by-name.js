@@ -1,22 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-);
-
 const FILE_BUCKET = 'photon-files';
 
 export default async function handler(req, res) {
+    // CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         const { name } = req.body;
 
         if (!name) {
-            return res.status(400).json({ message: 'File name required' });
+            return res.status(400).json({ error: 'File name required' });
         }
 
         // Find file
@@ -28,7 +41,7 @@ export default async function handler(req, res) {
             .single();
 
         if (findError || !metadata) {
-            return res.status(404).json({ message: `File not found: ${name}` });
+            return res.status(404).json({ error: `File not found: ${name}` });
         }
 
         // Delete from storage
@@ -39,20 +52,22 @@ export default async function handler(req, res) {
         }
 
         // Delete metadata
-        const { error } = await supabase
+        const { error: dbError } = await supabase
             .from('file_metadata')
             .delete()
             .eq('id', metadata.id);
 
-        if (error) throw error;
+        if (dbError) {
+            return res.status(500).json({ error: dbError.message });
+        }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             name: metadata.name
         });
 
     } catch (e) {
-        console.error('Delete error:', e);
-        res.status(500).json({ message: e.message });
+        console.error('Delete by name error:', e);
+        return res.status(500).json({ error: e.message || 'Delete failed' });
     }
 }
