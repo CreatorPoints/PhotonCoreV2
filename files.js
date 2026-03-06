@@ -1,27 +1,125 @@
 /* ========================================
    PHOTON CORE — files.js
-   Supabase Storage Integration
-   ======================================== */
-
-/* ==============================
-   SUPABASE INIT
-   ============================== */
-
-const supabase = window.supabase.createClient(
-    window.CONFIG?.SUPABASE_URL || window.NEXT_PUBLIC_SUPABASE_URL,
-    window.CONFIG?.SUPABASE_ANON_KEY || window.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+   Supabase Storage via Vercel API
+======================================== */
 
 const FILE_BUCKET = "photon-files";
-const FILE_PATH = "shared";
 
-/* ==============================
-   UPLOAD FILES
-   ============================== */
+// File state
+let currentView = 'grid';
+let searchQuery = '';
+let selectedFile = null;
+let fileToDelete = null;
 
-/**
- * Upload files to Supabase Storage
- */
+// ========================================
+// INITIALIZATION
+// ========================================
+
+function initFilesPage() {
+    if (!document.getElementById('files-list')) return;
+    
+    console.log('📁 Initializing Files Page...');
+    
+    setupUploadZone();
+    setupViewToggle();
+    setupSearch();
+    setupModals();
+    
+    // Initial load
+    loadFiles();
+}
+
+// ========================================
+// UPLOAD ZONE
+// ========================================
+
+function setupUploadZone() {
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('btn-upload-files');
+    
+    if (!uploadZone || !fileInput) return;
+    
+    // Click to upload
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadBtn?.addEventListener('click', () => fileInput.click());
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files?.length) {
+            uploadFiles(Array.from(e.target.files));
+        }
+    });
+    
+    // Drag & Drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('drag-over');
+    });
+    
+    uploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+        
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) {
+            uploadFiles(files);
+        }
+    });
+}
+
+// ========================================
+// VIEW TOGGLE
+// ========================================
+
+function setupViewToggle() {
+    const gridBtn = document.getElementById('btn-grid-view');
+    const listBtn = document.getElementById('btn-list-view');
+    const filesList = document.getElementById('files-list');
+    
+    gridBtn?.addEventListener('click', () => {
+        currentView = 'grid';
+        gridBtn.classList.add('active');
+        listBtn?.classList.remove('active');
+        filesList?.classList.remove('list-view');
+        renderFiles();
+    });
+    
+    listBtn?.addEventListener('click', () => {
+        currentView = 'list';
+        listBtn.classList.add('active');
+        gridBtn?.classList.remove('active');
+        filesList?.classList.add('list-view');
+        renderFiles();
+    });
+}
+
+// ========================================
+// SEARCH
+// ========================================
+
+function setupSearch() {
+    const searchInput = document.getElementById('files-search-input');
+    
+    let debounceTimeout;
+    searchInput?.addEventListener('input', (e) => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderFiles();
+        }, 300);
+    });
+}
+
+// ========================================
+// UPLOAD FILES (via Vercel API)
+// ========================================
+
 async function uploadFiles(fileList) {
     if (!fileList?.length) return;
     if (!state.user) {
@@ -29,78 +127,99 @@ async function uploadFiles(fileList) {
         return;
     }
 
+    const progressContainer = document.getElementById('upload-progress-container');
+    const progressFill = document.getElementById('upload-progress-fill');
+    const progressCount = document.getElementById('upload-progress-count');
+    const progressCurrent = document.getElementById('upload-progress-current');
+    
+    progressContainer?.classList.remove('hidden');
+    
+    let uploaded = 0;
+    const total = fileList.length;
+
     for (const file of fileList) {
         try {
-            showToast('Uploading ' + file.name + '...', 'info');
+            // Update progress UI
+            if (progressCount) progressCount.textContent = `${uploaded + 1}/${total}`;
+            if (progressCurrent) progressCurrent.textContent = `Uploading: ${file.name}`;
+            if (progressFill) progressFill.style.width = `${(uploaded / total) * 100}%`;
 
-            // Generate unique file path
-            const timestamp = Date.now();
-            const fileName = `${timestamp}_${file.name}`;
-            const filePath = `${FILE_PATH}/${fileName}`;
+            // Check file size (50MB limit)
+            if (file.size > 50 * 1024 * 1024) {
+                showToast(`${file.name} is too large (max 50MB)`, 'error');
+                continue;
+            }
 
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from(FILE_BUCKET)
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('fileName', file.name);
+            formData.append('uploadedBy', state.user.username);
+            formData.append('uploadedById', state.user.uid);
 
-            if (uploadError) throw uploadError;
+            // Upload via API
+            const response = await fetch('/api/files/upload', {
+                method: 'POST',
+                body: formData
+            });
 
-            // Get public URL
-            const { data: urlData } = supabase.storage
-                .from(FILE_BUCKET)
-                .getPublicUrl(filePath);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Upload failed');
+            }
 
-            const downloadURL = urlData.publicUrl;
+            uploaded++;
+            showToast(`✅ ${file.name} uploaded!`, 'success');
+            
+            if (typeof addActivity === 'function') {
+                addActivity(`📁 ${state.user.username} uploaded: ${file.name}`);
+            }
 
-            // Save metadata to Supabase database
-            const { error: dbError } = await supabase
-                .from('file_metadata')
-                .insert({
-                    name: file.name,
-                    storage_path: filePath,
-                    size: file.size,
-                    type: file.type || 'application/octet-stream',
-                    download_url: downloadURL,
-                    uploaded_by: state.user.username,
-                    uploaded_by_id: state.user.uid,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                });
-
-            if (dbError) throw dbError;
-
-            addActivity('📁 ' + state.user.username + ': ' + file.name);
-            showToast(file.name + ' uploaded!', 'success');
         } catch (e) {
             console.error('Upload error:', e);
-            showToast('Failed: ' + file.name + ' - ' + e.message, 'error');
+            showToast(`Failed: ${file.name} - ${e.message}`, 'error');
         }
     }
 
+    // Complete
+    if (progressFill) progressFill.style.width = '100%';
+    if (progressCurrent) progressCurrent.textContent = 'Upload complete!';
+    
+    setTimeout(() => {
+        progressContainer?.classList.add('hidden');
+        if (progressFill) progressFill.style.width = '0%';
+    }, 1500);
+
     await loadFiles();
-    if (dom.fileInput) dom.fileInput.value = '';
+    
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) fileInput.value = '';
 }
 
-/* ==============================
-   LOAD FILES
-   ============================== */
+// ========================================
+// LOAD FILES (via Vercel API)
+// ========================================
 
-/**
- * Load files from Supabase metadata table
- */
 async function loadFiles() {
+    const filesList = document.getElementById('files-list');
+    const emptyState = document.getElementById('files-empty');
+    const loadingState = document.getElementById('files-loading');
+
+    // Show loading
+    loadingState?.classList.remove('hidden');
+    emptyState?.classList.add('hidden');
+    if (filesList) filesList.innerHTML = '';
+
     try {
-        const { data, error } = await supabase
-            .from('file_metadata')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const response = await fetch('/api/files/list');
+        
+        if (!response.ok) {
+            throw new Error('Failed to load files');
+        }
 
-        if (error) throw error;
+        const data = await response.json();
 
-        state.files = data.map(f => ({
+        state.files = (data.files || []).map(f => ({
             id: f.id,
             name: f.name,
             storagePath: f.storage_path,
@@ -112,185 +231,316 @@ async function loadFiles() {
             createdAt: f.created_at,
             updatedAt: f.updated_at
         }));
+
+        loadingState?.classList.add('hidden');
+        renderFiles();
+        updateStats();
+
     } catch (e) {
         console.error('Failed to load files:', e);
+        loadingState?.classList.add('hidden');
         state.files = [];
+        renderFiles();
     }
-
-    renderFiles();
-    if (dom.statFiles) dom.statFiles.textContent = state.files.length;
 }
 
-/* ==============================
-   RENDER FILES
-   ============================== */
+// ========================================
+// RENDER FILES
+// ========================================
 
-/**
- * Render files list
- */
 function renderFiles() {
-    if (!dom.filesList) return;
+    const filesList = document.getElementById('files-list');
+    const emptyState = document.getElementById('files-empty');
+    
+    if (!filesList) return;
 
-    if (!state.files.length) {
-        dom.filesList.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1">
-                <span class="empty-icon">📂</span>
-                <p>No files in cloud.</p>
-            </div>`;
+    // Filter by search
+    let filteredFiles = state.files || [];
+    if (searchQuery) {
+        filteredFiles = filteredFiles.filter(f => 
+            f.name.toLowerCase().includes(searchQuery)
+        );
+    }
+
+    if (!filteredFiles.length) {
+        filesList.innerHTML = '';
+        emptyState?.classList.remove('hidden');
         return;
     }
 
-    dom.filesList.innerHTML = state.files.map(f => {
-        const safeId = esc(f.name);
-        const safePath = esc(f.storagePath || f.name);
-        return `
-        <div class="file-card" data-filename="${safeId}">
-            <div class="file-icon">${fileIcon(f.name, false)}</div>
-            <div class="file-name">${esc(f.name)}</div>
-            <div class="file-size">${fmtSize(f.size)}</div>
-            <div class="file-meta">
-                <span class="file-uploader">👤 ${esc(f.uploadedBy || 'Unknown')}</span>
-                <span class="file-date">${fmtDate(f.createdAt)}</span>
-            </div>
-            <div class="file-actions">
-                <button class="file-action-btn download-btn" 
-                        data-filename="${safeId}" 
-                        data-url="${esc(f.downloadURL)}"
-                        data-path="${safePath}">⬇️</button>
-                <button class="file-action-btn danger delete-btn" 
-                        data-filename="${safeId}"
-                        data-path="${safePath}"
-                        data-id="${f.id}">🗑️</button>
-            </div>
-        </div>`;
-    }).join('');
+    emptyState?.classList.add('hidden');
 
-    // Download handlers
-    dom.filesList.querySelectorAll('.download-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            downloadFile(btn.dataset.filename, btn.dataset.url);
-        });
-    });
-
-    // Delete handlers
-    dom.filesList.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteFile(btn.dataset.filename, btn.dataset.path, btn.dataset.id);
-        });
-    });
-}
-
-/* ==============================
-   DOWNLOAD FILE
-   ============================== */
-
-/**
- * Download file from Supabase
- */
-async function downloadFile(name, url) {
-    if (!name) return;
-
-    try {
-        // Use provided URL if available
-        if (url) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = name;
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showToast('Downloading: ' + name, 'info');
-            return;
-        }
-
-        // Otherwise, fetch from database
-        const { data, error } = await supabase
-            .from('file_metadata')
-            .select('download_url, storage_path')
-            .eq('name', name)
-            .single();
-
-        if (error) throw error;
-
-        const a = document.createElement('a');
-        a.href = data.download_url;
-        a.download = name;
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        showToast('Downloading: ' + name, 'info');
-    } catch (e) {
-        console.error('Download failed:', e);
-        showToast('Download failed: ' + e.message, 'error');
+    if (currentView === 'grid') {
+        filesList.innerHTML = filteredFiles.map(f => renderGridCard(f)).join('');
+    } else {
+        filesList.innerHTML = filteredFiles.map(f => renderListCard(f)).join('');
     }
+
+    attachFileCardListeners();
 }
 
-/* ==============================
-   DELETE FILE
-   ============================== */
+function renderGridCard(file) {
+    return `
+        <div class="file-card" data-file-id="${file.id}">
+            <div class="file-card-actions">
+                <button class="file-action-btn download-btn" data-file-id="${file.id}" title="Download">⬇️</button>
+                <button class="file-action-btn danger delete-btn" data-file-id="${file.id}" title="Delete">🗑️</button>
+            </div>
+            <span class="file-card-icon">${fileIcon(file.name, false)}</span>
+            <div class="file-card-name" title="${esc(file.name)}">${esc(file.name)}</div>
+            <div class="file-card-meta">
+                <span>${fmtSize(file.size)}</span>
+                <span>•</span>
+                <span>${fmtDate(file.createdAt)}</span>
+            </div>
+        </div>
+    `;
+}
 
-/**
- * Delete file from Supabase Storage and database
- */
-async function deleteFile(name, storagePath, recordId) {
-    if (!name) return;
-    if (!confirm(`Delete "${name}"?`)) return;
+function renderListCard(file) {
+    return `
+        <div class="file-card" data-file-id="${file.id}">
+            <span class="file-card-icon">${fileIcon(file.name, false)}</span>
+            <div class="file-card-info">
+                <div class="file-card-name" title="${esc(file.name)}">${esc(file.name)}</div>
+                <div class="file-card-size">${fmtSize(file.size)}</div>
+                <div class="file-card-date">${fmtDate(file.createdAt)}</div>
+                <div class="file-card-uploader">${esc(file.uploadedBy || 'Unknown')}</div>
+            </div>
+            <div class="file-card-actions">
+                <button class="file-action-btn download-btn" data-file-id="${file.id}" title="Download">⬇️</button>
+                <button class="file-action-btn danger delete-btn" data-file-id="${file.id}" title="Delete">🗑️</button>
+            </div>
+        </div>
+    `;
+}
 
-    try {
-        // Delete from Supabase Storage
-        if (storagePath) {
-            const { error: storageError } = await supabase.storage
-                .from(FILE_BUCKET)
-                .remove([storagePath]);
+function attachFileCardListeners() {
+    document.querySelectorAll('.file-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.file-action-btn')) return;
+            const fileId = card.dataset.fileId;
+            const file = state.files.find(f => f.id == fileId);
+            if (file) showFilePreview(file);
+        });
+    });
 
-            if (storageError) {
-                console.warn('Storage delete warning:', storageError);
+    document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const fileId = btn.dataset.fileId;
+            const file = state.files.find(f => f.id == fileId);
+            if (file) downloadFile(file);
+        });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const fileId = btn.dataset.fileId;
+            const file = state.files.find(f => f.id == fileId);
+            if (file) confirmDelete(file);
+        });
+    });
+}
+
+// ========================================
+// UPDATE STATS
+// ========================================
+
+function updateStats() {
+    const totalCount = document.getElementById('files-total-count');
+    const totalSize = document.getElementById('files-total-size');
+    const statFiles = document.getElementById('stat-files');
+    
+    const count = state.files?.length || 0;
+    const size = state.files?.reduce((sum, f) => sum + (f.size || 0), 0) || 0;
+    
+    if (totalCount) totalCount.textContent = count;
+    if (totalSize) totalSize.textContent = fmtSize(size);
+    if (statFiles) statFiles.textContent = count;
+}
+
+// ========================================
+// MODALS
+// ========================================
+
+function setupModals() {
+    const fileModal = document.getElementById('file-modal');
+    const modalClose = document.getElementById('modal-close');
+    const modalBtnDownload = document.getElementById('modal-btn-download');
+    const modalBtnCopyLink = document.getElementById('modal-btn-copy-link');
+    
+    modalClose?.addEventListener('click', () => fileModal?.classList.add('hidden'));
+    fileModal?.addEventListener('click', (e) => {
+        if (e.target === fileModal) fileModal.classList.add('hidden');
+    });
+    
+    modalBtnDownload?.addEventListener('click', () => {
+        if (selectedFile) downloadFile(selectedFile);
+    });
+    
+    modalBtnCopyLink?.addEventListener('click', () => {
+        if (selectedFile?.downloadURL) {
+            navigator.clipboard.writeText(selectedFile.downloadURL)
+                .then(() => showToast('Link copied!', 'success'))
+                .catch(() => showToast('Failed to copy', 'error'));
+        }
+    });
+
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteCancel = document.getElementById('delete-cancel');
+    const deleteConfirm = document.getElementById('delete-confirm');
+    
+    deleteCancel?.addEventListener('click', () => {
+        deleteModal?.classList.add('hidden');
+        fileToDelete = null;
+    });
+    
+    deleteConfirm?.addEventListener('click', async () => {
+        if (fileToDelete) {
+            await deleteFile(fileToDelete);
+            deleteModal?.classList.add('hidden');
+            fileToDelete = null;
+        }
+    });
+}
+
+async function showFilePreview(file) {
+    selectedFile = file;
+    
+    const modal = document.getElementById('file-modal');
+    const modalIcon = document.getElementById('modal-file-icon');
+    const modalName = document.getElementById('modal-file-name');
+    const modalBody = document.getElementById('modal-body');
+    const modalSize = document.getElementById('modal-file-size');
+    const modalDate = document.getElementById('modal-file-date');
+    const modalUploader = document.getElementById('modal-file-uploader');
+    
+    if (modalIcon) modalIcon.textContent = fileIcon(file.name, false);
+    if (modalName) modalName.textContent = file.name;
+    if (modalSize) modalSize.textContent = fmtSize(file.size);
+    if (modalDate) modalDate.textContent = fmtDate(file.createdAt);
+    if (modalUploader) modalUploader.textContent = `by ${file.uploadedBy || 'Unknown'}`;
+    
+    if (modalBody) {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+        const isText = ['txt', 'md', 'json', 'js', 'ts', 'css', 'html', 'py', 'cs', 'cpp', 'c', 'h', 'xml', 'yaml', 'yml', 'log', 'sh', 'gd'].includes(ext);
+        
+        if (isImage && file.downloadURL) {
+            modalBody.innerHTML = `<img src="${esc(file.downloadURL)}" alt="${esc(file.name)}">`;
+        } else if (isText) {
+            modalBody.innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                const response = await fetch(`/api/files/read?id=${file.id}`);
+                if (!response.ok) throw new Error('Failed to read file');
+                const data = await response.json();
+                const text = data.content || '';
+                const truncated = text.length > 10000 ? text.substring(0, 10000) + '\n\n... [truncated]' : text;
+                modalBody.innerHTML = `<pre>${esc(truncated)}</pre>`;
+            } catch (e) {
+                modalBody.innerHTML = '<div class="no-preview"><div class="no-preview-icon">⚠️</div><p>Could not load preview</p></div>';
             }
+        } else {
+            modalBody.innerHTML = `
+                <div class="no-preview">
+                    <div class="no-preview-icon">${fileIcon(file.name, false)}</div>
+                    <p>Preview not available for this file type</p>
+                </div>
+            `;
+        }
+    }
+    
+    modal?.classList.remove('hidden');
+}
+
+// ========================================
+// DOWNLOAD FILE
+// ========================================
+
+function downloadFile(file) {
+    if (!file?.downloadURL) {
+        showToast('Download URL not available', 'error');
+        return;
+    }
+    
+    const a = document.createElement('a');
+    a.href = file.downloadURL;
+    a.download = file.name;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showToast(`Downloading: ${file.name}`, 'info');
+}
+
+// ========================================
+// DELETE FILE (via Vercel API)
+// ========================================
+
+function confirmDelete(file) {
+    fileToDelete = file;
+    
+    const modal = document.getElementById('delete-modal');
+    const fileName = document.getElementById('delete-file-name');
+    
+    if (fileName) fileName.textContent = file.name;
+    modal?.classList.remove('hidden');
+}
+
+async function deleteFile(file) {
+    try {
+        const response = await fetch('/api/files/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: file.id,
+                storagePath: file.storagePath
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Delete failed');
         }
 
-        // Delete metadata from database
-        const { error: dbError } = await supabase
-            .from('file_metadata')
-            .delete()
-            .eq('id', recordId);
-
-        if (dbError) throw dbError;
-
-        showToast('Deleted: ' + name, 'info');
-        addActivity('🗑️ ' + (state.user?.username || 'User') + ' deleted: ' + name);
+        showToast(`🗑️ Deleted: ${file.name}`, 'info');
+        
+        if (typeof addActivity === 'function') {
+            addActivity(`🗑️ ${state.user?.username || 'User'} deleted: ${file.name}`);
+        }
+        
         await loadFiles();
+
     } catch (e) {
         console.error('Delete failed:', e);
-        showToast('Delete failed: ' + e.message, 'error');
+        showToast(`Delete failed: ${e.message}`, 'error');
     }
 }
 
-/* ==============================
-   AI CLOUD OPERATIONS
-   ============================== */
+// ========================================
+// AI CLOUD OPERATIONS (via Vercel API)
+// ========================================
 
 async function aiListFiles() {
     try {
-        const { data, error } = await supabase
-            .from('file_metadata')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const response = await fetch('/api/files/list');
+        if (!response.ok) throw new Error('Failed to list files');
+        
+        const data = await response.json();
+        const files = data.files || [];
 
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            return '📂 Your cloud is empty.';
+        if (!files.length) {
+            return '📂 Your cloud is empty. Upload some files!';
         }
 
-        let result = '📂 Files in your cloud:\n\n';
-        data.forEach(f => {
-            result += `- 📄 ${f.name} (${fmtSize(f.size)}) - uploaded by ${f.uploaded_by}\n`;
+        let result = '📂 **Files in your cloud:**\n\n';
+        files.forEach(f => {
+            result += `- 📄 **${f.name}** (${fmtSize(f.size)}) - by ${f.uploaded_by}\n`;
         });
+        result += `\n📊 **Total:** ${files.length} files`;
 
         return result;
     } catch (e) {
@@ -302,37 +552,24 @@ async function aiReadFile(name) {
     if (!name) return '⚠️ No file name provided.';
 
     try {
-        // Get file metadata
-        const { data: metadata, error: metaError } = await supabase
-            .from('file_metadata')
-            .select('*')
-            .eq('name', name)
-            .single();
-
-        if (metaError || !metadata) {
-            return '⚠️ File not found: ' + name;
+        const response = await fetch(`/api/files/read?name=${encodeURIComponent(name)}`);
+        if (!response.ok) {
+            const error = await response.json();
+            return `⚠️ ${error.message || 'File not found'}`;
+        }
+        
+        const data = await response.json();
+        
+        if (data.isBinary) {
+            return `📄 **${data.name}** is a binary file (${fmtSize(data.size)}). Cannot display content.`;
         }
 
-        // Check if it's a text file
-        const textExtensions = /\.(txt|js|ts|py|html|css|json|md|csv|xml|yaml|yml|log|sh|gd)$/i;
-        if (!textExtensions.test(name) && !metadata.type?.startsWith('text/')) {
-            return `📄 ${name} is a binary file (${fmtSize(metadata.size)}). Cannot display content.`;
+        const text = data.content || '';
+        if (text.length > 8000) {
+            return `📄 **${data.name}** (first 8000 chars):\n\n\`\`\`\n${text.substring(0, 8000)}\n\`\`\`\n\n*[Content truncated]*`;
         }
 
-        // Fetch content from storage
-        const { data: fileData, error: storageError } = await supabase.storage
-            .from(FILE_BUCKET)
-            .download(metadata.storage_path);
-
-        if (storageError) throw storageError;
-
-        const text = await fileData.text();
-
-        if (text.length > 10000) {
-            return `📄 Content of ${name} (first 10000 chars):\n\n${text.substring(0, 10000)}...\n\n[Truncated]`;
-        }
-
-        return `📄 Content of ${name}:\n\n${text}`;
+        return `📄 **${data.name}**:\n\n\`\`\`\n${text}\n\`\`\``;
     } catch (e) {
         return '⚠️ Error reading file: ' + e.message;
     }
@@ -343,51 +580,30 @@ async function aiWriteFile(name, content) {
     if (!state.user) return '⚠️ Please sign in to save files.';
 
     try {
-        // Create blob from content
-        const blob = new Blob([content || ''], { type: 'text/plain' });
+        const response = await fetch('/api/files/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                content: content || '',
+                uploadedBy: state.user.username,
+                uploadedById: state.user.uid
+            })
+        });
 
-        // Generate file path
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${name}`;
-        const filePath = `${FILE_PATH}/${fileName}`;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Write failed');
+        }
 
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(FILE_BUCKET)
-            .upload(filePath, blob, {
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-            .from(FILE_BUCKET)
-            .getPublicUrl(filePath);
-
-        // Save metadata (upsert by name)
-        const { error: dbError } = await supabase
-            .from('file_metadata')
-            .upsert({
-                name: name,
-                storage_path: filePath,
-                size: blob.size,
-                type: 'text/plain',
-                download_url: urlData.publicUrl,
-                uploaded_by: state.user.username,
-                uploaded_by_id: state.user.uid,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'name'
-            });
-
-        if (dbError) throw dbError;
-
+        const data = await response.json();
         await loadFiles();
-        addActivity('🤖 AI saved: ' + name);
+        
+        if (typeof addActivity === 'function') {
+            addActivity(`📝 AI created: ${name}`);
+        }
 
-        return `✅ Saved "${name}" to cloud!`;
+        return `✅ Created "${name}" in cloud storage! (${fmtSize(data.size || 0)})`;
     } catch (e) {
         return '⚠️ Error saving file: ' + e.message;
     }
@@ -397,140 +613,71 @@ async function aiDeleteFile(name) {
     if (!name) return '⚠️ No file name provided.';
 
     try {
-        // Get file metadata first
-        const { data: metadata, error: metaError } = await supabase
-            .from('file_metadata')
-            .select('storage_path, id')
-            .eq('name', name)
-            .single();
+        const response = await fetch('/api/files/delete-by-name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
 
-        if (metaError || !metadata) {
-            return '⚠️ File not found: ' + name;
+        if (!response.ok) {
+            const error = await response.json();
+            return `⚠️ ${error.message || 'Delete failed'}`;
         }
 
-        // Delete from Storage
-        if (metadata.storage_path) {
-            await supabase.storage
-                .from(FILE_BUCKET)
-                .remove([metadata.storage_path]);
-        }
-
-        // Delete metadata
-        const { error: dbError } = await supabase
-            .from('file_metadata')
-            .delete()
-            .eq('id', metadata.id);
-
-        if (dbError) throw dbError;
-
+        const data = await response.json();
         await loadFiles();
-        addActivity('🤖 AI deleted: ' + name);
-        return `🗑️ Deleted "${name}".`;
+        
+        if (typeof addActivity === 'function') {
+            addActivity(`🗑️ AI deleted: ${data.name}`);
+        }
+
+        return `🗑️ Deleted "${data.name}" from cloud storage.`;
     } catch (e) {
         return '⚠️ Error deleting file: ' + e.message;
     }
 }
 
-/**
- * Upload file for AI (used in chat attachments)
- */
-async function uploadFileForAI(file) {
+async function aiUploadFile(file) {
     if (!file) return null;
     if (!state.user) return null;
 
     try {
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${file.name}`;
-        const filePath = `${FILE_PATH}/${fileName}`;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileName', file.name);
+        formData.append('uploadedBy', state.user.username);
+        formData.append('uploadedById', state.user.uid);
 
-        // Upload to storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(FILE_BUCKET)
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
+        const response = await fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData
+        });
 
-        if (uploadError) throw uploadError;
+        if (!response.ok) throw new Error('Upload failed');
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-            .from(FILE_BUCKET)
-            .getPublicUrl(filePath);
-
-        const downloadURL = urlData.publicUrl;
-
-        // Save metadata
-        await supabase
-            .from('file_metadata')
-            .insert({
-                name: file.name,
-                storage_path: filePath,
-                size: file.size,
-                type: file.type || 'application/octet-stream',
-                download_url: downloadURL,
-                uploaded_by: state.user.username,
-                uploaded_by_id: state.user.uid,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            });
-
-        return downloadURL;
+        const data = await response.json();
+        await loadFiles();
+        return data.downloadURL;
     } catch (e) {
         console.error('AI file upload error:', e);
         return null;
     }
 }
 
-/* ==============================
-   NATURAL LANGUAGE DETECTION
-   ============================== */
+// ========================================
+// INITIALIZE
+// ========================================
 
-function detectFileOperation(msg) {
-    if (!msg) return null;
-
-    const l = msg.toLowerCase().trim();
-
-    // LIST / CLOUD VIEW
-    if (
-        /(list|show|display|see|view|check|open).*(cloud|files|storage|directory)/i.test(l) ||
-        /(what('| i)?s|whats).*(in|inside).*(cloud|storage)/i.test(l) ||
-        l === 'cloud' ||
-        l === 'files'
-    ) {
-        return { op: 'list' };
-    }
-
-    // READ FILE
-    const readMatch = l.match(
-        /(read|open|view|show|get)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
-    );
-    if (readMatch && readMatch[2]) {
-        return { op: 'read', name: readMatch[2] };
-    }
-
-    // DELETE FILE
-    const deleteMatch = l.match(
-        /(delete|remove|erase|trash)\s+(?:the\s+)?(?:file\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
-    );
-    if (deleteMatch && deleteMatch[2]) {
-        return { op: 'delete', name: deleteMatch[2] };
-    }
-
-    // WRITE / CREATE FILE
-    const writeMatch = l.match(
-        /(create|make|write|generate|save)\s+(?:a\s+)?(?:file\s+)?(?:called\s+|named\s+)?['"]?([a-zA-Z0-9_\-\.]+)['"]?/
-    );
-    if (writeMatch && writeMatch[2]) {
-        return { op: 'write', name: writeMatch[2] };
-    }
-
-    // UPLOAD ATTACHED FILE
-    if (
-        /(upload|add|put|store|save).*(this|attached|file).*(cloud|storage)/i.test(l)
-    ) {
-        return { op: 'upload-attached' };
-    }
-
-    return null;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFilesPage);
+} else {
+    initFilesPage();
 }
+
+// Export for AI integration
+window.aiListFiles = aiListFiles;
+window.aiReadFile = aiReadFile;
+window.aiWriteFile = aiWriteFile;
+window.aiDeleteFile = aiDeleteFile;
+window.aiUploadFile = aiUploadFile;
+window.loadFiles = loadFiles;
