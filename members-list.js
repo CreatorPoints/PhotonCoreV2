@@ -15,6 +15,7 @@ const AUTHORIZED_EMAILS = [
     // Add your team members' emails below
     'shrestangshudutta@gmail.com',
     'ghoshsoumyadeep049@gmail.com',
+    'karnpiyush142@gmail.com',
 ];
 
 /**
