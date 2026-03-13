@@ -474,10 +474,55 @@ function fileIcon(n, d) {
     return icons[e] || '📄';
 }
 
+function coerceText(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return value.map(coerceText).join('');
+    if (typeof value === 'object') {
+        if (value.text !== undefined) return coerceText(value.text);
+        if (value.content !== undefined) return coerceText(value.content);
+        if (Array.isArray(value.parts)) {
+            return value.parts.map(part => coerceText(part?.text ?? part)).join('');
+        }
+        try {
+            return JSON.stringify(value, null, 2);
+        } catch (e) {
+            return '';
+        }
+    }
+    return String(value);
+}
+
+function extractTextFromParts(parts) {
+    if (!Array.isArray(parts)) return '';
+    return parts.map(part => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part.text === 'string') return part.text;
+        if (part && part.text !== undefined) return coerceText(part.text);
+        if (part && part.content !== undefined) return coerceText(part.content);
+        return '';
+    }).join('');
+}
+
+function extractTextFromModelResponse(data) {
+    if (!data) return '';
+    const direct = data?.choices?.[0]?.message?.content ??
+        data?.choices?.[0]?.delta?.content ??
+        data?.text ??
+        data?.message?.content ??
+        data?.content;
+
+    if (direct !== undefined) return coerceText(direct);
+
+    const parts = data?.candidates?.[0]?.content?.parts;
+    return extractTextFromParts(parts);
+}
+
 // ========== SIMPLE MARKDOWN FORMATTER (FALLBACK) ==========
 function formatAi(text) {
     if (!text) return '';
-    const rawText = typeof text === 'string' ? text : String(text);
+    const rawText = coerceText(text);
 
     // Use StreamingMarkdownRenderer if available (from ai.js)
     if (typeof StreamingMarkdownRenderer !== 'undefined') {
@@ -599,7 +644,7 @@ async function openRouterChat(messages, modelId) {
     }
 
     const data = await response.json();
-    return data?.choices?.[0]?.message?.content || data?.text || data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "No response.";
+    return extractTextFromModelResponse(data) || "No response.";
 }
 
 async function* openRouterChatStream(messages, modelId) {
@@ -641,7 +686,7 @@ async function* openRouterChatStream(messages, modelId) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
+                const text = extractTextFromModelResponse(parsed);
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
@@ -668,7 +713,7 @@ async function geminiChat(messages, modelId) {
     }
 
     const data = await response.json();
-    return data?.choices?.[0]?.message?.content || data?.text || data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "No response.";
+    return extractTextFromModelResponse(data) || "No response.";
 }
 
 async function* geminiChatStream(messages, modelId) {
@@ -708,7 +753,7 @@ async function* geminiChatStream(messages, modelId) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
+                const text = extractTextFromModelResponse(parsed);
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
@@ -774,7 +819,7 @@ async function* geminiWebSearchStream(query, modelId) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
+                const text = extractTextFromModelResponse(parsed);
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
