@@ -106,7 +106,7 @@ const AI_MODELS = {
     },
 
     // === GOOGLE GEMINI (Direct API) ===
-    'gemini-2.5-flash-preview-05-20': {
+    'gemini-2.5-flash': {
         name: 'Gemini 2.5 Flash',
         provider: 'Google',
         logoKey: 'gemini',
@@ -114,7 +114,7 @@ const AI_MODELS = {
         desc: 'Latest fast model with great quality',
         api: 'gemini'
     },
-    'gemini-2.5-pro-preview-05-06': {
+    'gemini-2.5-pro': {
         name: 'Gemini 2.5 Pro',
         provider: 'Google',
         logoKey: 'gemini',
@@ -122,31 +122,7 @@ const AI_MODELS = {
         desc: 'Most capable Gemini model',
         api: 'gemini'
     },
-    'gemini-2.0-flash': {
-        name: 'Gemini 2.0 Flash',
-        provider: 'Google',
-        logoKey: 'gemini',
-        badge: 'Stable',
-        desc: 'Stable fast model',
-        api: 'gemini'
-    },
-    'gemini-2.0-flash-lite': {
-        name: 'Gemini 2.0 Flash Lite',
-        provider: 'Google',
-        logoKey: 'gemini',
-        badge: 'Lite',
-        desc: 'Lightweight and fast',
-        api: 'gemini'
-    },
-    'gemini-3-flash-preview': {
-        name: 'Gemini 3 Flash',
-        provider: 'Google',
-        logoKey: 'gemini',
-        badge: 'New',
-        desc: 'Next-gen fast model',
-        api: 'gemini'
-    },
-    'gemini-2.5-flash-lite-preview-06-17': {
+    'gemini-2.5-flash-lite': {
         name: 'Gemini 2.5 Flash Lite',
         provider: 'Google',
         logoKey: 'gemini',
@@ -154,20 +130,20 @@ const AI_MODELS = {
         desc: 'Ultra lightweight',
         api: 'gemini'
     },
-    'gemini-3.1-pro-preview': {
-        name: 'Gemini 3.1 Pro',
+    'gemini-2.0-flash-001': {
+        name: 'Gemini 2.0 Flash',
         provider: 'Google',
         logoKey: 'gemini',
-        badge: 'Latest',
-        desc: 'Latest Pro model',
+        badge: 'Stable',
+        desc: 'Stable fast model',
         api: 'gemini'
     },
-    'gemini-3.1-flash-lite-preview': {
-        name: 'Gemini 3.1 Flash Lite',
+    'gemini-2.0-flash-lite-001': {
+        name: 'Gemini 2.0 Flash Lite',
         provider: 'Google',
         logoKey: 'gemini',
-        badge: 'Fast',
-        desc: 'Latest lite model',
+        badge: 'Lite',
+        desc: 'Lightweight and fast',
         api: 'gemini'
     },
 
@@ -320,14 +296,6 @@ const AI_MODELS = {
     },
 
     // === ARCEE AI (OpenRouter) ===
-    'arcee-ai/trinity-large-preview:free': {
-        name: 'Arcee Large',
-        provider: 'Arcee AI',
-        logoKey: 'arcee',
-        badge: 'Preview',
-        desc: 'Advanced multi-task reasoning',
-        api: 'openrouter'
-    },
     'arcee-ai/trinity-mini:free': {
         name: 'Arcee Mini',
         provider: 'Arcee AI',

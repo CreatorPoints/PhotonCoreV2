@@ -106,13 +106,58 @@
                             <!-- AUTO -->
                             <div class="model-group">
                                 <div class="model-group-label">🎲 Auto Select</div>
-                                <div class="model-option selected" data-value="openrouter/free" data-icon="🎲" data-name="Auto Select Best">
+                                <div class="model-option selected" data-value="openrouter/free" data-logo="auto" data-name="Auto Select Best">
                                     <span class="model-option-icon">🎲</span>
                                     <div class="model-option-info">
                                         <div class="model-option-name">Auto Select Best</div>
                                         <div class="model-option-desc">Automatically picks the best model</div>
                                     </div>
                                     <span class="model-option-badge">Smart</span>
+                                </div>
+                            </div>
+
+                            <!-- GOOGLE GEMINI (Direct API) -->
+                            <div class="model-group">
+                                <div class="model-group-label">✨ Google Gemini</div>
+                                <div class="model-option" data-value="gemini-2.5-flash" data-logo="gemini" data-name="Gemini 2.5 Flash">
+                                    <span class="model-option-icon">✨</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemini 2.5 Flash</div>
+                                        <div class="model-option-desc">Latest fast model with great quality</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
+                                <div class="model-option" data-value="gemini-2.5-pro" data-logo="gemini" data-name="Gemini 2.5 Pro">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemini 2.5 Pro</div>
+                                        <div class="model-option-desc">Most capable Gemini model</div>
+                                    </div>
+                                    <span class="model-option-badge">Pro</span>
+                                </div>
+                                <div class="model-option" data-value="gemini-2.5-flash-lite" data-logo="gemini" data-name="Gemini 2.5 Flash Lite">
+                                    <span class="model-option-icon">✦</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemini 2.5 Flash Lite</div>
+                                        <div class="model-option-desc">Ultra lightweight</div>
+                                    </div>
+                                    <span class="model-option-badge">Lite</span>
+                                </div>
+                                <div class="model-option" data-value="gemini-2.0-flash-001" data-logo="gemini" data-name="Gemini 2.0 Flash">
+                                    <span class="model-option-icon">💫</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemini 2.0 Flash</div>
+                                        <div class="model-option-desc">Stable fast model</div>
+                                    </div>
+                                    <span class="model-option-badge">Stable</span>
+                                </div>
+                                <div class="model-option" data-value="gemini-2.0-flash-lite-001" data-logo="gemini" data-name="Gemini 2.0 Flash Lite">
+                                    <span class="model-option-icon">🌙</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemini 2.0 Flash Lite</div>
+                                        <div class="model-option-desc">Lightweight and fast</div>
+                                    </div>
+                                    <span class="model-option-badge">Lite</span>
                                 </div>
                             </div>
 
@@ -144,7 +189,7 @@
                                     <span class="model-option-icon">💎</span>
                                     <div class="model-option-info">
                                         <div class="model-option-name">Gemma 3 27B</div>
-                                        <div class="model-option-desc">Great reasoning & writing</div>
+                                        <div class="model-option-desc">Google's best open model</div>
                                     </div>
                                     <span class="model-option-badge">Powerful</span>
                                 </div>
@@ -160,9 +205,25 @@
                                     <span class="model-option-icon">💎</span>
                                     <div class="model-option-info">
                                         <div class="model-option-name">Gemma 3 4B</div>
-                                        <div class="model-option-desc">Quick responses</div>
+                                        <div class="model-option-desc">Quick responses, efficient</div>
                                     </div>
                                     <span class="model-option-badge">Fast</span>
+                                </div>
+                                <div class="model-option" data-value="google/gemma-3n-e4b-it:free" data-logo="google" data-name="Gemma 3N E4B">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemma 3N E4B</div>
+                                        <div class="model-option-desc">Optimized for edge devices</div>
+                                    </div>
+                                    <span class="model-option-badge">Edge</span>
+                                </div>
+                                <div class="model-option" data-value="google/gemma-3n-e2b-it:free" data-logo="google" data-name="Gemma 3N E2B">
+                                    <span class="model-option-icon">💎</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Gemma 3N E2B</div>
+                                        <div class="model-option-desc">Ultra-compact, instant responses</div>
+                                    </div>
+                                    <span class="model-option-badge">Tiny</span>
                                 </div>
                             </div>
 
@@ -177,89 +238,60 @@
                                     </div>
                                     <span class="model-option-badge">Reasoning</span>
                                 </div>
+                                <div class="model-option" data-value="nvidia/nemotron-nano-12b-v2-vl:free" data-logo="nvidia" data-name="Nemotron 12B VL">
+                                    <span class="model-option-icon">🟢</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Nemotron 12B VL</div>
+                                        <div class="model-option-desc">Vision-language understanding</div>
+                                    </div>
+                                    <span class="model-option-badge">Vision</span>
+                                </div>
+                                <div class="model-option" data-value="nvidia/nemotron-nano-9b-v2:free" data-logo="nvidia" data-name="Nemotron 9B">
+                                    <span class="model-option-icon">🟢</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Nemotron 9B</div>
+                                        <div class="model-option-desc">Well-rounded performance</div>
+                                    </div>
+                                    <span class="model-option-badge">Balanced</span>
+                                </div>
+                                <div class="model-option" data-value="nvidia/llama-nemotron-embed-vl-1b-v2:free" data-logo="nvidia" data-name="Nemotron Embed 1B">
+                                    <span class="model-option-icon">🟢</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Nemotron Embed 1B</div>
+                                        <div class="model-option-desc">Embeddings & vision tasks</div>
+                                    </div>
+                                    <span class="model-option-badge">Embed</span>
+                                </div>
                             </div>
 
                             <!-- QWEN -->
                             <div class="model-group">
                                 <div class="model-group-label">📘 Qwen (Alibaba)</div>
-                                <div class="model-option" data-value="qwen/qwen3-coder:free" data-logo="qwen" data-name="Qwen3 Coder">
+                                <div class="model-option" data-value="qwen/qwen3-coder:free" data-logo="coder" data-name="Qwen3 Coder">
                                     <span class="model-option-icon">👨‍💻</span>
                                     <div class="model-option-info">
                                         <div class="model-option-name">Qwen3 Coder</div>
-                                        <div class="model-option-desc">Code specialist</div>
+                                        <div class="model-option-desc">Specialized for programming</div>
                                     </div>
                                     <span class="model-option-badge">Code</span>
                                 </div>
+                                <div class="model-option" data-value="qwen/qwen3-next-80b-a3b-instruct:free" data-logo="qwen" data-name="Qwen3 Next 80B">
+                                    <span class="model-option-icon">📘</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Qwen3 Next 80B</div>
+                                        <div class="model-option-desc">Advanced reasoning & analysis</div>
+                                    </div>
+                                    <span class="model-option-badge">Large</span>
+                                </div>
+                                <div class="model-option" data-value="qwen/qwen3-4b:free" data-logo="qwen" data-name="Qwen3 4B">
+                                    <span class="model-option-icon">📘</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Qwen3 4B</div>
+                                        <div class="model-option-desc">Quick general assistant</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
                             </div>
-
-                            <!-- GOOGLE GEMINI (Direct API) -->
-<div class="model-group">
-    <div class="model-group-label">✨ Google Gemini</div>
-    <div class="model-option" data-value="gemini-2.5-flash-preview-05-20" data-icon="✨" data-name="Gemini 2.5 Flash">
-        <span class="model-option-icon">✨</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 2.5 Flash</div>
-            <div class="model-option-desc">Latest fast model with great quality</div>
-        </div>
-        <span class="model-option-badge">Fast</span>
-    </div>
-    <div class="model-option" data-value="gemini-2.5-pro-preview-05-06" data-icon="💎" data-name="Gemini 2.5 Pro">
-        <span class="model-option-icon">💎</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 2.5 Pro</div>
-            <div class="model-option-desc">Most capable Gemini model</div>
-        </div>
-        <span class="model-option-badge">Pro</span>
-    </div>
-    <div class="model-option" data-value="gemini-3-flash-preview" data-icon="⚡" data-name="Gemini 3 Flash">
-        <span class="model-option-icon">⚡</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 3 Flash</div>
-            <div class="model-option-desc">Next-gen fast model</div>
-        </div>
-        <span class="model-option-badge">New</span>
-    </div>
-    <div class="model-option" data-value="gemini-3.1-pro-preview" data-icon="🌟" data-name="Gemini 3.1 Pro">
-        <span class="model-option-icon">🌟</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 3.1 Pro</div>
-            <div class="model-option-desc">Latest Pro model</div>
-        </div>
-        <span class="model-option-badge">Latest</span>
-    </div>
-    <div class="model-option" data-value="gemini-2.0-flash" data-icon="💫" data-name="Gemini 2.0 Flash">
-        <span class="model-option-icon">💫</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 2.0 Flash</div>
-            <div class="model-option-desc">Stable fast model</div>
-        </div>
-        <span class="model-option-badge">Stable</span>
-    </div>
-    <div class="model-option" data-value="gemini-2.0-flash-lite" data-icon="🌙" data-name="Gemini 2.0 Flash Lite">
-        <span class="model-option-icon">🌙</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 2.0 Flash Lite</div>
-            <div class="model-option-desc">Lightweight and fast</div>
-        </div>
-        <span class="model-option-badge">Lite</span>
-    </div>
-    <div class="model-option" data-value="gemini-2.5-flash-lite-preview-06-17" data-icon="✦" data-name="Gemini 2.5 Flash Lite">
-        <span class="model-option-icon">✦</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 2.5 Flash Lite</div>
-            <div class="model-option-desc">Ultra lightweight</div>
-        </div>
-        <span class="model-option-badge">Lite</span>
-    </div>
-    <div class="model-option" data-value="gemini-3.1-flash-lite-preview" data-icon="💨" data-name="Gemini 3.1 Flash Lite">
-        <span class="model-option-icon">💨</span>
-        <div class="model-option-info">
-            <div class="model-option-name">Gemini 3.1 Flash Lite</div>
-            <div class="model-option-desc">Latest lite model</div>
-        </div>
-        <span class="model-option-badge">Fast</span>
-    </div>
-</div>
 
                             <!-- MISTRAL -->
                             <div class="model-group">
@@ -274,6 +306,87 @@
                                 </div>
                             </div>
 
+                            <!-- OPENAI OSS -->
+                            <div class="model-group">
+                                <div class="model-group-label">🧠 OpenAI OSS</div>
+                                <div class="model-option" data-value="openai/gpt-oss-120b:free" data-logo="openai" data-name="GPT-OSS 120B">
+                                    <span class="model-option-icon">🧠</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">GPT-OSS 120B</div>
+                                        <div class="model-option-desc">Large open-source GPT model</div>
+                                    </div>
+                                    <span class="model-option-badge">Massive</span>
+                                </div>
+                                <div class="model-option" data-value="openai/gpt-oss-20b:free" data-logo="openai" data-name="GPT-OSS 20B">
+                                    <span class="model-option-icon">🧠</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">GPT-OSS 20B</div>
+                                        <div class="model-option-desc">Faster open-source GPT</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
+                            </div>
+
+                            <!-- ARCEE AI -->
+                            <div class="model-group">
+                                <div class="model-group-label">🧬 Arcee AI</div>
+                                <div class="model-option" data-value="arcee-ai/trinity-mini:free" data-logo="arcee" data-name="Arcee Mini">
+                                    <span class="model-option-icon">🧬</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Arcee Mini</div>
+                                        <div class="model-option-desc">Lightweight but capable</div>
+                                    </div>
+                                    <span class="model-option-badge">Compact</span>
+                                </div>
+                            </div>
+
+                            <!-- STEPFUN -->
+                            <div class="model-group">
+                                <div class="model-group-label">⚡ StepFun</div>
+                                <div class="model-option" data-value="stepfun/step-3.5-flash:free" data-logo="stepfun" data-name="Step 3.5 Flash">
+                                    <span class="model-option-icon">⚡</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Step 3.5 Flash</div>
+                                        <div class="model-option-desc">Blazing fast responses</div>
+                                    </div>
+                                    <span class="model-option-badge">Ultra Fast</span>
+                                </div>
+                            </div>
+
+                            <!-- Z AI -->
+                            <div class="model-group">
+                                <div class="model-group-label">🔴 Z AI</div>
+                                <div class="model-option" data-value="z-ai/glm-4.5-air:free" data-logo="zai" data-name="GLM 4.5 Air">
+                                    <span class="model-option-icon">🔴</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">GLM 4.5 Air</div>
+                                        <div class="model-option-desc">Chinese & English specialist</div>
+                                    </div>
+                                    <span class="model-option-badge">Bilingual</span>
+                                </div>
+                            </div>
+
+                            <!-- LIQUID -->
+                            <div class="model-group">
+                                <div class="model-group-label">💧 Liquid</div>
+                                <div class="model-option" data-value="liquid/lfm-2.5-1.2b-thinking:free" data-logo="liquid" data-name="LFM Thinking">
+                                    <span class="model-option-icon">💧</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">LFM Thinking</div>
+                                        <div class="model-option-desc">Chain-of-thought reasoning</div>
+                                    </div>
+                                    <span class="model-option-badge">CoT</span>
+                                </div>
+                                <div class="model-option" data-value="liquid/lfm-2.5-1.2b-instruct:free" data-logo="liquid" data-name="LFM Instruct">
+                                    <span class="model-option-icon">💧</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">LFM Instruct</div>
+                                        <div class="model-option-desc">Quick instruction following</div>
+                                    </div>
+                                    <span class="model-option-badge">Fast</span>
+                                </div>
+                            </div>
+
                             <!-- NOUS RESEARCH -->
                             <div class="model-group">
                                 <div class="model-group-label">🏛️ Nous Research</div>
@@ -281,9 +394,22 @@
                                     <span class="model-option-icon">🏛️</span>
                                     <div class="model-option-info">
                                         <div class="model-option-name">Hermes 3 405B</div>
-                                        <div class="model-option-desc">Largest free model</div>
+                                        <div class="model-option-desc">Largest free model, best quality</div>
                                     </div>
                                     <span class="model-option-badge">Massive</span>
+                                </div>
+                            </div>
+                            
+                            <!-- COGNITIVE -->
+                            <div class="model-group">
+                                <div class="model-group-label">🐬 Cognitive</div>
+                                <div class="model-option" data-value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" data-logo="cognitive" data-name="Dolphin Mistral 24B">
+                                    <span class="model-option-icon">🐬</span>
+                                    <div class="model-option-info">
+                                        <div class="model-option-name">Dolphin Mistral 24B</div>
+                                        <div class="model-option-desc">Uncensored, creative writing</div>
+                                    </div>
+                                    <span class="model-option-badge">Creative</span>
                                 </div>
                             </div>
                         </div>

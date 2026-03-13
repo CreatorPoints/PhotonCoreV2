@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
         const body = req.body || {};
         const query = body.query || body.messages || body.contents;
         const stream = !!body.stream;
-        const modelId = body.modelId || body.model || "gemini-2.5-flash-preview-05-20";
+        const modelId = body.modelId || body.model || "gemini-2.5-flash";
 
         if (!query) {
             return res.status(400).json({ error: 'Missing query' });
