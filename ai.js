@@ -1290,6 +1290,8 @@ function clearAttachment() {
 
 // === AI SEND WITH STREAMING (SIMPLIFIED - NO AUTO FILE/MEMORY DETECTION) ===
 
+// === AI SEND WITH STREAMING ===
+
 async function sendAiMessage() {
     const input = document.getElementById('ai-input');
     if (!input) return;
@@ -1307,6 +1309,10 @@ async function sendAiMessage() {
     const md = AI_MODELS[modelId];
     const modelName = md?.name || modelId;
     const username = state.user?.username || 'Anon';
+
+    // Determine which API to use
+    const useGemini = md?.api === 'gemini';
+    console.log(`📤 Using ${useGemini ? 'Gemini' : 'OpenRouter'} API for: ${modelId}`);
 
     const welcome = document.getElementById('welcome-message');
     if (welcome) welcome.style.display = 'none';
@@ -1404,7 +1410,14 @@ async function sendAiMessage() {
         let fullText = '';
 
         try {
-            const stream = openRouterChatStream(messages, modelId);
+            // Choose the correct API based on model config
+            let stream;
+            
+            if (useGemini) {
+                stream = geminiChatStream(messages, modelId);
+            } else {
+                stream = openRouterChatStream(messages, modelId);
+            }
             
             for await (const chunk of stream) {
                 if (chunk) {
@@ -1414,15 +1427,23 @@ async function sendAiMessage() {
             }
         } catch (streamError) {
             console.warn('Stream fallback to non-streaming:', streamError);
-            fullText = await openRouterChat(messages, modelId);
+            
+            // Fallback to non-streaming with correct API
+            if (useGemini) {
+                fullText = await geminiChat(messages, modelId);
+            } else {
+                fullText = await openRouterChat(messages, modelId);
+            }
             renderer.appendChunk(fullText);
         }
 
         renderer.finalize();
 
+        // Add model tag with appropriate icon
+        const modelIcon = useGemini ? '✨' : (md?.logo || '🤖');
         const modelTag = document.createElement('div');
         modelTag.className = 'ai-model-tag';
-        modelTag.innerHTML = `<span>${md?.logo || '🤖'}</span> ${esc(modelName)}`;
+        modelTag.innerHTML = `<span>${modelIcon}</span> ${esc(modelName)}`;
         messageDiv.querySelector('.message-content').appendChild(modelTag);
 
         const aiMsg = {
@@ -1500,6 +1521,148 @@ function createStreamingBubble(name, modelData) {
 
     return { messageDiv, contentTarget, renderer };
 }
+
+
+// === WEB SEARCH HANDLER ===
+async function handleWebSearch() {
+    const input = document.getElementById('ai-input');
+    const query = input?.value?.trim();
+
+    if (!query) {
+        showModal({
+            title: '🔍 Web Search',
+            body: `
+                <div class="modal-field">
+                    <label class="modal-label">What do you want to search?</label>
+                    <input type="text" class="modal-input" id="search-query" placeholder="Enter your search query...">
+                </div>
+            `,
+            confirmText: 'Search',
+            onConfirm: () => {
+                const searchQuery = document.getElementById('search-query')?.value?.trim();
+                if (searchQuery) {
+                    performWebSearch(searchQuery);
+                    return true;
+                }
+                showToast('Please enter a search query', 'error');
+                return false;
+            }
+        });
+    } else {
+        performWebSearch(query);
+        input.value = '';
+        input.style.height = 'auto';
+    }
+}
+
+async function performWebSearch(query) {
+    if (!query) return;
+
+    const username = state.user?.username || 'Anon';
+
+    // Hide welcome message
+    const welcome = document.getElementById('welcome-message');
+    if (welcome) welcome.style.display = 'none';
+
+    // Auto-create chat if none exists
+    if (!state.currentChatId) {
+        try {
+            const ref = await db.collection('chatSessions').add({
+                title: 'Web Search: ' + query.substring(0, 30),
+                model: 'gemini-web-search',
+                messages: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                createdBy: username
+            });
+            state.currentChatId = ref.id;
+            loadChat(ref.id);
+            await new Promise(r => setTimeout(r, 100));
+        } catch (e) {
+            console.error('Failed to create chat:', e);
+            showToast('Failed to create chat.', 'error');
+            return;
+        }
+    }
+
+    // Add user message
+    const userMsg = {
+        text: '🔍 ' + query,
+        sender: 'user',
+        author: username,
+        modelName: '',
+        memorySaved: false,
+        fileName: '',
+        timestamp: new Date().toISOString()
+    };
+
+    state.currentChatMessages.push(userMsg);
+    appendUserMessage('🔍 ' + query, username, false, '');
+    await saveCurrentChat();
+
+    // Show typing indicator
+    state.isTyping = true;
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) typingIndicator.classList.remove('hidden');
+
+    // Create streaming bubble
+    const { messageDiv, contentTarget, renderer } = createStreamingBubble('Gemini Search', { logoKey: 'gemini' });
+
+    try {
+        let fullText = '';
+
+        try {
+            const stream = geminiWebSearchStream(query);
+            
+            for await (const chunk of stream) {
+                if (chunk) {
+                    fullText += chunk;
+                    renderer.appendChunk(chunk);
+                }
+            }
+        } catch (streamError) {
+            console.warn('Search stream error, trying non-stream:', streamError);
+            const result = await geminiWebSearch(query);
+            fullText = result?.choices?.[0]?.message?.content || 'No results found.';
+            renderer.appendChunk(fullText);
+        }
+
+        renderer.finalize();
+
+        // Add model tag
+        const modelTag = document.createElement('div');
+        modelTag.className = 'ai-model-tag';
+        modelTag.innerHTML = `<span>🔍</span> Gemini Web Search`;
+        messageDiv.querySelector('.message-content').appendChild(modelTag);
+
+        // Save AI response
+        const aiMsg = {
+            text: fullText,
+            sender: 'ai',
+            author: 'Gemini Search',
+            modelName: 'Gemini Web Search',
+            timestamp: new Date().toISOString()
+        };
+
+        state.currentChatMessages.push(aiMsg);
+        await saveCurrentChat();
+
+        state.aiQueryCount = (state.aiQueryCount || 0) + 1;
+        if (dom.statAi) dom.statAi.textContent = state.aiQueryCount;
+        addActivity('🔍 ' + username + ' searched: ' + query.substring(0, 30));
+
+    } catch (e) {
+        console.error('Web search error:', e);
+        const errorText = '❌ Search failed: ' + (e.message || 'Unknown error');
+        renderer.appendChunk(errorText);
+        renderer.finalize();
+        showToast('Search failed', 'error');
+    }
+
+    state.isTyping = false;
+    if (typingIndicator) typingIndicator.classList.add('hidden');
+}
+
 
 function appendUserMessage(text, author, memorySaved = false, fileName = '') {
     const inner = dom.aiChat?.querySelector('.chat-messages-inner');
@@ -1914,12 +2077,14 @@ function setupActionButtons() {
     const listCloudBtn = document.getElementById('btn-action-list-cloud');
     const removeCloudBtn = document.getElementById('btn-action-remove-cloud');
     const createCloudBtn = document.getElementById('btn-action-create-cloud');
+    const webSearchBtn = document.getElementById('btn-action-web-search'); // NEW
 
     if (rememberBtn) rememberBtn.onclick = handleActionRemember;
     if (addCloudBtn) addCloudBtn.onclick = handleActionAddToCloud;
     if (listCloudBtn) listCloudBtn.onclick = handleActionListCloud;
     if (removeCloudBtn) removeCloudBtn.onclick = handleActionRemoveFromCloud;
     if (createCloudBtn) createCloudBtn.onclick = handleActionCreateOnCloud;
+    if (webSearchBtn) webSearchBtn.onclick = handleWebSearch; // NEW
 
     updateActionButtonStates();
     console.log('✓ Action buttons initialized');
