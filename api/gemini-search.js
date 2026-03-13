@@ -17,18 +17,40 @@ function normalizeQueryContents(query) {
     return [{ role: 'user', parts: [{ text: String(query) }] }];
 }
 
+function coerceText(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return value.map(coerceText).join('');
+    if (typeof value === 'object') {
+        if (value.text !== undefined) return coerceText(value.text);
+        if (value.content !== undefined) return coerceText(value.content);
+        if (Array.isArray(value.parts)) {
+            return value.parts.map(part => coerceText(part?.text ?? part)).join('');
+        }
+        try {
+            return JSON.stringify(value);
+        } catch (e) {
+            return '';
+        }
+    }
+    return String(value);
+}
+
 function extractTextFromResponse(response) {
     if (!response) return '';
     if (typeof response.text === 'string') return response.text;
+    if (response.text !== undefined) return coerceText(response.text);
     const parts = response.candidates?.[0]?.content?.parts || [];
-    return parts.map(part => part.text || '').join('');
+    return parts.map(part => coerceText(part?.text ?? part)).join('');
 }
 
 function extractTextFromChunk(chunk) {
     if (!chunk) return '';
     if (typeof chunk.text === 'string') return chunk.text;
+    if (chunk.text !== undefined) return coerceText(chunk.text);
     const parts = chunk.candidates?.[0]?.content?.parts || [];
-    return parts.map(part => part.text || '').join('');
+    return parts.map(part => coerceText(part?.text ?? part)).join('');
 }
 
 module.exports = async function handler(req, res) {

@@ -14,7 +14,11 @@ function normalizeTextChunk(value) {
         if (Array.isArray(value.parts)) {
             return value.parts.map(part => normalizeTextChunk(part?.text ?? part)).join('');
         }
-        return '';
+        try {
+            return JSON.stringify(value, null, 2);
+        } catch (e) {
+            return '';
+        }
     }
     return String(value);
 }
