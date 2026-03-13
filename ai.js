@@ -3,6 +3,22 @@
    AI Chat with Action Buttons
    ======================================== */
 
+function normalizeTextChunk(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return value.map(normalizeTextChunk).join('');
+    if (typeof value === 'object') {
+        if (value.text !== undefined) return normalizeTextChunk(value.text);
+        if (value.content !== undefined) return normalizeTextChunk(value.content);
+        if (Array.isArray(value.parts)) {
+            return value.parts.map(part => normalizeTextChunk(part?.text ?? part)).join('');
+        }
+        return '';
+    }
+    return String(value);
+}
+
 // === STREAMING MARKDOWN RENDERER ===
 class StreamingMarkdownRenderer {
     constructor(targetElement) {
@@ -14,8 +30,9 @@ class StreamingMarkdownRenderer {
     }
 
     appendChunk(chunk) {
-        if (!chunk) return;
-        this.buffer += chunk;
+        const safeChunk = normalizeTextChunk(chunk);
+        if (!safeChunk) return;
+        this.buffer += safeChunk;
         this.processBuffer();
     }
 
@@ -1470,9 +1487,10 @@ async function sendAiMessage() {
             }
             
             for await (const chunk of stream) {
-                if (chunk) {
-                    fullText += chunk;
-                    renderer.appendChunk(chunk);
+                const safeChunk = normalizeTextChunk(chunk);
+                if (safeChunk) {
+                    fullText += safeChunk;
+                    renderer.appendChunk(safeChunk);
                 }
             }
         } catch (streamError) {
@@ -1480,9 +1498,9 @@ async function sendAiMessage() {
             
             // Fallback to non-streaming with correct API
             if (useGemini) {
-                fullText = await geminiChat(messages, modelId);
+                fullText = normalizeTextChunk(await geminiChat(messages, modelId));
             } else {
-                fullText = await openRouterChat(messages, modelId);
+                fullText = normalizeTextChunk(await openRouterChat(messages, modelId));
             }
             renderer.appendChunk(fullText);
         }
@@ -1674,15 +1692,16 @@ async function performWebSearch(query) {
             const stream = geminiWebSearchStream(query, searchModelId);
             
             for await (const chunk of stream) {
-                if (chunk) {
-                    fullText += chunk;
-                    renderer.appendChunk(chunk);
+                const safeChunk = normalizeTextChunk(chunk);
+                if (safeChunk) {
+                    fullText += safeChunk;
+                    renderer.appendChunk(safeChunk);
                 }
             }
         } catch (streamError) {
             console.warn('Search stream error, trying non-stream:', streamError);
             const result = await geminiWebSearch(query, searchModelId);
-            fullText = result?.choices?.[0]?.message?.content || 'No results found.';
+            fullText = normalizeTextChunk(result?.choices?.[0]?.message?.content) || 'No results found.';
             renderer.appendChunk(fullText);
         }
 
@@ -1802,14 +1821,16 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
         html += `<div class="message-file"><span>${icon}</span> ${esc(fileName)}</div>`;
     }
 
+    const safeText = normalizeTextChunk(text);
+
     if (sender === 'ai') {
         const tempDiv = document.createElement('div');
         const renderer = new StreamingMarkdownRenderer(tempDiv);
-        renderer.appendChunk(text);
+        renderer.appendChunk(safeText);
         renderer.finalize();
         html += `<div class="message-text">${tempDiv.innerHTML}</div>`;
     } else {
-        html += `<div class="message-text">${esc(text)}</div>`;
+        html += `<div class="message-text">${esc(safeText)}</div>`;
     }
       if (sender === 'ai' && modelName) {
         const tagLogoKey = md?.logoKey || (typeof getLogoKeyFromModel === 'function'
