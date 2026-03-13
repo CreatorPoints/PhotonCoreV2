@@ -1897,14 +1897,162 @@ function setupAISidebar() {
     console.log('✓ Sidebar initialized');
 }
 
+function getModelDropdownGroups() {
+    return [
+        { id: 'auto', label: '🎲 Auto Select', match: (id, model, logoKey) => id === 'openrouter/free' || logoKey === 'auto' },
+        { id: 'gemini', label: '✨ Google Gemini', match: (id, model) => model?.api === 'gemini' },
+        { id: 'meta', label: '🦙 Meta LLaMA', match: (id, model, logoKey) => logoKey === 'meta' },
+        { id: 'google', label: '💎 Google Gemma', match: (id, model, logoKey) => logoKey === 'google' },
+        { id: 'nvidia', label: '🟢 NVIDIA', match: (id, model, logoKey) => logoKey === 'nvidia' },
+        { id: 'qwen', label: '📘 Qwen (Alibaba)', match: (id, model, logoKey) => logoKey === 'qwen' || logoKey === 'coder' },
+        { id: 'mistral', label: '🌬️ Mistral AI', match: (id, model, logoKey) => logoKey === 'mistral' },
+        { id: 'openai', label: '🧠 OpenAI OSS', match: (id, model, logoKey) => logoKey === 'openai' },
+        { id: 'arcee', label: '🧬 Arcee AI', match: (id, model, logoKey) => logoKey === 'arcee' },
+        { id: 'stepfun', label: '⚡ StepFun', match: (id, model, logoKey) => logoKey === 'stepfun' },
+        { id: 'zai', label: '🔴 Z AI', match: (id, model, logoKey) => logoKey === 'zai' },
+        { id: 'liquid', label: '💧 Liquid', match: (id, model, logoKey) => logoKey === 'liquid' },
+        { id: 'nous', label: '🏛️ Nous Research', match: (id, model, logoKey) => logoKey === 'nous' },
+        { id: 'cognitive', label: '🐬 Cognitive', match: (id, model, logoKey) => logoKey === 'cognitive' }
+    ];
+}
+
+function renderModelDropdown() {
+    const dropdown = document.getElementById('model-dropdown');
+    if (!dropdown || typeof AI_MODELS !== 'object') return;
+
+    let body = document.getElementById('model-dropdown-body');
+    if (!body) {
+        body = document.createElement('div');
+        body.id = 'model-dropdown-body';
+        body.className = 'model-dropdown-body';
+        dropdown.appendChild(body);
+    }
+    body.innerHTML = '';
+
+    const groups = getModelDropdownGroups();
+    const grouped = new Map(groups.map(group => [group.id, []]));
+    const uncategorized = [];
+
+    Object.entries(AI_MODELS).forEach(([modelId, model]) => {
+        const logoKey = model?.logoKey || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(modelId) : null);
+        const group = groups.find(g => g.match(modelId, model, logoKey));
+        const entry = { modelId, model, logoKey };
+        if (group) {
+            grouped.get(group.id).push(entry);
+        } else {
+            uncategorized.push(entry);
+        }
+    });
+
+    const createOption = ({ modelId, model, logoKey }) => {
+        const option = document.createElement('div');
+        option.className = 'model-option';
+        if (modelId === state.selectedModel) option.classList.add('selected');
+        option.dataset.value = modelId;
+        option.dataset.name = model?.name || modelId;
+        if (logoKey) option.dataset.logo = logoKey;
+
+        const icon = document.createElement('span');
+        icon.className = 'model-option-icon';
+        if (typeof getAILogo === 'function' && logoKey) {
+            icon.innerHTML = getAILogo(logoKey);
+        } else {
+            icon.textContent = '🤖';
+        }
+
+        const info = document.createElement('div');
+        info.className = 'model-option-info';
+
+        const name = document.createElement('div');
+        name.className = 'model-option-name';
+        name.textContent = model?.name || modelId;
+
+        const desc = document.createElement('div');
+        desc.className = 'model-option-desc';
+        desc.textContent = model?.desc || '';
+
+        info.appendChild(name);
+        info.appendChild(desc);
+
+        option.appendChild(icon);
+        option.appendChild(info);
+
+        if (model?.badge) {
+            const badge = document.createElement('span');
+            badge.className = 'model-option-badge';
+            badge.textContent = model.badge;
+            option.appendChild(badge);
+        }
+
+        return option;
+    };
+
+    const appendGroup = (label, entries) => {
+        if (!entries.length) return;
+        const groupEl = document.createElement('div');
+        groupEl.className = 'model-group';
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'model-group-label';
+        labelEl.textContent = label;
+        groupEl.appendChild(labelEl);
+
+        entries.forEach(entry => {
+            groupEl.appendChild(createOption(entry));
+        });
+
+        body.appendChild(groupEl);
+    };
+
+    groups.forEach(group => {
+        appendGroup(group.label, grouped.get(group.id) || []);
+    });
+
+    if (uncategorized.length) {
+        appendGroup('🧩 Other', uncategorized);
+    }
+}
+
 function setupAIModelSelector() {
     if (modelSelectorInitialized) return;
     modelSelectorInitialized = true;
 
+    renderModelDropdown();
+
     const selector = document.getElementById('model-selector');
     const btn = document.getElementById('model-selector-btn');
     const search = document.getElementById('model-search');
-    const options = document.querySelectorAll('.model-option');
+    const options = Array.from(document.querySelectorAll('.model-option'));
+
+    const applySelection = (option, { persist = true, toast = true } = {}) => {
+        if (!option) return;
+
+        options.forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+
+        const value = option.dataset.value;
+        const name = option.dataset.name || value || '';
+        const iconHtml = option.querySelector('.model-option-icon')?.innerHTML || option.dataset.icon || '&#x1F916;';
+
+        const modelIcon = document.getElementById('model-icon');
+        const modelName = document.getElementById('model-name');
+        const modelLogoPanel = document.getElementById('model-logo-panel');
+        const modelNamePanel = document.getElementById('model-name-panel');
+
+        if (modelIcon) modelIcon.innerHTML = iconHtml;
+        if (modelName) modelName.textContent = name;
+        if (modelLogoPanel) modelLogoPanel.innerHTML = iconHtml;
+        if (modelNamePanel) modelNamePanel.textContent = name;
+
+        if (value) state.selectedModel = value;
+        if (persist && value && typeof puter !== 'undefined') {
+            puter.kv.set('photon_selected_model', value).catch(() => {});
+        }
+
+        if (toast && name) {
+            showToast(`Switched to ${name} ✨`, 'success');
+        }
+    };
 
     options.forEach(option => {
         const logoKey = option.dataset.logo || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(option.dataset.value) : null);
@@ -1929,32 +2077,15 @@ function setupAIModelSelector() {
 
     options.forEach(option => {
         option.onclick = () => {
-            const value = option.dataset.value;
-            const iconHtml = option.querySelector('.model-option-icon')?.innerHTML || option.dataset.icon || '&#x1F916;';
-            const name = option.dataset.name;
-
-            const modelIcon = document.getElementById('model-icon');
-            const modelName = document.getElementById('model-name');
-            const modelLogoPanel = document.getElementById('model-logo-panel');
-            const modelNamePanel = document.getElementById('model-name-panel');
-
-            if (modelIcon) modelIcon.innerHTML = iconHtml;
-            if (modelName) modelName.textContent = name;
-            if (modelLogoPanel) modelLogoPanel.innerHTML = iconHtml;
-            if (modelNamePanel) modelNamePanel.textContent = name;
-
-            options.forEach(o => o.classList.remove('selected'));
-            option.classList.add('selected');
-
-            state.selectedModel = value;
-            if (typeof puter !== 'undefined') {
-                puter.kv.set('photon_selected_model', value).catch(() => {});
-            }
-
+            applySelection(option, { persist: true, toast: true });
             selector?.classList.remove('open');
-            showToast(`Switched to ${name} ✨`, 'success');
         };
     });
+
+    const initialOption = options.find(option => option.dataset.value === state.selectedModel) || options[0];
+    if (initialOption) {
+        applySelection(initialOption, { persist: false, toast: false });
+    }
 
     if (search) {
         search.oninput = (e) => {
