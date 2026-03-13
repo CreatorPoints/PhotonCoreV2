@@ -194,6 +194,75 @@
                                 </div>
                             </div>
 
+                            <!-- GOOGLE GEMINI (Direct API) -->
+<div class="model-group">
+    <div class="model-group-label">✨ Google Gemini</div>
+    <div class="model-option" data-value="gemini-2.5-flash-preview-05-20" data-icon="✨" data-name="Gemini 2.5 Flash">
+        <span class="model-option-icon">✨</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 2.5 Flash</div>
+            <div class="model-option-desc">Latest fast model with great quality</div>
+        </div>
+        <span class="model-option-badge">Fast</span>
+    </div>
+    <div class="model-option" data-value="gemini-2.5-pro-preview-05-06" data-icon="💎" data-name="Gemini 2.5 Pro">
+        <span class="model-option-icon">💎</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 2.5 Pro</div>
+            <div class="model-option-desc">Most capable Gemini model</div>
+        </div>
+        <span class="model-option-badge">Pro</span>
+    </div>
+    <div class="model-option" data-value="gemini-3-flash-preview" data-icon="⚡" data-name="Gemini 3 Flash">
+        <span class="model-option-icon">⚡</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 3 Flash</div>
+            <div class="model-option-desc">Next-gen fast model</div>
+        </div>
+        <span class="model-option-badge">New</span>
+    </div>
+    <div class="model-option" data-value="gemini-3.1-pro-preview" data-icon="🌟" data-name="Gemini 3.1 Pro">
+        <span class="model-option-icon">🌟</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 3.1 Pro</div>
+            <div class="model-option-desc">Latest Pro model</div>
+        </div>
+        <span class="model-option-badge">Latest</span>
+    </div>
+    <div class="model-option" data-value="gemini-2.0-flash" data-icon="💫" data-name="Gemini 2.0 Flash">
+        <span class="model-option-icon">💫</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 2.0 Flash</div>
+            <div class="model-option-desc">Stable fast model</div>
+        </div>
+        <span class="model-option-badge">Stable</span>
+    </div>
+    <div class="model-option" data-value="gemini-2.0-flash-lite" data-icon="🌙" data-name="Gemini 2.0 Flash Lite">
+        <span class="model-option-icon">🌙</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 2.0 Flash Lite</div>
+            <div class="model-option-desc">Lightweight and fast</div>
+        </div>
+        <span class="model-option-badge">Lite</span>
+    </div>
+    <div class="model-option" data-value="gemini-2.5-flash-lite-preview-06-17" data-icon="✦" data-name="Gemini 2.5 Flash Lite">
+        <span class="model-option-icon">✦</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 2.5 Flash Lite</div>
+            <div class="model-option-desc">Ultra lightweight</div>
+        </div>
+        <span class="model-option-badge">Lite</span>
+    </div>
+    <div class="model-option" data-value="gemini-3.1-flash-lite-preview" data-icon="💨" data-name="Gemini 3.1 Flash Lite">
+        <span class="model-option-icon">💨</span>
+        <div class="model-option-info">
+            <div class="model-option-name">Gemini 3.1 Flash Lite</div>
+            <div class="model-option-desc">Latest lite model</div>
+        </div>
+        <span class="model-option-badge">Fast</span>
+    </div>
+</div>
+
                             <!-- MISTRAL -->
                             <div class="model-group">
                                 <div class="model-group-label">🌀 Mistral AI</div>
@@ -314,28 +383,32 @@
                                 </div>
 
                                 <!-- Action Buttons Bar -->
-                                <div class="input-actions-bar" id="input-actions-bar">
-                                    <button class="action-btn" id="btn-action-remember" title="Save current message to team memory">
-                                        <span class="action-icon">🧠</span>
-                                        <span class="action-text">Remember</span>
-                                    </button>
-                                    <button class="action-btn" id="btn-action-add-cloud" title="Upload attached file to cloud" disabled>
-                                        <span class="action-icon">☁️</span>
-                                        <span class="action-text">Add to Cloud</span>
-                                    </button>
-                                    <button class="action-btn" id="btn-action-list-cloud" title="List all cloud files">
-                                        <span class="action-icon">📋</span>
-                                        <span class="action-text">List Cloud</span>
-                                    </button>
-                                    <button class="action-btn" id="btn-action-remove-cloud" title="Remove file from cloud">
-                                        <span class="action-icon">🗑️</span>
-                                        <span class="action-text">Remove</span>
-                                    </button>
-                                    <button class="action-btn" id="btn-action-create-cloud" title="Create new file on cloud">
-                                        <span class="action-icon">📝</span>
-                                        <span class="action-text">Create</span>
-                                    </button>
-                                </div>
+<div class="input-actions-bar" id="input-actions-bar">
+    <button class="action-btn" id="btn-action-remember" title="Save current message to team memory">
+        <span class="action-icon">🧠</span>
+        <span class="action-text">Remember</span>
+    </button>
+    <button class="action-btn" id="btn-action-web-search" title="Search the web with AI">
+        <span class="action-icon">🔍</span>
+        <span class="action-text">Web Search</span>
+    </button>
+    <button class="action-btn" id="btn-action-add-cloud" title="Upload attached file to cloud" disabled>
+        <span class="action-icon">☁️</span>
+        <span class="action-text">Add to Cloud</span>
+    </button>
+    <button class="action-btn" id="btn-action-list-cloud" title="List all cloud files">
+        <span class="action-icon">📋</span>
+        <span class="action-text">List Cloud</span>
+    </button>
+    <button class="action-btn" id="btn-action-remove-cloud" title="Remove file from cloud">
+        <span class="action-icon">🗑️</span>
+        <span class="action-text">Remove</span>
+    </button>
+    <button class="action-btn" id="btn-action-create-cloud" title="Create new file on cloud">
+        <span class="action-icon">📝</span>
+        <span class="action-text">Create</span>
+    </button>
+</div>
 
                                 <div class="input-row">
                                     <div class="input-actions-left">
