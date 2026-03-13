@@ -1,8 +1,7 @@
 /* ========================================
-   AI LOGOS - Official Brand Logos
+   AI LOGOS - Emoji Styling
 ======================================== */
 
-/* Base logo container */
 .ai-logo {
     width: 24px;
     height: 24px;
@@ -12,15 +11,9 @@
     flex-shrink: 0;
 }
 
-.ai-logo svg {
-    width: 100%;
-    height: 100%;
-}
-
-.ai-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+.ai-logo-emoji {
+    font-size: 18px;
+    line-height: 1;
 }
 
 /* Avatar size logos */
@@ -48,44 +41,6 @@
     height: 14px;
 }
 
-/* Brand-specific colors for fallback text logos */
-.ai-logo-text {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    text-transform: uppercase;
+.ai-model-tag .ai-logo-emoji {
+    font-size: 12px;
 }
-
-.ai-logo-meta { color: #0668E1; }
-.ai-logo-google { color: #4285F4; }
-.ai-logo-nvidia { color: #76B900; }
-.ai-logo-mistral { color: #FF7000; }
-.ai-logo-openai { color: #10A37F; }
-.ai-logo-qwen { color: #615EFF; }
-.ai-logo-arcee { color: #FF4D4D; }
-.ai-logo-anthropic { color: #D4A574; }
-.ai-logo-nous { color: #9D4EDD; }
-
-/* Circular logo backgrounds */
-.ai-logo-circle {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ai-logo-circle.meta { background: linear-gradient(135deg, #0668E1, #1877F2); }
-.ai-logo-circle.google { background: linear-gradient(135deg, #4285F4, #34A853); }
-.ai-logo-circle.nvidia { background: linear-gradient(135deg, #76B900, #8BC34A); }
-.ai-logo-circle.mistral { background: linear-gradient(135deg, #FF7000, #FF9500); }
-.ai-logo-circle.openai { background: linear-gradient(135deg, #10A37F, #1ED9A4); }
-.ai-logo-circle.qwen { background: linear-gradient(135deg, #615EFF, #8B5CF6); }
-.ai-logo-circle.arcee { background: linear-gradient(135deg, #FF4D4D, #FF6B6B); }
-.ai-logo-circle.auto { background: linear-gradient(135deg, #6c5ce7, #a855f7); }
-.ai-logo-circle.stepfun { background: linear-gradient(135deg, #FFD700, #FFA500); }
-.ai-logo-circle.liquid { background: linear-gradient(135deg, #00D4FF, #0099FF); }
-.ai-logo-circle.nous { background: linear-gradient(135deg, #9D4EDD, #7B2CBF); }
-.ai-logo-circle.cognitive { background: linear-gradient(135deg, #00CED1, #20B2AA); }
-.ai-logo-circle.zai { background: linear-gradient(135deg, #DE2910, #FF4500); }

@@ -10,6 +10,7 @@ class StreamingMarkdownRenderer {
         this.buffer = '';
         this.renderThrottle = 16;
         this.lastRenderTime = 0;
+        this.markedRenderer = null;
     }
 
     appendChunk(chunk) {
@@ -28,8 +29,8 @@ class StreamingMarkdownRenderer {
         this.render();
     }
 
-    render() {
-        const html = this.parseMarkdown(this.buffer);
+    render(isFinal = false) {
+        const html = this.renderMarkdown(this.buffer, !isFinal);
         this.target.innerHTML = html;
         
         if (dom.aiChat) {
@@ -37,11 +38,60 @@ class StreamingMarkdownRenderer {
         }
     }
 
-    parseMarkdown(text) {
+    renderMarkdown(text, isStreaming) {
         if (!text) return '';
 
+        if (typeof marked !== 'undefined') {
+            if (!this.markedRenderer) {
+                const renderer = new marked.Renderer();
+
+                renderer.code = (code, infostring) => {
+                    const lang = (infostring || '').trim();
+                    return this.renderCodeBlock(code, lang, false);
+                };
+
+                renderer.codespan = (code) => {
+                    return `<code class="inline-code">${this.escapeHtml(code)}</code>`;
+                };
+
+                renderer.link = (href, title, text) => {
+                    const safeHref = this.escapeHtml(href || '');
+                    const safeTitle = title ? ` title="${this.escapeHtml(title)}"` : '';
+                    return `<a href="${safeHref}" target="_blank" rel="noopener"${safeTitle}>${text}</a>`;
+                };
+
+                this.markedRenderer = renderer;
+            }
+
+            marked.setOptions({
+                renderer: this.markedRenderer,
+                gfm: true,
+                breaks: true,
+                headerIds: false,
+                mangle: false
+            });
+
+            const rawText = typeof text === 'string' ? text : String(text);
+            let html = marked.parse(rawText);
+            if (typeof DOMPurify !== 'undefined') {
+                html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style'] });
+            }
+
+            if (isStreaming) {
+                html += '<span class="streaming-cursor"></span>';
+            }
+
+            return html;
+        }
+
+        return this.parseMarkdown(text);
+    }
+
+    parseMarkdown(text) {
+        if (!text) return '';
+        const rawText = typeof text === 'string' ? text : String(text);
         let html = '';
-        const lines = text.split('\n');
+        const lines = rawText.split('\n');
         let i = 0;
 
         while (i < lines.length) {
@@ -244,13 +294,13 @@ class StreamingMarkdownRenderer {
 
         const langLabel = lang || 'plaintext';
         const encodedCode = encodeURIComponent(code);
-        const streamingCursor = isStreaming ? '<span style="display:inline-block;width:2px;height:1.2em;background:var(--ai-accent);margin-left:2px;animation:blink 1s infinite;"></span>' : '';
+        const streamingCursor = isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
         return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(108,92,231,0.1);border-bottom:1px solid rgba(108,92,231,0.2);">
                 <span style="color:var(--ai-accent-light);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${langLabel}</span>
                 <button class="ai-copy-btn" data-code="${encodedCode}" style="background:rgba(108,92,231,0.2);border:1px solid rgba(108,92,231,0.3);color:var(--ai-text-secondary);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:all 0.2s ease;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span class="copy-icon" aria-hidden="true">&#x1F4CB;</span>
                     <span class="copy-text">Copy</span>
                 </button>
             </div>
@@ -265,7 +315,8 @@ class StreamingMarkdownRenderer {
     }
 
     finalize() {
-        this.render();
+        this.render(true);
+        this.target.querySelectorAll('.streaming-cursor').forEach(el => el.remove());
         this.target.querySelectorAll('[style*="animation:blink"]').forEach(el => el.remove());
     }
 
@@ -792,9 +843,8 @@ function addSystemMessage(text) {
 }
 
 function formatSystemMessage(text) {
-    // Parse file listings with better formatting
-    if (text.includes('📂 Your cloud files')) {
-        return text.replace(/\n/g, '<br>');
+    if (typeof formatAi === 'function') {
+        return formatAi(text);
     }
     return esc(text);
 }
@@ -1087,7 +1137,7 @@ function loadChat(id) {
                     if (m.sender === 'system') {
                         addSystemMessage(m.text);
                     } else {
-                        appendStatic(m.text, m.sender, m.modelName, m.author, m.memorySaved, m.fileName);
+                        appendStatic(m.text, m.sender, m.modelName, m.author, m.memorySaved, m.fileName, m.modelId);
                     }
                 });
 
@@ -1385,7 +1435,7 @@ async function sendAiMessage() {
     const typingIndicator = document.getElementById('typing-indicator');
     if (typingIndicator) typingIndicator.classList.remove('hidden');
 
-    const { messageDiv, contentTarget, renderer } = createStreamingBubble(modelName, md);
+    const { messageDiv, contentTarget, renderer } = createStreamingBubble(modelName, md, modelId);
 
     try {
         const sysPr = `You are a helpful AI assistant for Photon Studios (an indie game dev team). You're in a group chat environment. Be friendly, helpful, and concise. Use markdown formatting when appropriate - code blocks with language tags, bold for emphasis, lists for multiple items. ${getMemoryContext()}`;
@@ -1439,11 +1489,13 @@ async function sendAiMessage() {
 
         renderer.finalize();
 
-        // Add model tag with appropriate icon
-        const modelIcon = useGemini ? '✨' : (md?.logo || '🤖');
+                // Add model tag with appropriate icon
+        const modelIcon = (typeof getAILogo === 'function')
+            ? getAILogo(md?.logoKey || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(modelId) : null))
+            : '&#x1F916;';
         const modelTag = document.createElement('div');
         modelTag.className = 'ai-model-tag';
-        modelTag.innerHTML = `<span>${modelIcon}</span> ${esc(modelName)}`;
+        modelTag.innerHTML = `${modelIcon} ${esc(modelName)}`;
         messageDiv.querySelector('.message-content').appendChild(modelTag);
 
         const aiMsg = {
@@ -1451,6 +1503,7 @@ async function sendAiMessage() {
             sender: 'ai',
             author: modelName,
             modelName,
+            modelId,
             timestamp: new Date().toISOString()
         };
 
@@ -1472,6 +1525,7 @@ async function sendAiMessage() {
             sender: 'ai',
             author: modelName,
             modelName,
+            modelId,
             timestamp: new Date().toISOString()
         });
         await saveCurrentChat();
@@ -1482,7 +1536,7 @@ async function sendAiMessage() {
     if (typingIndicator) typingIndicator.classList.add('hidden');
 }
 
-function createStreamingBubble(name, modelData) {
+function createStreamingBubble(name, modelData, modelId = "") {
     const inner = dom.aiChat?.querySelector('.chat-messages-inner');
     if (!inner) {
         return { messageDiv: null, contentTarget: null, renderer: { appendChunk: () => {}, finalize: () => {} } };
@@ -1491,9 +1545,13 @@ function createStreamingBubble(name, modelData) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ai-message';
 
-    const logoHtml = typeof getAILogo === 'function' 
-        ? getAILogo(modelData?.logoKey || getLogoKeyFromModel(state.selectedModel))
-        : '🤖';
+    const logoKey = modelData?.logoKey || (typeof getLogoKeyFromModel === "function"
+        ? getLogoKeyFromModel(modelId || state.selectedModel)
+        : null);
+
+    const logoHtml = (typeof getAILogo === "function" && logoKey)
+        ? getAILogo(logoKey)
+        : "&#x1F916;";
 
     messageDiv.innerHTML = `
         <div class="message-avatar">${logoHtml}</div>
@@ -1559,6 +1617,7 @@ async function performWebSearch(query) {
     if (!query) return;
 
     const username = state.user?.username || 'Anon';
+    const searchModelId = AI_MODELS[state.selectedModel]?.api === 'gemini' ? state.selectedModel : undefined;
 
     // Hide welcome message
     const welcome = document.getElementById('welcome-message');
@@ -1606,13 +1665,13 @@ async function performWebSearch(query) {
     if (typingIndicator) typingIndicator.classList.remove('hidden');
 
     // Create streaming bubble
-    const { messageDiv, contentTarget, renderer } = createStreamingBubble('Gemini Search', { logoKey: 'gemini' });
+    const { messageDiv, contentTarget, renderer } = createStreamingBubble('Gemini Search', { logoKey: 'gemini' }, 'gemini-web-search');
 
     try {
         let fullText = '';
 
         try {
-            const stream = geminiWebSearchStream(query);
+            const stream = geminiWebSearchStream(query, searchModelId);
             
             for await (const chunk of stream) {
                 if (chunk) {
@@ -1622,7 +1681,7 @@ async function performWebSearch(query) {
             }
         } catch (streamError) {
             console.warn('Search stream error, trying non-stream:', streamError);
-            const result = await geminiWebSearch(query);
+            const result = await geminiWebSearch(query, searchModelId);
             fullText = result?.choices?.[0]?.message?.content || 'No results found.';
             renderer.appendChunk(fullText);
         }
@@ -1632,7 +1691,7 @@ async function performWebSearch(query) {
         // Add model tag
         const modelTag = document.createElement('div');
         modelTag.className = 'ai-model-tag';
-        modelTag.innerHTML = `<span>🔍</span> Gemini Web Search`;
+        modelTag.innerHTML = `${getAILogo ? getAILogo('gemini') : '&#x1F916;'} Gemini Web Search`;
         messageDiv.querySelector('.message-content').appendChild(modelTag);
 
         // Save AI response
@@ -1641,6 +1700,7 @@ async function performWebSearch(query) {
             sender: 'ai',
             author: 'Gemini Search',
             modelName: 'Gemini Web Search',
+            modelId: 'gemini-web-search',
             timestamp: new Date().toISOString()
         };
 
@@ -1707,22 +1767,26 @@ function appendUserMessage(text, author, memorySaved = false, fileName = '') {
     }
 }
 
-function appendStatic(text, sender, modelName = '', author = '', memorySaved = false, fileName = '') {
+function appendStatic(text, sender, modelName = '', author = '', memorySaved = false, fileName = '', modelId = '') {
     const inner = dom.aiChat?.querySelector('.chat-messages-inner');
     if (!inner) return;
 
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message ' + (sender === 'user' ? 'user-message' : 'ai-message');
 
-    const md = sender === 'ai' ? AI_MODELS[state.selectedModel] : null;
+    const resolvedModelId = modelId || state.selectedModel;
+    const md = sender === 'ai' ? AI_MODELS[resolvedModelId] : null;
     
     let avatarHtml;
     if (sender === 'user') {
         avatarHtml = esc((author || '??').substring(0, 2).toUpperCase());
     } else {
-        avatarHtml = typeof getAILogo === 'function' 
-            ? getAILogo(md?.logoKey || getLogoKeyFromModel(state.selectedModel))
-            : '🤖';
+        const logoKey = md?.logoKey || (typeof getLogoKeyFromModel === 'function'
+            ? getLogoKeyFromModel(resolvedModelId)
+            : null);
+        avatarHtml = (typeof getAILogo === 'function' && logoKey)
+            ? getAILogo(logoKey)
+            : '&#x1F916;';
     }
 
     let html = `
@@ -1747,12 +1811,14 @@ function appendStatic(text, sender, modelName = '', author = '', memorySaved = f
     } else {
         html += `<div class="message-text">${esc(text)}</div>`;
     }
-
-    if (sender === 'ai' && modelName) {
-        const logoHtml = typeof getAILogo === 'function' 
-            ? getAILogo(md?.logoKey || getLogoKeyFromModel(state.selectedModel))
-            : '🤖';
-        html += `<div class="ai-model-tag">${logoHtml} ${esc(modelName)}</div>`;
+      if (sender === 'ai' && modelName) {
+        const tagLogoKey = md?.logoKey || (typeof getLogoKeyFromModel === 'function'
+            ? getLogoKeyFromModel(resolvedModelId)
+            : null);
+        const tagLogoHtml = (typeof getAILogo === 'function' && tagLogoKey)
+            ? getAILogo(tagLogoKey)
+            : '&#x1F916;';
+        html += `<div class="ai-model-tag">${tagLogoHtml} ${esc(modelName)}</div>`;
     }
 
     if (memorySaved) {
@@ -1864,7 +1930,7 @@ function setupAIModelSelector() {
     options.forEach(option => {
         option.onclick = () => {
             const value = option.dataset.value;
-            const icon = option.dataset.icon;
+            const iconHtml = option.querySelector('.model-option-icon')?.innerHTML || option.dataset.icon || '&#x1F916;';
             const name = option.dataset.name;
 
             const modelIcon = document.getElementById('model-icon');
@@ -1872,9 +1938,9 @@ function setupAIModelSelector() {
             const modelLogoPanel = document.getElementById('model-logo-panel');
             const modelNamePanel = document.getElementById('model-name-panel');
 
-            if (modelIcon) modelIcon.textContent = icon;
+            if (modelIcon) modelIcon.innerHTML = iconHtml;
             if (modelName) modelName.textContent = name;
-            if (modelLogoPanel) modelLogoPanel.textContent = icon;
+            if (modelLogoPanel) modelLogoPanel.innerHTML = iconHtml;
             if (modelNamePanel) modelNamePanel.textContent = name;
 
             options.forEach(o => o.classList.remove('selected'));
@@ -2121,3 +2187,17 @@ if (document.readyState === 'loading') {
 } else {
     initAIPageController();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -509,34 +509,50 @@ function fileIcon(n, d) {
 // ========== SIMPLE MARKDOWN FORMATTER (FALLBACK) ==========
 function formatAi(text) {
     if (!text) return '';
+    const rawText = typeof text === 'string' ? text : String(text);
 
     // Use StreamingMarkdownRenderer if available (from ai.js)
     if (typeof StreamingMarkdownRenderer !== 'undefined') {
         const tempDiv = document.createElement('div');
         const renderer = new StreamingMarkdownRenderer(tempDiv);
-        renderer.appendChunk(text);
+        renderer.appendChunk(rawText);
         renderer.finalize();
         return tempDiv.innerHTML;
     }
 
+    // Use marked if available (other pages)
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            headerIds: false,
+            mangle: false
+        });
+        let html = marked.parse(rawText);
+        if (typeof DOMPurify !== 'undefined') {
+            html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style'] });
+        }
+        return html;
+    }
+
     // Basic fallback
-    let f = esc(text);
-    
+    let f = esc(rawText);
+
     // Bold + Italic
     f = f.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    
+
     // Bold
     f = f.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    
+
     // Italic
     f = f.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    
+
     // Inline code
     f = f.replace(/`([^`]+)`/g, '<code style="background:rgba(108,92,231,.2);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.85em">$1</code>');
-    
+
     // Line breaks
     f = f.replace(/\n/g, '<br>');
-    
+
     return f;
 }
 // Copy code handler - called via event delegation
@@ -615,7 +631,7 @@ async function openRouterChat(messages, modelId) {
     }
 
     const data = await response.json();
-    return data?.choices?.[0]?.message?.content || "No response.";
+    return data?.choices?.[0]?.message?.content || data?.text || data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "No response.";
 }
 
 async function* openRouterChatStream(messages, modelId) {
@@ -657,7 +673,7 @@ async function* openRouterChatStream(messages, modelId) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content;
+                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
@@ -684,7 +700,7 @@ async function geminiChat(messages, modelId) {
     }
 
     const data = await response.json();
-    return data?.choices?.[0]?.message?.content || "No response.";
+    return data?.choices?.[0]?.message?.content || data?.text || data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "No response.";
 }
 
 async function* geminiChatStream(messages, modelId) {
@@ -724,7 +740,7 @@ async function* geminiChatStream(messages, modelId) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content;
+                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
@@ -734,12 +750,13 @@ async function* geminiChatStream(messages, modelId) {
 }
 
 // Web Search function
-async function geminiWebSearch(query) {
+async function geminiWebSearch(query, modelId) {
     const response = await fetch("/api/gemini-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             query,
+            modelId,
             stream: false
         })
     });
@@ -752,12 +769,13 @@ async function geminiWebSearch(query) {
     return await response.json();
 }
 
-async function* geminiWebSearchStream(query) {
+async function* geminiWebSearchStream(query, modelId) {
     const response = await fetch("/api/gemini-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             query,
+            modelId,
             stream: true
         })
     });
@@ -788,7 +806,7 @@ async function* geminiWebSearchStream(query) {
 
             try {
                 const parsed = JSON.parse(payload);
-                const text = parsed?.choices?.[0]?.delta?.content;
+                const text = parsed?.choices?.[0]?.delta?.content || parsed?.choices?.[0]?.message?.content || parsed?.text || parsed?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("");
                 if (text) yield text;
             } catch {
                 // Skip invalid JSON
@@ -816,3 +834,5 @@ window.openRouterChat = openRouterChat;
 window.openRouterChatStream = openRouterChatStream;
 
 console.log('✓ Config.js loaded');
+
+

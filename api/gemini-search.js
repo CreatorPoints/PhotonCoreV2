@@ -1,5 +1,36 @@
 const { GoogleGenAI } = require("@google/genai");
 
+function normalizeQueryContents(query) {
+    if (!query) return [];
+
+    if (Array.isArray(query) && query.length && query[0]?.parts) {
+        return query;
+    }
+
+    if (Array.isArray(query)) {
+        return query.map(item => ({
+            role: item.role || 'user',
+            parts: Array.isArray(item.parts) ? item.parts : [{ text: String(item.content ?? item.text ?? '') }]
+        }));
+    }
+
+    return [{ role: 'user', parts: [{ text: String(query) }] }];
+}
+
+function extractTextFromResponse(response) {
+    if (!response) return '';
+    if (typeof response.text === 'string') return response.text;
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    return parts.map(part => part.text || '').join('');
+}
+
+function extractTextFromChunk(chunk) {
+    if (!chunk) return '';
+    if (typeof chunk.text === 'string') return chunk.text;
+    const parts = chunk.candidates?.[0]?.content?.parts || [];
+    return parts.map(part => part.text || '').join('');
+}
+
 module.exports = async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,7 +53,10 @@ module.exports = async function handler(req, res) {
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
-        const { query, stream } = req.body;
+        const body = req.body || {};
+        const query = body.query || body.messages || body.contents;
+        const stream = !!body.stream;
+        const modelId = body.modelId || body.model || "gemini-2.5-flash-preview-05-20";
 
         if (!query) {
             return res.status(400).json({ error: 'Missing query' });
@@ -32,12 +66,23 @@ module.exports = async function handler(req, res) {
 
         // Web search grounding tool
         const groundingTool = {
-            googleSearch: {},
+            googleSearch: {}
         };
 
-        const config = {
-            tools: [groundingTool],
-        };
+        const config = { ...(body.config && typeof body.config === 'object' ? body.config : {}) };
+        const tools = Array.isArray(config.tools) ? config.tools.slice() : [];
+        tools.push(groundingTool);
+        config.tools = tools;
+
+        if (body.generationConfig && typeof body.generationConfig === 'object' && !config.generationConfig) {
+            config.generationConfig = body.generationConfig;
+        }
+
+        if (body.safetySettings && typeof body.safetySettings === 'object' && !config.safetySettings) {
+            config.safetySettings = body.safetySettings;
+        }
+
+        const contents = normalizeQueryContents(query);
 
         if (stream) {
             // Streaming response
@@ -46,13 +91,13 @@ module.exports = async function handler(req, res) {
             res.setHeader('Connection', 'keep-alive');
 
             const response = await ai.models.generateContentStream({
-                model: "gemini-2.5-flash-preview-05-20",
-                contents: query,
+                model: modelId,
+                contents,
                 config
             });
 
             for await (const chunk of response) {
-                const text = chunk.text;
+                const text = extractTextFromChunk(chunk);
                 if (text) {
                     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
                 }
@@ -60,15 +105,14 @@ module.exports = async function handler(req, res) {
 
             res.write('data: [DONE]\n\n');
             res.end();
-
         } else {
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-preview-05-20",
-                contents: query,
+                model: modelId,
+                contents,
                 config
             });
 
-            const text = response.text || '';
+            const text = extractTextFromResponse(response) || '';
 
             // Get grounding metadata if available
             let sources = [];
@@ -94,7 +138,6 @@ module.exports = async function handler(req, res) {
                 sources
             });
         }
-
     } catch (e) {
         console.error('Gemini Search error:', e);
         return res.status(500).json({ error: e.message || 'Search failed' });
