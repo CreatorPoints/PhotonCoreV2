@@ -666,6 +666,144 @@ async function* openRouterChatStream(messages, modelId) {
     }
 }
 
+// ========== GEMINI API ==========
+async function geminiChat(messages, modelId) {
+    const response = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            modelId,
+            messages,
+            stream: false
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error("Gemini error: " + response.status + " " + err);
+    }
+
+    const data = await response.json();
+    return data?.choices?.[0]?.message?.content || "No response.";
+}
+
+async function* geminiChatStream(messages, modelId) {
+    const response = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            modelId,
+            messages,
+            stream: true
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error("Gemini error: " + response.status + " " + err);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+            const payload = trimmed.replace(/^data:\s*/, '');
+            if (payload === '[DONE]') return;
+
+            try {
+                const parsed = JSON.parse(payload);
+                const text = parsed?.choices?.[0]?.delta?.content;
+                if (text) yield text;
+            } catch {
+                // Skip invalid JSON
+            }
+        }
+    }
+}
+
+// Web Search function
+async function geminiWebSearch(query) {
+    const response = await fetch("/api/gemini-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            query,
+            stream: false
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error("Search error: " + response.status + " " + err);
+    }
+
+    return await response.json();
+}
+
+async function* geminiWebSearchStream(query) {
+    const response = await fetch("/api/gemini-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            query,
+            stream: true
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.text().catch(() => '');
+        throw new Error("Search error: " + response.status + " " + err);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+            const payload = trimmed.replace(/^data:\s*/, '');
+            if (payload === '[DONE]') return;
+
+            try {
+                const parsed = JSON.parse(payload);
+                const text = parsed?.choices?.[0]?.delta?.content;
+                if (text) yield text;
+            } catch {
+                // Skip invalid JSON
+            }
+        }
+    }
+}
+
+// Export new functions
+window.geminiChat = geminiChat;
+window.geminiChatStream = geminiChatStream;
+window.geminiWebSearch = geminiWebSearch;
+window.geminiWebSearchStream = geminiWebSearchStream;
+
+
 // Make functions globally available
 window.initFirebase = initFirebase;
 window.initDom = initDom;
