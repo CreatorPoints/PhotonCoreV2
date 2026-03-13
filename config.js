@@ -101,206 +101,298 @@ const AI_MODELS = {
         provider: 'OpenRouter',
         logoKey: 'auto',
         badge: 'Smart',
-        desc: 'Automatically picks the best available model'
+        desc: 'Automatically picks the best available model',
+        api: 'openrouter'
     },
 
-    // === META LLAMA ===
+    // === GOOGLE GEMINI (Direct API) ===
+    'gemini-2.5-flash-preview-05-20': {
+        name: 'Gemini 2.5 Flash',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Fast',
+        desc: 'Latest fast model with great quality',
+        api: 'gemini'
+    },
+    'gemini-2.5-pro-preview-05-06': {
+        name: 'Gemini 2.5 Pro',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Pro',
+        desc: 'Most capable Gemini model',
+        api: 'gemini'
+    },
+    'gemini-2.0-flash': {
+        name: 'Gemini 2.0 Flash',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Stable',
+        desc: 'Stable fast model',
+        api: 'gemini'
+    },
+    'gemini-2.0-flash-lite': {
+        name: 'Gemini 2.0 Flash Lite',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Lite',
+        desc: 'Lightweight and fast',
+        api: 'gemini'
+    },
+    'gemini-3-flash-preview': {
+        name: 'Gemini 3 Flash',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'New',
+        desc: 'Next-gen fast model',
+        api: 'gemini'
+    },
+    'gemini-2.5-flash-lite-preview-06-17': {
+        name: 'Gemini 2.5 Flash Lite',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Lite',
+        desc: 'Ultra lightweight',
+        api: 'gemini'
+    },
+    'gemini-3.1-pro-preview': {
+        name: 'Gemini 3.1 Pro',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Latest',
+        desc: 'Latest Pro model',
+        api: 'gemini'
+    },
+    'gemini-3.1-flash-lite-preview': {
+        name: 'Gemini 3.1 Flash Lite',
+        provider: 'Google',
+        logoKey: 'gemini',
+        badge: 'Fast',
+        desc: 'Latest lite model',
+        api: 'gemini'
+    },
+
+    // === META LLAMA (OpenRouter) ===
     'meta-llama/llama-3.3-70b-instruct:free': {
         name: 'LLaMA 3.3 70B',
         provider: 'Meta',
         logoKey: 'meta',
         badge: 'Flagship',
-        desc: 'Best overall performance, reasoning & coding'
+        desc: 'Best overall performance, reasoning & coding',
+        api: 'openrouter'
     },
     'meta-llama/llama-3.2-3b-instruct:free': {
         name: 'LLaMA 3.2 3B',
         provider: 'Meta',
         logoKey: 'meta',
         badge: 'Fast',
-        desc: 'Lightning fast, good for simple tasks'
+        desc: 'Lightning fast, good for simple tasks',
+        api: 'openrouter'
     },
 
-    // === GOOGLE GEMMA ===
+    // === GOOGLE GEMMA (OpenRouter - Free) ===
     'google/gemma-3-27b-it:free': {
         name: 'Gemma 3 27B',
         provider: 'Google',
         logoKey: 'google',
         badge: 'Powerful',
-        desc: 'Google\'s best, great reasoning & writing'
+        desc: 'Google\'s best open model',
+        api: 'openrouter'
     },
     'google/gemma-3-12b-it:free': {
         name: 'Gemma 3 12B',
         provider: 'Google',
         logoKey: 'google',
         badge: 'Balanced',
-        desc: 'Good balance of speed and quality'
+        desc: 'Good balance of speed and quality',
+        api: 'openrouter'
     },
     'google/gemma-3-4b-it:free': {
         name: 'Gemma 3 4B',
         provider: 'Google',
         logoKey: 'google',
         badge: 'Fast',
-        desc: 'Quick responses, efficient'
+        desc: 'Quick responses, efficient',
+        api: 'openrouter'
     },
     'google/gemma-3n-e4b-it:free': {
         name: 'Gemma 3N E4B',
         provider: 'Google',
         logoKey: 'google',
         badge: 'Edge',
-        desc: 'Optimized for edge devices'
+        desc: 'Optimized for edge devices',
+        api: 'openrouter'
     },
     'google/gemma-3n-e2b-it:free': {
         name: 'Gemma 3N E2B',
         provider: 'Google',
         logoKey: 'google',
         badge: 'Tiny',
-        desc: 'Ultra-compact, instant responses'
+        desc: 'Ultra-compact, instant responses',
+        api: 'openrouter'
     },
 
-    // === NVIDIA ===
+    // === NVIDIA (OpenRouter) ===
     'nvidia/nemotron-3-nano-30b-a3b:free': {
         name: 'Nemotron 30B',
         provider: 'NVIDIA',
         logoKey: 'nvidia',
         badge: 'Reasoning',
-        desc: 'Strong logical reasoning & math'
+        desc: 'Strong logical reasoning & math',
+        api: 'openrouter'
     },
     'nvidia/nemotron-nano-12b-v2-vl:free': {
         name: 'Nemotron 12B VL',
         provider: 'NVIDIA',
         logoKey: 'nvidia',
         badge: 'Vision',
-        desc: 'Vision-language understanding'
+        desc: 'Vision-language understanding',
+        api: 'openrouter'
     },
     'nvidia/nemotron-nano-9b-v2:free': {
         name: 'Nemotron 9B',
         provider: 'NVIDIA',
         logoKey: 'nvidia',
         badge: 'Balanced',
-        desc: 'Well-rounded performance'
+        desc: 'Well-rounded performance',
+        api: 'openrouter'
     },
     'nvidia/llama-nemotron-embed-vl-1b-v2:free': {
         name: 'Nemotron Embed 1B',
         provider: 'NVIDIA',
         logoKey: 'nvidia',
         badge: 'Embed',
-        desc: 'Embeddings & vision tasks'
+        desc: 'Embeddings & vision tasks',
+        api: 'openrouter'
     },
 
-    // === QWEN (ALIBABA) ===
+    // === QWEN (OpenRouter) ===
     'qwen/qwen3-coder:free': {
         name: 'Qwen3 Coder',
         provider: 'Alibaba',
         logoKey: 'coder',
         badge: 'Code',
-        desc: 'Specialized for programming'
+        desc: 'Specialized for programming',
+        api: 'openrouter'
     },
     'qwen/qwen3-next-80b-a3b-instruct:free': {
         name: 'Qwen3 Next 80B',
         provider: 'Alibaba',
         logoKey: 'qwen',
         badge: 'Large',
-        desc: 'Advanced reasoning & analysis'
+        desc: 'Advanced reasoning & analysis',
+        api: 'openrouter'
     },
     'qwen/qwen3-4b:free': {
         name: 'Qwen3 4B',
         provider: 'Alibaba',
         logoKey: 'qwen',
         badge: 'Fast',
-        desc: 'Quick general assistant'
+        desc: 'Quick general assistant',
+        api: 'openrouter'
     },
 
-    // === MISTRAL ===
+    // === MISTRAL (OpenRouter) ===
     'mistralai/mistral-small-3.1-24b-instruct:free': {
         name: 'Mistral Small 24B',
         provider: 'Mistral AI',
         logoKey: 'mistral',
         badge: 'Quality',
-        desc: 'Excellent writing & reasoning'
+        desc: 'Excellent writing & reasoning',
+        api: 'openrouter'
     },
 
-    // === OPENAI OSS ===
+    // === OPENAI OSS (OpenRouter) ===
     'openai/gpt-oss-120b:free': {
         name: 'GPT-OSS 120B',
         provider: 'OpenAI',
         logoKey: 'openai',
         badge: 'Massive',
-        desc: 'Large open-source GPT model'
+        desc: 'Large open-source GPT model',
+        api: 'openrouter'
     },
     'openai/gpt-oss-20b:free': {
         name: 'GPT-OSS 20B',
         provider: 'OpenAI',
         logoKey: 'openai',
         badge: 'Fast',
-        desc: 'Faster open-source GPT'
+        desc: 'Faster open-source GPT',
+        api: 'openrouter'
     },
 
-    // === ARCEE AI ===
+    // === ARCEE AI (OpenRouter) ===
     'arcee-ai/trinity-large-preview:free': {
         name: 'Arcee Large',
         provider: 'Arcee AI',
         logoKey: 'arcee',
         badge: 'Preview',
-        desc: 'Advanced multi-task reasoning'
+        desc: 'Advanced multi-task reasoning',
+        api: 'openrouter'
     },
     'arcee-ai/trinity-mini:free': {
         name: 'Arcee Mini',
         provider: 'Arcee AI',
         logoKey: 'arcee',
         badge: 'Compact',
-        desc: 'Lightweight but capable'
+        desc: 'Lightweight but capable',
+        api: 'openrouter'
     },
 
-    // === STEPFUN ===
+    // === STEPFUN (OpenRouter) ===
     'stepfun/step-3.5-flash:free': {
         name: 'Step 3.5 Flash',
         provider: 'StepFun',
         logoKey: 'stepfun',
         badge: 'Ultra Fast',
-        desc: 'Blazing fast responses'
+        desc: 'Blazing fast responses',
+        api: 'openrouter'
     },
 
-    // === Z AI ===
+    // === Z AI (OpenRouter) ===
     'z-ai/glm-4.5-air:free': {
         name: 'GLM 4.5 Air',
         provider: 'Z AI',
         logoKey: 'zai',
         badge: 'Bilingual',
-        desc: 'Chinese & English specialist'
+        desc: 'Chinese & English specialist',
+        api: 'openrouter'
     },
 
-    // === LIQUID ===
+    // === LIQUID (OpenRouter) ===
     'liquid/lfm-2.5-1.2b-thinking:free': {
         name: 'LFM Thinking',
         provider: 'Liquid',
         logoKey: 'liquid',
         badge: 'CoT',
-        desc: 'Chain-of-thought reasoning'
+        desc: 'Chain-of-thought reasoning',
+        api: 'openrouter'
     },
     'liquid/lfm-2.5-1.2b-instruct:free': {
         name: 'LFM Instruct',
         provider: 'Liquid',
         logoKey: 'liquid',
         badge: 'Fast',
-        desc: 'Quick instruction following'
+        desc: 'Quick instruction following',
+        api: 'openrouter'
     },
 
-    // === NOUS RESEARCH ===
+    // === NOUS RESEARCH (OpenRouter) ===
     'nousresearch/hermes-3-llama-3.1-405b:free': {
         name: 'Hermes 3 405B',
         provider: 'Nous Research',
         logoKey: 'nous',
         badge: 'Massive',
-        desc: 'Largest free model, best quality'
+        desc: 'Largest free model, best quality',
+        api: 'openrouter'
     },
 
-    // === COGNITIVE COMPUTATIONS ===
+    // === COGNITIVE (OpenRouter) ===
     'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': {
         name: 'Dolphin Mistral 24B',
         provider: 'Cognitive',
         logoKey: 'cognitive',
         badge: 'Creative',
-        desc: 'Uncensored, creative writing'
+        desc: 'Uncensored, creative writing',
+        api: 'openrouter'
     }
 };
 
