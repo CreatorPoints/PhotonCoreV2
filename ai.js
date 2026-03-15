@@ -301,12 +301,22 @@ class StreamingMarkdownRenderer {
     renderCodeBlock(code, lang, isStreaming = false) {
         const safeCode = normalizeTextChunk(code);
         let highlighted;
+        let detectedLang = (lang || '').trim().toLowerCase();
+
+        if (!detectedLang || detectedLang === 'plaintext') {
+            const htmlish = /<\s*(!doctype|html|head|body|div|span|p|a|section|main|header|footer|table|tr|td|th|ul|ol|li|script|style)\b/i.test(safeCode);
+            if (htmlish) detectedLang = 'html';
+        }
         
         try {
-            if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
-                highlighted = hljs.highlight(safeCode, { language: lang }).value;
+            if (typeof hljs !== 'undefined' && detectedLang && hljs.getLanguage(detectedLang)) {
+                highlighted = hljs.highlight(safeCode, { language: detectedLang }).value;
             } else if (typeof hljs !== 'undefined') {
-                highlighted = hljs.highlightAuto(safeCode).value;
+                const auto = hljs.highlightAuto(safeCode);
+                highlighted = auto.value;
+                if (!detectedLang || detectedLang === 'plaintext') {
+                    detectedLang = auto.language || detectedLang;
+                }
             } else {
                 highlighted = this.escapeHtml(safeCode);
             }
@@ -314,7 +324,7 @@ class StreamingMarkdownRenderer {
             highlighted = this.escapeHtml(safeCode);
         }
 
-        const langLabel = lang || 'plaintext';
+        const langLabel = detectedLang || 'plaintext';
         const encodedCode = encodeURIComponent(safeCode);
         const streamingCursor = isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
