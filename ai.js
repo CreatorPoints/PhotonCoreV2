@@ -92,7 +92,7 @@ class StreamingMarkdownRenderer {
                 mangle: false
             });
 
-            const rawText = typeof text === 'string' ? text : String(text);
+            const rawText = normalizeTextChunk(text);
             let html = marked.parse(rawText);
             if (typeof DOMPurify !== 'undefined') {
                 html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style'] });
@@ -299,22 +299,23 @@ class StreamingMarkdownRenderer {
     }
 
     renderCodeBlock(code, lang, isStreaming = false) {
+        const safeCode = normalizeTextChunk(code);
         let highlighted;
         
         try {
             if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
-                highlighted = hljs.highlight(code, { language: lang }).value;
+                highlighted = hljs.highlight(safeCode, { language: lang }).value;
             } else if (typeof hljs !== 'undefined') {
-                highlighted = hljs.highlightAuto(code).value;
+                highlighted = hljs.highlightAuto(safeCode).value;
             } else {
-                highlighted = this.escapeHtml(code);
+                highlighted = this.escapeHtml(safeCode);
             }
         } catch (e) {
-            highlighted = this.escapeHtml(code);
+            highlighted = this.escapeHtml(safeCode);
         }
 
         const langLabel = lang || 'plaintext';
-        const encodedCode = encodeURIComponent(code);
+        const encodedCode = encodeURIComponent(safeCode);
         const streamingCursor = isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
         return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
