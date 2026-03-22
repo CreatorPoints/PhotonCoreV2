@@ -10,6 +10,7 @@ let currentView = 'grid';
 let searchQuery = '';
 let selectedFile = null;
 let fileToDelete = null;
+let filesWarningShown = false;
 
 // ========================================
 // INITIALIZATION - BULLETPROOF
@@ -302,12 +303,21 @@ async function loadFiles() {
 
     try {
         const response = await fetch('/api/files/list');
+        const data = await response.json().catch(() => ({}));
         
         if (!response.ok) {
-            throw new Error('Failed to load files');
+            throw new Error(data.error || 'Failed to load files');
         }
 
-        const data = await response.json();
+        if (!filesWarningShown) {
+            if (data?.configured === false) {
+                filesWarningShown = true;
+                showToast('Files storage is not configured yet. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.', 'info');
+            } else if (data?.error) {
+                filesWarningShown = true;
+                showToast('Files unavailable: ' + data.error, 'error');
+            }
+        }
 
         state.files = (data.files || []).map(f => ({
             id: f.id,

@@ -8,7 +8,6 @@
     <title>Dashboard — Photon Core</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="Photon_Core.png">
-    <script src="https://js.puter.com/v2/"></script>
     <!-- Firebase - ALL 5 SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -88,6 +87,70 @@
                             <div id="recent-activity" class="activity-list"><p class="empty-state">No activity yet.</p></div>
                         </div>
                     </div>
+                    <div class="card calendar-card" id="calendar-card">
+                        <div class="calendar-header">
+                            <div>
+                                <h3>📅 Team Calendar</h3>
+                                <p class="calendar-subtitle">Track events, deadlines, and reminders.</p>
+                            </div>
+                            <div class="calendar-nav">
+                                <button id="cal-prev" class="btn btn-secondary btn-small" title="Previous month">Prev</button>
+                                <div id="cal-month-label" class="calendar-month-label">Month</div>
+                                <button id="cal-next" class="btn btn-secondary btn-small" title="Next month">Next</button>
+                            </div>
+                        </div>
+                        <div class="calendar-body">
+                            <div class="calendar-grid" id="calendar-grid"></div>
+                            <div class="calendar-side">
+                                <div class="calendar-panel">
+                                    <h4>Add Event</h4>
+                                    <div class="calendar-form">
+                                        <input id="calendar-title" class="input" type="text" placeholder="Event title">
+                                        <div class="calendar-row">
+                                            <input id="calendar-date" class="input" type="date">
+                                            <input id="calendar-time" class="input" type="time">
+                                        </div>
+                                        <div class="calendar-row">
+                                            <select id="calendar-type" class="select">
+                                                <option value="deadline">Deadline</option>
+                                                <option value="meeting">Meeting</option>
+                                                <option value="reminder">Reminder</option>
+                                                <option value="event">Event</option>
+                                            </select>
+                                            <select id="calendar-remind" class="select">
+                                                <option value="none">No reminder</option>
+                                                <option value="5">5 min before</option>
+                                                <option value="15">15 min before</option>
+                                                <option value="60">1 hour before</option>
+                                                <option value="1440">1 day before</option>
+                                            </select>
+                                        </div>
+                                        <textarea id="calendar-notes" class="textarea" rows="2" placeholder="Notes (optional)"></textarea>
+                                        <button id="calendar-add-btn" class="btn btn-primary">Add to calendar</button>
+                                    </div>
+                                </div>
+                                <div class="calendar-panel">
+                                    <div class="calendar-events-header">
+                                        <h4>Events</h4>
+                                        <span id="calendar-selected-label" class="calendar-selected-label">Today</span>
+                                    </div>
+                                    <div id="calendar-events-list" class="calendar-events-list"></div>
+                                    <div class="calendar-upcoming">
+                                        <h5>Upcoming</h5>
+                                        <div id="calendar-upcoming-list" class="calendar-events-list"></div>
+                                    </div>
+                                </div>
+                                <div class="calendar-panel">
+                                    <div class="calendar-notify">
+                                        <h4>Notifications</h4>
+                                        <p class="calendar-note">Enable browser notifications for event reminders.</p>
+                                        <button id="calendar-notify-btn" class="btn btn-secondary btn-small">Enable notifications</button>
+                                        <div id="calendar-notify-status" class="calendar-notify-status">Notifications are off</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
         </main>
@@ -103,6 +166,7 @@
     <script src="files.js"></script>
     <script src="ai.js"></script>
     <script src="ui.js"></script>
+    <script src="dashboard-calendar.js"></script>
     <script src="boot.js"></script>
 </body>
 </html>

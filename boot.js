@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(dom.aiModelSelect)dom.aiModelSelect.addEventListener('change',()=>{
         state.selectedModel=dom.aiModelSelect.value;
         if(typeof updateBotIdentity==='function')updateBotIdentity();
-        if(typeof puter!=='undefined')puter.kv.set('photon_selected_model',state.selectedModel).catch(()=>{});
+        try{localStorage.setItem('photon_selected_model',state.selectedModel)}catch(e){}
         showToast('Switched to '+AI_MODELS[state.selectedModel]?.name+' ✨','success');
     });
 
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if(dom.btnDismissTip)dom.btnDismissTip.addEventListener('click',()=>{
         if(dom.memoryTipBanner)dom.memoryTipBanner.classList.add('dismissed');
-        if(typeof puter!=='undefined')puter.kv.set('photon_tip_dismissed','true').catch(()=>{});
+        try{localStorage.setItem('photon_tip_dismissed','true')}catch(e){}
     });
 
     // New chat button - works on both old and new AI pages
@@ -192,11 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(dom.btnNewFolder)dom.btnNewFolder.addEventListener('click',async()=>{
         const n=prompt('Folder name:');
         if(!n?.trim())return;
-        try{
-            if(typeof puter!=='undefined')await puter.fs.mkdir('PhotonCore/files/'+n.trim(),{dedupeName:false});
-            showToast('Created!','success');
-            if(typeof loadFiles==='function')loadFiles();
-        }catch(e){showToast('Failed.','error')}
+        showToast('Folders are not supported in cloud storage yet.','info');
     });
     
     // Profile

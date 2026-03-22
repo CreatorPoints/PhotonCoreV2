@@ -16,11 +16,15 @@ module.exports = async function handler(req, res) {
 
     try {
         const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
-            console.error('Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
-            return res.status(500).json({ error: 'Server configuration error' });
+            console.warn('Supabase not configured for file listing');
+            return res.status(200).json({
+                files: [],
+                configured: false,
+                warning: 'Supabase not configured'
+            });
         }
 
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -32,13 +36,13 @@ module.exports = async function handler(req, res) {
 
         if (error) {
             console.error('Supabase error:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(200).json({ files: [], error: error.message });
         }
 
         return res.status(200).json({ files: data || [] });
 
     } catch (e) {
         console.error('List files error:', e);
-        return res.status(500).json({ error: e.message || 'Unknown error' });
+        return res.status(200).json({ files: [], error: e.message || 'Unknown error' });
     }
 };
