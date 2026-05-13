@@ -141,6 +141,76 @@ class StreamingMarkdownRenderer {
                     return `<p>${normalizeTextChunk(paragraphText)}</p>`;
                 };
 
+                renderer.heading = function(textOrToken, level) {
+                    const headingText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    const headingLevel = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.depth ?? level ?? 1)
+                        : (level ?? 1);
+                    return `<h${headingLevel}>${normalizeTextChunk(headingText)}</h${headingLevel}>`;
+                };
+
+                renderer.listitem = function(textOrToken) {
+                    const itemText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    return `<li>${normalizeTextChunk(itemText)}</li>`;
+                };
+
+                renderer.blockquote = function(quoteOrToken) {
+                    const quoteText = typeof quoteOrToken === 'object' && quoteOrToken !== null
+                        ? (quoteOrToken.text ?? quoteOrToken.raw ?? '')
+                        : (quoteOrToken ?? '');
+                    return `<blockquote>${normalizeTextChunk(quoteText)}</blockquote>`;
+                };
+
+                renderer.strong = function(textOrToken) {
+                    const strongText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    return `<strong>${normalizeTextChunk(strongText)}</strong>`;
+                };
+
+                renderer.em = function(textOrToken) {
+                    const emText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    return `<em>${normalizeTextChunk(emText)}</em>`;
+                };
+
+                renderer.del = function(textOrToken) {
+                    const delText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    return `<del>${normalizeTextChunk(delText)}</del>`;
+                };
+
+                renderer.hr = function() {
+                    return '<hr>';
+                };
+
+                renderer.image = function(hrefOrToken, title, textValue) {
+                    let href;
+                    let imageTitle;
+                    let altText;
+
+                    if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
+                        href = hrefOrToken.href ?? '';
+                        imageTitle = hrefOrToken.title ?? '';
+                        altText = hrefOrToken.text ?? '';
+                    } else {
+                        href = hrefOrToken ?? '';
+                        imageTitle = title ?? '';
+                        altText = textValue ?? '';
+                    }
+
+                    const safeHref = self.escapeHtml(normalizeTextChunk(href));
+                    const safeAlt = self.escapeHtml(normalizeTextChunk(altText));
+                    const safeTitle = imageTitle ? ` title="${self.escapeHtml(normalizeTextChunk(imageTitle))}"` : '';
+                    return `<img src="${safeHref}" alt="${safeAlt}"${safeTitle}>`;
+                };
+
                 this.markedRenderer = renderer;
             }
 
@@ -252,6 +322,55 @@ function scrollChatToBottom() {
 
 function getAiInputElement() {
     return dom.aiInput || document.getElementById('ai-input');
+}
+
+function getRelevantMemories(limit = 12) {
+    if (!Array.isArray(state.memories) || !state.memories.length) return [];
+    return state.memories
+        .filter(memory => normalizeTextChunk(memory?.text).trim())
+        .sort((left, right) => new Date(left.createdAt || 0) - new Date(right.createdAt || 0))
+        .slice(-limit);
+}
+
+function buildMemorySystemMessage() {
+    const memories = getRelevantMemories();
+    if (!memories.length) return null;
+
+    const memoryLines = memories.map((memory, index) => {
+        const createdAt = memory.createdAt ? new Date(memory.createdAt).toLocaleString() : 'Unknown time';
+        return `${index + 1}. ${normalizeTextChunk(memory.text)} (saved ${createdAt})`;
+    }).join('\n');
+
+    return [
+        'You are Photon Core AI inside a shared team workspace.',
+        'Use the team memory below as trusted project context whenever the user asks about prior work, current plans, what the team was building, past decisions, or saved facts.',
+        'If the answer is not present in the chat or memory, say that clearly instead of inventing it.',
+        'Team memory:',
+        memoryLines
+    ].join('\n\n');
+}
+
+function buildRequestMessages(userMessageId) {
+    const messages = [];
+    const memorySystemMessage = buildMemorySystemMessage();
+
+    if (memorySystemMessage) {
+        messages.push({
+            role: 'system',
+            content: memorySystemMessage
+        });
+    }
+
+    state.currentChatMessages.forEach(message => {
+        messages.push({
+            role: message.role,
+            content: message.id === userMessageId
+                ? buildPromptWithAttachment(message.content)
+                : normalizeTextChunk(message.content)
+        });
+    });
+
+    return messages;
 }
 
 function generateId(prefix) {
@@ -691,10 +810,7 @@ async function sendAiMessage() {
     updateWelcomeVisibility();
 
     const requestModel = getSelectedModelForRequest();
-    const requestMessages = state.currentChatMessages.map(message => ({
-        role: message.role,
-        content: message.id === userMessage.id ? buildPromptWithAttachment(message.content) : message.content
-    }));
+    const requestMessages = buildRequestMessages(userMessage.id);
 
     clearComposer();
     clearAttachment();

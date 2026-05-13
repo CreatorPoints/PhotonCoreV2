@@ -1627,6 +1627,14 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     word-wrap: break-word;
 }
 
+.message-text > *:first-child {
+    margin-top: 0;
+}
+
+.message-text > *:last-child {
+    margin-bottom: 0;
+}
+
 .message-text p {
     margin: 0 0 12px 0;
 }
@@ -1657,6 +1665,25 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 .message-text ol {
     margin: 12px 0 12px 22px;
     padding-left: 0;
+}
+
+.message-text li + li {
+    margin-top: 6px;
+}
+
+.message-text strong {
+    color: #f5f3ff;
+    font-weight: 700;
+}
+
+.message-text em {
+    color: #ddd6fe;
+}
+
+.message-text hr {
+    margin: 18px 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .message-text blockquote {
@@ -1691,6 +1718,14 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     margin: 14px 0;
 }
 
+.message-text img {
+    display: block;
+    max-width: min(100%, 560px);
+    border-radius: 14px;
+    margin: 16px 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .message-text table {
     width: 100%;
     border-collapse: collapse;
@@ -1698,10 +1733,16 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     border-radius: 12px;
     overflow: hidden;
     margin: 16px 0;
+    display: block;
+    overflow-x: auto;
 }
 
 .message-text thead {
     background: rgba(108, 92, 231, 0.15);
+}
+
+.message-text tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .message-text th,
@@ -1709,6 +1750,11 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     padding: 10px 14px;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.message-text th {
+    font-weight: 700;
+    color: #f5f3ff;
 }
 
 .ai-copy-btn .copy-icon {
