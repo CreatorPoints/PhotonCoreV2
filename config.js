@@ -389,7 +389,12 @@ function initDom() {
         // New AI page elements
         'btn-send', 'btn-attach', 'btn-memory', 'btn-close-memory',
         'memory-count-panel', 'model-logo-panel', 'model-name-panel',
-        'sidebar-overlay', 'ai-sidebar', 'memory-panel'
+        'sidebar-overlay', 'ai-sidebar', 'memory-panel',
+        'btn-toggle-sidebar', 'model-selector', 'model-selector-btn',
+        'model-icon', 'model-name', 'model-dropdown', 'model-dropdown-body',
+        'model-search', 'welcome-message', 'memory-tip', 'attachment-preview',
+        'btn-action-remember', 'btn-action-web-search', 'btn-action-add-cloud',
+        'btn-action-list-cloud', 'btn-action-remove-cloud', 'btn-action-create-cloud'
     ];
 
     elementIds.forEach(id => {

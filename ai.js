@@ -1,52 +1,32 @@
 /* ========================================
    PHOTON CORE — ai.js
-   AI Chat with Action Buttons
-   FIXED VERSION - [Object object] bug resolved
    ======================================== */
 
 function normalizeTextChunk(value) {
-    // Handle null/undefined
     if (value === null || value === undefined) return '';
-    
-    // Handle primitives
     if (typeof value === 'string') return value;
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    
-    // Handle arrays
+
     if (Array.isArray(value)) {
         return value.map(normalizeTextChunk).join('');
     }
-    
-    // Handle objects
+
     if (typeof value === 'object') {
-        // OpenRouter streaming: choices[0].delta.content
-        if (value.choices && Array.isArray(value.choices) && value.choices[0]) {
+        if (value.choices?.[0]) {
             const choice = value.choices[0];
-            if (choice.delta?.content !== undefined) {
-                return normalizeTextChunk(choice.delta.content);
-            }
-            if (choice.message?.content !== undefined) {
-                return normalizeTextChunk(choice.message.content);
-            }
-            if (choice.text !== undefined) {
-                return normalizeTextChunk(choice.text);
-            }
+            if (choice.delta?.content !== undefined) return normalizeTextChunk(choice.delta.content);
+            if (choice.message?.content !== undefined) return normalizeTextChunk(choice.message.content);
+            if (choice.text !== undefined) return normalizeTextChunk(choice.text);
         }
-        
-        // Gemini: candidates[0].content.parts[0].text
-        if (value.candidates && Array.isArray(value.candidates) && value.candidates[0]) {
+
+        if (value.candidates?.[0]) {
             const candidate = value.candidates[0];
             if (candidate.content?.parts && Array.isArray(candidate.content.parts)) {
-                return candidate.content.parts
-                    .map(part => normalizeTextChunk(part?.text ?? part))
-                    .join('');
+                return candidate.content.parts.map(part => normalizeTextChunk(part?.text ?? part)).join('');
             }
-            if (candidate.text !== undefined) {
-                return normalizeTextChunk(candidate.text);
-            }
+            if (candidate.text !== undefined) return normalizeTextChunk(candidate.text);
         }
-        
-        // Direct properties (common patterns)
+
         if (value.text !== undefined) return normalizeTextChunk(value.text);
         if (value.content !== undefined) return normalizeTextChunk(value.content);
         if (value.message !== undefined) return normalizeTextChunk(value.message);
@@ -55,47 +35,23 @@ function normalizeTextChunk(value) {
         if (value.output !== undefined) return normalizeTextChunk(value.output);
         if (value.result !== undefined) return normalizeTextChunk(value.result);
         if (value.data !== undefined) return normalizeTextChunk(value.data);
-        
-        // Handle parts array (Gemini style)
+
         if (Array.isArray(value.parts)) {
-            return value.parts
-                .map(part => normalizeTextChunk(part?.text ?? part))
-                .join('');
+            return value.parts.map(part => normalizeTextChunk(part?.text ?? part)).join('');
         }
-        
-        // Marked.js v4+ token objects - these have 'raw' or 'text' properties
+
         if (value.raw !== undefined) return normalizeTextChunk(value.raw);
-        if (value.tokens !== undefined && Array.isArray(value.tokens)) {
-            return value.tokens.map(t => normalizeTextChunk(t.raw ?? t.text ?? t)).join('');
+        if (Array.isArray(value.tokens)) {
+            return value.tokens.map(token => normalizeTextChunk(token.raw ?? token.text ?? token)).join('');
         }
-        
-        // If it's an empty object, return empty string
-        if (Object.keys(value).length === 0) return '';
-        
-        // Last resort: try JSON.stringify but log a warning
-        try {
-            const json = JSON.stringify(value);
-            // Don't return "[object Object]" or similar
-            if (json === '{}' || json === '[]') return '';
-            // If it looks like actual content, return it (for debugging)
-            console.warn('normalizeTextChunk: Unhandled object structure:', value);
-            // Return empty instead of JSON to avoid showing raw JSON in chat
-            return '';
-        } catch (e) {
-            return '';
-        }
-    }
-    
-    // Final fallback - but check for [object Object]
-    const str = String(value);
-    if (str === '[object Object]') {
-        console.warn('normalizeTextChunk: Got [object Object], returning empty');
+
         return '';
     }
-    return str;
+
+    const text = String(value);
+    return text === '[object Object]' ? '' : text;
 }
 
-// === STREAMING MARKDOWN RENDERER ===
 class StreamingMarkdownRenderer {
     constructor(targetElement) {
         this.target = targetElement;
@@ -107,14 +63,7 @@ class StreamingMarkdownRenderer {
 
     appendChunk(chunk) {
         const safeChunk = normalizeTextChunk(chunk);
-        if (!safeChunk) return;
-        
-        // Extra safety check
-        if (safeChunk === '[object Object]') {
-            console.warn('appendChunk: Blocked [object Object]');
-            return;
-        }
-        
+        if (!safeChunk || safeChunk === '[object Object]') return;
         this.buffer += safeChunk;
         this.processBuffer();
     }
@@ -130,61 +79,46 @@ class StreamingMarkdownRenderer {
     }
 
     render(isFinal = false) {
-        const html = this.renderMarkdown(this.buffer, !isFinal);
-        this.target.innerHTML = html;
-        
-        if (dom.aiChat) {
-            dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
-        }
+        this.target.innerHTML = this.renderMarkdown(this.buffer, !isFinal);
+        if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
     }
 
     renderMarkdown(text, isStreaming) {
-        if (!text) return '';
+        const rawText = normalizeTextChunk(text);
+        if (!rawText) return isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
         if (typeof marked !== 'undefined') {
             if (!this.markedRenderer) {
                 const renderer = new marked.Renderer();
                 const self = this;
 
-                // Handle both marked v4+ (object params) and older versions (separate params)
-                renderer.code = function(codeOrToken, infostring, escaped) {
-                    let code, lang;
-                    
-                    // marked v4+ passes an object
+                renderer.code = function(codeOrToken, infostring) {
+                    let code;
+                    let lang;
+
                     if (typeof codeOrToken === 'object' && codeOrToken !== null) {
                         code = codeOrToken.text ?? codeOrToken.raw ?? '';
                         lang = codeOrToken.lang ?? codeOrToken.language ?? '';
                     } else {
-                        // Older marked versions pass separate params
                         code = codeOrToken ?? '';
                         lang = infostring ?? '';
                     }
-                    
-                    // Ensure code is a string
-                    code = normalizeTextChunk(code);
-                    lang = (typeof lang === 'string' ? lang : '').trim();
-                    
-                    return self.renderCodeBlock(code, lang, false);
+
+                    return self.renderCodeBlock(normalizeTextChunk(code), String(lang || '').trim(), false);
                 };
 
                 renderer.codespan = function(codeOrToken) {
-                    let code;
-                    
-                    // marked v4+ passes an object
-                    if (typeof codeOrToken === 'object' && codeOrToken !== null) {
-                        code = codeOrToken.text ?? codeOrToken.raw ?? '';
-                    } else {
-                        code = codeOrToken ?? '';
-                    }
-                    
-                    code = normalizeTextChunk(code);
-                    return `<code class="inline-code">${self.escapeHtml(code)}</code>`;
+                    const code = typeof codeOrToken === 'object' && codeOrToken !== null
+                        ? (codeOrToken.text ?? codeOrToken.raw ?? '')
+                        : (codeOrToken ?? '');
+                    return `<code class="inline-code">${self.escapeHtml(normalizeTextChunk(code))}</code>`;
                 };
 
-                renderer.link = function(hrefOrToken, title, text) {
-                    let href, linkTitle, linkText;
-                    
-                    // marked v4+ passes an object
+                renderer.link = function(hrefOrToken, title, textValue) {
+                    let href;
+                    let linkTitle;
+                    let linkText;
+
                     if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
                         href = hrefOrToken.href ?? '';
                         linkTitle = hrefOrToken.title ?? '';
@@ -192,122 +126,19 @@ class StreamingMarkdownRenderer {
                     } else {
                         href = hrefOrToken ?? '';
                         linkTitle = title ?? '';
-                        linkText = text ?? '';
+                        linkText = textValue ?? '';
                     }
-                    
+
                     const safeHref = self.escapeHtml(normalizeTextChunk(href));
                     const safeTitle = linkTitle ? ` title="${self.escapeHtml(normalizeTextChunk(linkTitle))}"` : '';
-                    const safeText = normalizeTextChunk(linkText);
-                    
-                    return `<a href="${safeHref}" target="_blank" rel="noopener"${safeTitle}>${safeText}</a>`;
-                };
-
-                // Also handle other methods that might receive objects in v4+
-                renderer.heading = function(textOrToken, level, raw) {
-                    let headingText, headingLevel;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        headingText = textOrToken.text ?? textOrToken.raw ?? '';
-                        headingLevel = textOrToken.depth ?? level ?? 1;
-                    } else {
-                        headingText = textOrToken ?? '';
-                        headingLevel = level ?? 1;
-                    }
-                    
-                    headingText = normalizeTextChunk(headingText);
-                    return `<h${headingLevel}>${headingText}</h${headingLevel}>`;
+                    return `<a href="${safeHref}" target="_blank" rel="noopener"${safeTitle}>${normalizeTextChunk(linkText)}</a>`;
                 };
 
                 renderer.paragraph = function(textOrToken) {
-                    let paraText;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        paraText = textOrToken.text ?? textOrToken.raw ?? '';
-                    } else {
-                        paraText = textOrToken ?? '';
-                    }
-                    
-                    return `<p>${normalizeTextChunk(paraText)}</p>`;
-                };
-
-                renderer.listitem = function(textOrToken) {
-                    let itemText;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        itemText = textOrToken.text ?? textOrToken.raw ?? '';
-                    } else {
-                        itemText = textOrToken ?? '';
-                    }
-                    
-                    return `<li>${normalizeTextChunk(itemText)}</li>\n`;
-                };
-
-                renderer.blockquote = function(quoteOrToken) {
-                    let quoteText;
-                    
-                    if (typeof quoteOrToken === 'object' && quoteOrToken !== null) {
-                        quoteText = quoteOrToken.text ?? quoteOrToken.raw ?? '';
-                    } else {
-                        quoteText = quoteOrToken ?? '';
-                    }
-                    
-                    return `<blockquote>${normalizeTextChunk(quoteText)}</blockquote>\n`;
-                };
-
-                renderer.strong = function(textOrToken) {
-                    let strongText;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        strongText = textOrToken.text ?? textOrToken.raw ?? '';
-                    } else {
-                        strongText = textOrToken ?? '';
-                    }
-                    
-                    return `<strong>${normalizeTextChunk(strongText)}</strong>`;
-                };
-
-                renderer.em = function(textOrToken) {
-                    let emText;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        emText = textOrToken.text ?? textOrToken.raw ?? '';
-                    } else {
-                        emText = textOrToken ?? '';
-                    }
-                    
-                    return `<em>${normalizeTextChunk(emText)}</em>`;
-                };
-
-                renderer.del = function(textOrToken) {
-                    let delText;
-                    
-                    if (typeof textOrToken === 'object' && textOrToken !== null) {
-                        delText = textOrToken.text ?? textOrToken.raw ?? '';
-                    } else {
-                        delText = textOrToken ?? '';
-                    }
-                    
-                    return `<del>${normalizeTextChunk(delText)}</del>`;
-                };
-
-                renderer.image = function(hrefOrToken, title, text) {
-                    let href, imgTitle, imgText;
-                    
-                    if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
-                        href = hrefOrToken.href ?? '';
-                        imgTitle = hrefOrToken.title ?? '';
-                        imgText = hrefOrToken.text ?? '';
-                    } else {
-                        href = hrefOrToken ?? '';
-                        imgTitle = title ?? '';
-                        imgText = text ?? '';
-                    }
-                    
-                    const safeHref = self.escapeHtml(normalizeTextChunk(href));
-                    const safeTitle = imgTitle ? ` title="${self.escapeHtml(normalizeTextChunk(imgTitle))}"` : '';
-                    const safeAlt = self.escapeHtml(normalizeTextChunk(imgText));
-                    
-                    return `<img src="${safeHref}" alt="${safeAlt}"${safeTitle}>`;
+                    const paragraphText = typeof textOrToken === 'object' && textOrToken !== null
+                        ? (textOrToken.text ?? textOrToken.raw ?? '')
+                        : (textOrToken ?? '');
+                    return `<p>${normalizeTextChunk(paragraphText)}</p>`;
                 };
 
                 this.markedRenderer = renderer;
@@ -321,259 +152,42 @@ class StreamingMarkdownRenderer {
                 mangle: false
             });
 
-            // Ensure text is a string before parsing
-            const rawText = normalizeTextChunk(text);
-            
-            if (!rawText || rawText === '[object Object]') {
-                return isStreaming ? '<span class="streaming-cursor"></span>' : '';
-            }
-            
             let html = marked.parse(rawText);
-            
             if (typeof DOMPurify !== 'undefined') {
                 html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style'] });
             }
-
-            if (isStreaming) {
-                html += '<span class="streaming-cursor"></span>';
-            }
-
+            if (isStreaming) html += '<span class="streaming-cursor"></span>';
             return html;
         }
 
-        return this.parseMarkdown(text);
-    }
-
-    parseMarkdown(text) {
-        if (!text) return '';
-        const rawText = normalizeTextChunk(text);
-        if (!rawText || rawText === '[object Object]') return '';
-        
-        let html = '';
-        const lines = rawText.split('\n');
-        let i = 0;
-
-        while (i < lines.length) {
-            const line = lines[i];
-
-            // Code block
-            if (line.startsWith('```')) {
-                const lang = line.slice(3).trim() || 'plaintext';
-                const codeLines = [];
-                i++;
-                
-                while (i < lines.length && !lines[i].startsWith('```')) {
-                    codeLines.push(lines[i]);
-                    i++;
-                }
-                
-                html += this.renderCodeBlock(codeLines.join('\n'), lang, i >= lines.length);
-                i++;
-                continue;
-            }
-
-            // Table detection
-            if (line.trim().startsWith('|')) {
-                const tableLines = [];
-                
-                while (i < lines.length && lines[i].trim().startsWith('|')) {
-                    tableLines.push(lines[i]);
-                    i++;
-                }
-                
-                html += this.renderTable(tableLines);
-                continue;
-            }
-
-            // Headers
-            const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
-            if (headerMatch) {
-                const level = headerMatch[1].length;
-                html += this.renderHeader(headerMatch[2], level);
-                i++;
-                continue;
-            }
-
-            // Horizontal rule
-            if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
-                html += '<hr style="margin:20px 0;border:none;border-top:1px solid rgba(255,255,255,0.1);">';
-                i++;
-                continue;
-            }
-
-            // Unordered list
-            const ulMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
-            if (ulMatch) {
-                const listItems = [];
-                
-                while (i < lines.length) {
-                    const itemMatch = lines[i].match(/^(\s*)[-*+]\s+(.+)$/);
-                    if (!itemMatch) break;
-                    listItems.push(itemMatch[2]);
-                    i++;
-                }
-                
-                html += this.renderList(listItems, 'ul');
-                continue;
-            }
-
-            // Ordered list
-            const olMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
-            if (olMatch) {
-                const listItems = [];
-                
-                while (i < lines.length) {
-                    const itemMatch = lines[i].match(/^(\s*)\d+\.\s+(.+)$/);
-                    if (!itemMatch) break;
-                    listItems.push(itemMatch[2]);
-                    i++;
-                }
-                
-                html += this.renderList(listItems, 'ol');
-                continue;
-            }
-
-            // Blockquote
-            const quoteMatch = line.match(/^>\s*(.*)$/);
-            if (quoteMatch) {
-                html += this.renderBlockquote(quoteMatch[1]);
-                i++;
-                continue;
-            }
-
-            // Empty line
-            if (line.trim() === '') {
-                i++;
-                continue;
-            }
-
-            // Regular paragraph
-            html += this.renderParagraph(line);
-            i++;
-        }
-
-        return html;
-    }
-
-    renderTable(lines) {
-        if (lines.length < 2) return '';
-
-        const rows = lines.map(line => {
-            return line.split('|')
-                .map(cell => cell.trim())
-                .filter(cell => cell !== '');
-        });
-
-        const isSeparator = rows[1] && rows[1].every(cell => /^[-:]+$/.test(cell));
-        const headerRow = rows[0];
-        const dataRows = isSeparator ? rows.slice(2) : rows.slice(1);
-
-        let html = '<div style="overflow-x:auto;margin:20px 0;"><table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.03);border-radius:12px;overflow:hidden;">';
-
-        if (headerRow && headerRow.length > 0) {
-            html += '<thead style="background:rgba(108,92,231,0.15);"><tr>';
-            headerRow.forEach(cell => {
-                html += `<th style="padding:14px 18px;text-align:left;font-weight:600;font-size:14px;border-bottom:2px solid var(--ai-accent);">${this.renderInlineFormatting(cell)}</th>`;
-            });
-            html += '</tr></thead>';
-        }
-
-        html += '<tbody>';
-        dataRows.forEach((row, idx) => {
-            const bgColor = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-            html += `<tr style="background:${bgColor};">`;
-            row.forEach(cell => {
-                html += `<td style="padding:12px 18px;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.05);">${this.renderInlineFormatting(cell)}</td>`;
-            });
-            html += '</tr>';
-        });
-        html += '</tbody></table></div>';
-
-        return html;
-    }
-
-    renderInlineFormatting(text) {
-        if (!text) return '';
-        
-        // Ensure text is a string
-        const safeText = normalizeTextChunk(text);
-        if (!safeText || safeText === '[object Object]') return '';
-        
-        let result = this.escapeHtml(safeText);
-        
-        result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-        result = result.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
-        result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        result = result.replace(/__(.+?)__/g, '<strong>$1</strong>');
-        result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
-        result = result.replace(/_(.+?)_/g, '<em>$1</em>');
-        result = result.replace(/~~(.+?)~~/g, '<del style="opacity:0.7;">$1</del>');
-        result = result.replace(/`([^`]+)`/g, '<code style="background:rgba(110,118,129,0.4);padding:3px 7px;border-radius:5px;font-family:\'JetBrains Mono\',Consolas,monospace;font-size:0.9em;color:#e8d4ff;">$1</code>');
-        result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--ai-accent-light);text-decoration:none;border-bottom:1px solid transparent;">$1</a>');
-        
-        return result;
-    }
-
-    renderHeader(text, level) {
-        const sizes = { 1: '2em', 2: '1.7em', 3: '1.4em', 4: '1.2em', 5: '1.1em', 6: '1em' };
-        const margins = { 1: '28px 0 16px', 2: '24px 0 14px', 3: '20px 0 12px', 4: '16px 0 10px', 5: '14px 0 8px', 6: '12px 0 6px' };
-        const formatted = this.renderInlineFormatting(text);
-        return `<h${level} style="font-size:${sizes[level]};font-weight:700;margin:${margins[level]};line-height:1.3;color:var(--ai-text-primary);">${formatted}</h${level}>`;
-    }
-
-    renderParagraph(text) {
-        const formatted = this.renderInlineFormatting(text);
-        return `<p style="margin:0 0 14px 0;line-height:1.75;color:var(--ai-text-primary);">${formatted}</p>`;
-    }
-
-    renderList(items, type) {
-        const tag = type === 'ol' ? 'ol' : 'ul';
-        const style = type === 'ol' ? 'list-style:decimal;' : 'list-style:disc;';
-        const itemsHtml = items.map(item => 
-            `<li style="margin:6px 0;line-height:1.7;color:var(--ai-text-primary);">${this.renderInlineFormatting(item)}</li>`
-        ).join('');
-        return `<${tag} style="${style}margin:16px 0;padding-left:28px;">${itemsHtml}</${tag}>`;
-    }
-
-    renderBlockquote(text) {
-        const formatted = this.renderInlineFormatting(text);
-        return `<blockquote style="margin:16px 0;padding:12px 20px;border-left:4px solid var(--ai-accent);background:rgba(108,92,231,0.08);border-radius:0 8px 8px 0;color:var(--ai-text-secondary);font-style:italic;">${formatted}</blockquote>`;
+        return this.escapeHtml(rawText).replace(/\n/g, '<br>');
     }
 
     renderCodeBlock(code, lang, isStreaming = false) {
         const safeCode = normalizeTextChunk(code);
-        
-        // Safety check
-        if (!safeCode || safeCode === '[object Object]') {
-            return '<div class="ai-code-block"><pre><code>Error: Invalid code block</code></pre></div>';
+        if (!safeCode) {
+            return '<div class="ai-code-block"><pre><code>Empty code block</code></pre></div>';
         }
-        
-        let highlighted;
-        let detectedLang = (typeof lang === 'string' ? lang : '').trim().toLowerCase();
 
-        if (!detectedLang || detectedLang === 'plaintext') {
-            const htmlish = /<\s*(!doctype|html|head|body|div|span|p|a|section|main|header|footer|table|tr|td|th|ul|ol|li|script|style)\b/i.test(safeCode);
-            if (htmlish) detectedLang = 'html';
-        }
-        
+        let highlighted;
+        let detectedLang = String(lang || '').trim().toLowerCase();
+
         try {
             if (typeof hljs !== 'undefined' && detectedLang && hljs.getLanguage(detectedLang)) {
                 highlighted = hljs.highlight(safeCode, { language: detectedLang }).value;
             } else if (typeof hljs !== 'undefined') {
                 const auto = hljs.highlightAuto(safeCode);
                 highlighted = auto.value;
-                if (!detectedLang || detectedLang === 'plaintext') {
-                    detectedLang = auto.language || detectedLang;
-                }
+                if (!detectedLang) detectedLang = auto.language || 'plaintext';
             } else {
                 highlighted = this.escapeHtml(safeCode);
             }
-        } catch (e) {
+        } catch {
             highlighted = this.escapeHtml(safeCode);
         }
 
-        const langLabel = detectedLang || 'plaintext';
         const encodedCode = encodeURIComponent(safeCode);
+        const langLabel = detectedLang || 'plaintext';
         const streamingCursor = isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
         return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
@@ -589,19 +203,14 @@ class StreamingMarkdownRenderer {
     }
 
     escapeHtml(text) {
-        // Ensure text is a string first
-        const safeText = normalizeTextChunk(text);
-        if (!safeText || safeText === '[object Object]') return '';
-        
         const div = document.createElement('div');
-        div.textContent = safeText;
+        div.textContent = normalizeTextChunk(text);
         return div.innerHTML;
     }
 
     finalize() {
         this.render(true);
         this.target.querySelectorAll('.streaming-cursor').forEach(el => el.remove());
-        this.target.querySelectorAll('[style*="animation:blink"]').forEach(el => el.remove());
     }
 
     getText() {
@@ -609,4 +218,835 @@ class StreamingMarkdownRenderer {
     }
 }
 
-// Rest of the file remains the same...
+window.StreamingMarkdownRenderer = StreamingMarkdownRenderer;
+
+const AI_PAGE_STATE = {
+    initialized: false,
+    memoriesUnsub: null,
+    chatsUnsub: null,
+    webSearchEnabled: false,
+    currentRenderer: null
+};
+
+const AUTO_MODEL_POOL = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'qwen/qwen3-coder:free',
+    'google/gemma-3-27b-it:free',
+    'mistralai/mistral-small-3.2-24b-instruct:free'
+];
+
+const WEB_SEARCH_MODEL = 'gemini-2.5-flash';
+
+function isAiPage() {
+    return window.location.pathname.endsWith('/ai.html') || window.location.pathname.endsWith('ai.html');
+}
+
+function getMessagesInner() {
+    return document.querySelector('#ai-chat .chat-messages-inner');
+}
+
+function scrollChatToBottom() {
+    if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
+}
+
+function generateId(prefix) {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getModelMeta(modelId) {
+    return AI_MODELS?.[modelId] || AI_MODELS?.[DEFAULT_MODEL] || null;
+}
+
+function getModelIcon(modelId) {
+    const model = getModelMeta(modelId);
+    const logoKey = model?.logoKey || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(modelId) : 'default');
+    const logo = window.AI_LOGOS?.[logoKey] || window.AI_LOGOS?.default || '&#x1F916;';
+    const temp = document.createElement('div');
+    temp.innerHTML = logo;
+    return temp.textContent || '🤖';
+}
+
+function getModelName(modelId) {
+    return getModelMeta(modelId)?.name || modelId || 'Assistant';
+}
+
+function updateSelectedModelUi() {
+    const model = getModelMeta(state.selectedModel);
+    if (!model) return;
+
+    const icon = getModelIcon(state.selectedModel);
+    if (dom.modelIcon) dom.modelIcon.textContent = icon;
+    if (dom.modelName) dom.modelName.textContent = model.name;
+    if (dom.modelLogoPanel) dom.modelLogoPanel.textContent = icon;
+    if (dom.modelNamePanel) dom.modelNamePanel.textContent = model.name;
+
+    const providerEl = document.querySelector('.model-info-card .model-provider');
+    if (providerEl) providerEl.textContent = `${model.provider} • ${model.badge || 'AI'}`;
+}
+
+function renderModelOptions(filterText = '') {
+    if (!dom.modelDropdownBody) return;
+
+    const search = String(filterText || '').trim().toLowerCase();
+    const entries = Object.entries(AI_MODELS || {}).filter(([id, meta]) => {
+        if (!search) return true;
+        return [id, meta.name, meta.provider, meta.desc, meta.badge]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(search);
+    });
+
+    dom.modelDropdownBody.innerHTML = entries.map(([id, meta]) => {
+        const selectedClass = id === state.selectedModel ? ' selected' : '';
+        const icon = getModelIcon(id);
+
+        return `<button class="model-option${selectedClass}" type="button" data-model-id="${esc(id)}">
+            <span class="model-option-icon">${esc(icon)}</span>
+            <span class="model-option-info">
+                <div class="model-option-name">${esc(meta.name)}</div>
+                <div class="model-option-desc">${esc(meta.provider)} • ${esc(meta.desc || '')}</div>
+            </span>
+            <span class="model-option-badge">${esc(meta.badge || 'AI')}</span>
+        </button>`;
+    }).join('');
+}
+
+function closeModelDropdown() {
+    dom.modelSelector?.classList.remove('open');
+}
+
+function toggleModelDropdown() {
+    if (!dom.modelSelector) return;
+    dom.modelSelector.classList.toggle('open');
+}
+
+function getChatTitle(text) {
+    const safeText = normalizeTextChunk(text).replace(/\s+/g, ' ').trim();
+    return safeText.slice(0, 48) || 'New Chat';
+}
+
+function updateWelcomeVisibility() {
+    const welcome = document.getElementById('welcome-message');
+    if (!welcome) return;
+
+    const hasMessages = Array.isArray(state.currentChatMessages) && state.currentChatMessages.length > 0;
+    welcome.classList.toggle('hidden', hasMessages);
+}
+
+function renderMessageContent(target, text) {
+    const normalized = normalizeTextChunk(text);
+    if (!normalized) {
+        target.textContent = '';
+        return;
+    }
+
+    if (typeof formatAi === 'function') {
+        target.innerHTML = formatAi(normalized);
+    } else {
+        target.textContent = normalized;
+    }
+}
+
+function createMessageElement(message, options = {}) {
+    const role = message.role === 'user' ? 'user-message' : 'ai-message';
+    const wrapper = document.createElement('div');
+    wrapper.className = `message ${role}`;
+    if (message.id) wrapper.dataset.messageId = message.id;
+
+    const avatarText = message.role === 'user'
+        ? (state.user?.username || 'You').slice(0, 2).toUpperCase()
+        : getModelIcon(message.modelId || state.selectedModel);
+
+    const authorText = message.role === 'user'
+        ? (state.user?.username || 'You')
+        : getModelName(message.modelId || state.selectedModel);
+
+    wrapper.innerHTML = `
+        <div class="message-avatar">${esc(avatarText)}</div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-author">${esc(authorText)}</span>
+            </div>
+            <div class="message-text"></div>
+        </div>
+    `;
+
+    const textEl = wrapper.querySelector('.message-text');
+
+    if (options.streaming) {
+        const renderer = new StreamingMarkdownRenderer(textEl);
+        AI_PAGE_STATE.currentRenderer = renderer;
+        return { element: wrapper, textEl, renderer };
+    }
+
+    renderMessageContent(textEl, message.content);
+    return { element: wrapper, textEl, renderer: null };
+}
+
+function insertMessageElement(messageElement) {
+    const container = getMessagesInner();
+    if (!container) return;
+
+    const typingIndicator = dom.typingIndicator;
+    if (typingIndicator && typingIndicator.parentElement === container) {
+        container.insertBefore(messageElement, typingIndicator);
+    } else {
+        container.appendChild(messageElement);
+    }
+
+    scrollChatToBottom();
+}
+
+function renderCurrentChat() {
+    const container = getMessagesInner();
+    if (!container) return;
+
+    Array.from(container.querySelectorAll('.message')).forEach(el => el.remove());
+    state.currentChatMessages.forEach(message => {
+        const { element } = createMessageElement(message);
+        insertMessageElement(element);
+    });
+
+    updateWelcomeVisibility();
+    scrollChatToBottom();
+}
+
+function setMemoryPanelOpen(isOpen) {
+    if (!dom.memoryPanel || !dom.btnMemory) return;
+
+    const mobile = window.matchMedia('(max-width: 1100px)').matches;
+
+    if (mobile) {
+        dom.memoryPanel.classList.toggle('open', isOpen);
+        dom.memoryPanel.classList.toggle('collapsed', !isOpen);
+    } else {
+        dom.memoryPanel.classList.toggle('collapsed', !isOpen);
+        dom.memoryPanel.classList.remove('open');
+    }
+
+    dom.btnMemory.classList.toggle('active', isOpen);
+}
+
+function isMemoryPanelOpen() {
+    if (!dom.memoryPanel) return false;
+    const mobile = window.matchMedia('(max-width: 1100px)').matches;
+    return mobile
+        ? dom.memoryPanel.classList.contains('open')
+        : !dom.memoryPanel.classList.contains('collapsed');
+}
+
+function toggleSidebar(forceOpen) {
+    if (!dom.aiSidebar || !dom.sidebarOverlay) return;
+
+    const shouldOpen = typeof forceOpen === 'boolean'
+        ? forceOpen
+        : !dom.aiSidebar.classList.contains('open');
+
+    dom.aiSidebar.classList.toggle('open', shouldOpen);
+    dom.sidebarOverlay.classList.toggle('active', shouldOpen);
+}
+
+function clearComposer() {
+    if (dom.aiInput) {
+        dom.aiInput.value = '';
+        dom.aiInput.style.height = 'auto';
+    }
+}
+
+function autoresizeInput() {
+    if (!dom.aiInput) return;
+    dom.aiInput.style.height = 'auto';
+    dom.aiInput.style.height = `${Math.min(dom.aiInput.scrollHeight, 220)}px`;
+}
+
+function setSendingState(isSending) {
+    state.isSending = isSending;
+    if (dom.btnSend) dom.btnSend.disabled = isSending;
+    if (dom.aiInput) dom.aiInput.disabled = isSending;
+    if (dom.typingIndicator) dom.typingIndicator.classList.toggle('hidden', !isSending);
+}
+
+function ensureCurrentChat() {
+    if (state.currentChatId) return state.currentChatId;
+
+    const chatId = generateId('chat');
+    state.currentChatId = chatId;
+    state.currentChatMessages = [];
+    state.chatCreatedAt = new Date().toISOString();
+    updateWelcomeVisibility();
+    return chatId;
+}
+
+async function persistCurrentChat() {
+    if (!window.db || !state.user || !state.currentChatId) return;
+
+    const firstUserMessage = state.currentChatMessages.find(message => message.role === 'user');
+    const title = getChatTitle(firstUserMessage?.content || 'New Chat');
+
+    await db.collection('ai_chats').doc(state.currentChatId).set({
+        id: state.currentChatId,
+        userId: state.user.uid,
+        username: state.user.username,
+        title,
+        modelId: state.selectedModel,
+        webSearchEnabled: !!AI_PAGE_STATE.webSearchEnabled,
+        updatedAt: new Date().toISOString(),
+        createdAt: state.chatCreatedAt || new Date().toISOString(),
+        messages: state.currentChatMessages.map(message => ({
+            id: message.id,
+            role: message.role,
+            content: normalizeTextChunk(message.content),
+            createdAt: message.createdAt,
+            modelId: message.modelId || null
+        }))
+    }, { merge: true });
+}
+
+function normalizeStoredMessages(messages) {
+    if (!Array.isArray(messages)) return [];
+
+    return messages
+        .filter(message => message && message.role)
+        .map(message => ({
+            id: message.id || generateId('msg'),
+            role: message.role,
+            content: normalizeTextChunk(message.content),
+            createdAt: message.createdAt || new Date().toISOString(),
+            modelId: message.modelId || null
+        }))
+        .filter(message => message.content);
+}
+
+function renderChatHistory() {
+    if (!dom.chatHistoryList) return;
+
+    const sessions = [...(state.chatSessions || [])].sort((left, right) => {
+        return new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0);
+    });
+
+    const header = '<div class="chat-history-section"><div class="chat-history-label">Recent Chats</div></div>';
+
+    if (!sessions.length) {
+        dom.chatHistoryList.innerHTML = `${header}<div class="chat-item"><div class="chat-item-content"><div class="chat-item-title">No chats yet</div><div class="chat-item-meta">Start a conversation to save it here.</div></div></div>`;
+        return;
+    }
+
+    dom.chatHistoryList.innerHTML = header + sessions.map(session => {
+        const title = getChatTitle(session.title || session.messages?.[0]?.content || 'New Chat');
+        const isActive = session.id === state.currentChatId ? ' active' : '';
+        const modelName = getModelName(session.modelId || DEFAULT_MODEL);
+        return `<div class="chat-item${isActive}" data-chat-id="${esc(session.id)}">
+            <div class="chat-item-icon">${esc(getModelIcon(session.modelId || DEFAULT_MODEL))}</div>
+            <div class="chat-item-content">
+                <div class="chat-item-title">${esc(title)}</div>
+                <div class="chat-item-meta">${esc(modelName)}</div>
+            </div>
+            <div class="chat-item-actions">
+                <button class="chat-item-btn delete" type="button" data-delete-chat="${esc(session.id)}" title="Delete chat">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function deleteChat(chatId) {
+    if (!window.db || !chatId) return;
+
+    await db.collection('ai_chats').doc(chatId).delete();
+
+    if (state.currentChatId === chatId) {
+        state.currentChatId = null;
+        state.currentChatMessages = [];
+        state.chatCreatedAt = null;
+        renderCurrentChat();
+        updateWelcomeVisibility();
+    }
+}
+
+async function selectChat(chatId) {
+    const session = (state.chatSessions || []).find(item => item.id === chatId);
+    if (!session) return;
+
+    state.currentChatId = session.id;
+    state.chatCreatedAt = session.createdAt || new Date().toISOString();
+    state.currentChatMessages = normalizeStoredMessages(session.messages);
+    state.selectedModel = session.modelId && AI_MODELS?.[session.modelId] ? session.modelId : state.selectedModel;
+
+    try {
+        localStorage.setItem('photon_selected_model', state.selectedModel);
+    } catch {}
+
+    updateSelectedModelUi();
+    renderModelOptions(dom.modelSearch?.value || '');
+    renderCurrentChat();
+    renderChatHistory();
+}
+
+function createNewChat() {
+    state.currentChatId = generateId('chat');
+    state.currentChatMessages = [];
+    state.chatCreatedAt = new Date().toISOString();
+    renderCurrentChat();
+    renderChatHistory();
+    updateWelcomeVisibility();
+    clearComposer();
+    dom.aiInput?.focus();
+}
+
+function getSelectedModelForRequest() {
+    if (AI_PAGE_STATE.webSearchEnabled) {
+        return WEB_SEARCH_MODEL;
+    }
+
+    if (state.selectedModel === DEFAULT_MODEL) {
+        const index = Math.floor(Math.random() * AUTO_MODEL_POOL.length);
+        return AUTO_MODEL_POOL[index];
+    }
+
+    return state.selectedModel;
+}
+
+function isGeminiModel(modelId) {
+    return String(modelId || '').toLowerCase().includes('gemini');
+}
+
+async function* streamAssistantReply(messages, requestModel) {
+    if (AI_PAGE_STATE.webSearchEnabled) {
+        const lastUserMessage = [...messages].reverse().find(message => message.role === 'user');
+        const query = normalizeTextChunk(lastUserMessage?.content);
+        yield* geminiWebSearchStream(query, requestModel);
+        return;
+    }
+
+    if (isGeminiModel(requestModel)) {
+        yield* geminiChatStream(messages, requestModel);
+        return;
+    }
+
+    yield* openRouterChatStream(messages, requestModel);
+}
+
+function buildPromptWithAttachment(inputText) {
+    const safeInput = normalizeTextChunk(inputText);
+    if (!state.attachedFile) return safeInput;
+
+    const attachmentLabel = `[Attached file: ${state.attachedFile.name || 'file'}]`;
+    const fileText = normalizeTextChunk(state.attachedFileContent);
+
+    if (!fileText) return `${safeInput}\n\n${attachmentLabel}`;
+
+    return `${safeInput}\n\n${attachmentLabel}\n\n${fileText}`;
+}
+
+async function sendAiMessage() {
+    if (state.isSending) return;
+
+    const inputText = normalizeTextChunk(dom.aiInput?.value || '').trim();
+    if (!inputText && !state.attachedFile) return;
+
+    ensureCurrentChat();
+    setSendingState(true);
+
+    const userMessage = {
+        id: generateId('msg'),
+        role: 'user',
+        content: inputText || `Attached ${state.attachedFile?.name || 'file'}`,
+        createdAt: new Date().toISOString(),
+        modelId: null
+    };
+
+    state.currentChatMessages.push(userMessage);
+    const { element: userElement } = createMessageElement(userMessage);
+    insertMessageElement(userElement);
+    updateWelcomeVisibility();
+
+    const requestModel = getSelectedModelForRequest();
+    const requestMessages = state.currentChatMessages.map(message => ({
+        role: message.role,
+        content: message.id === userMessage.id ? buildPromptWithAttachment(message.content) : message.content
+    }));
+
+    clearComposer();
+    clearAttachment();
+
+    const assistantMessage = {
+        id: generateId('msg'),
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+        modelId: requestModel
+    };
+
+    const assistantView = createMessageElement(assistantMessage, { streaming: true });
+    insertMessageElement(assistantView.element);
+
+    try {
+        let fullResponse = '';
+        for await (const chunk of streamAssistantReply(requestMessages, requestModel)) {
+            const safeChunk = normalizeTextChunk(chunk);
+            if (!safeChunk) continue;
+            fullResponse += safeChunk;
+            assistantView.renderer.appendChunk(safeChunk);
+        }
+
+        assistantView.renderer.finalize();
+
+        const safeResponse = normalizeTextChunk(fullResponse).trim();
+        assistantMessage.content = safeResponse || 'No response.';
+
+        if (!safeResponse) {
+            renderMessageContent(assistantView.textEl, assistantMessage.content);
+        }
+
+        state.currentChatMessages.push(assistantMessage);
+        state.aiQueryCount = (state.aiQueryCount || 0) + 1;
+        if (dom.statAi) dom.statAi.textContent = String(state.aiQueryCount);
+
+        await persistCurrentChat();
+        showToast('Reply ready.', 'success');
+    } catch (error) {
+        assistantMessage.content = `Sorry — the AI request failed.\n\n${normalizeTextChunk(error?.message || 'Unknown error')}`;
+        renderMessageContent(assistantView.textEl, assistantMessage.content);
+        state.currentChatMessages.push(assistantMessage);
+        await persistCurrentChat();
+        showToast('AI request failed.', 'error');
+    } finally {
+        AI_PAGE_STATE.currentRenderer = null;
+        setSendingState(false);
+        renderChatHistory();
+        scrollChatToBottom();
+    }
+}
+
+function renderMemories() {
+    if (!dom.memoryList) return;
+
+    const memories = Array.isArray(state.memories) ? state.memories : [];
+    const tipHtml = dom.memoryTip?.outerHTML || '';
+
+    if (!memories.length) {
+        dom.memoryList.innerHTML = `${tipHtml}<div class="memory-empty" id="memory-empty">
+            <span class="memory-empty-icon">🧠</span>
+            <p>No memories saved yet</p>
+            <p style="font-size: 12px; margin-top: 4px;">Use the Remember button to save team memories</p>
+        </div>`;
+    } else {
+        dom.memoryList.innerHTML = tipHtml + memories.map(memory => `
+            <div class="memory-item" data-memory-id="${esc(memory.id)}">
+                <div class="memory-item-text">${esc(memory.text)}</div>
+                <button class="memory-item-delete" type="button" data-delete-memory="${esc(memory.id)}" title="Delete memory">✕</button>
+            </div>
+        `).join('');
+    }
+
+    if (dom.memoryCount) dom.memoryCount.textContent = String(memories.length);
+    if (dom.memoryCountPanel) dom.memoryCountPanel.textContent = String(memories.length);
+
+    try {
+        if (localStorage.getItem('photon_tip_dismissed') === 'true') {
+            document.getElementById('memory-tip')?.classList.add('hidden');
+        }
+    } catch {}
+}
+
+async function rememberCurrentInput() {
+    if (!window.db || !state.user) {
+        showToast('Please wait for sign-in to finish.', 'info');
+        return;
+    }
+
+    const text = normalizeTextChunk(dom.aiInput?.value || '').trim()
+        || normalizeTextChunk(state.currentChatMessages[state.currentChatMessages.length - 1]?.content || '').trim();
+
+    if (!text) {
+        showToast('Nothing to save yet.', 'info');
+        return;
+    }
+
+    await db.collection('memories').add({
+        text,
+        userId: state.user.uid,
+        username: state.user.username,
+        createdAt: new Date().toISOString()
+    });
+
+    showToast('Saved to team memory.', 'success');
+}
+
+async function deleteMemory(memoryId) {
+    if (!window.db || !memoryId) return;
+    await db.collection('memories').doc(memoryId).delete();
+}
+
+function listenMemories() {
+    if (!isAiPage() || !window.db || AI_PAGE_STATE.memoriesUnsub) return;
+
+    AI_PAGE_STATE.memoriesUnsub = db.collection('memories').onSnapshot(snapshot => {
+        const memories = [];
+        snapshot.forEach(doc => {
+            const data = doc.data() || {};
+            const text = normalizeTextChunk(data.text).trim();
+            if (!text) return;
+
+            memories.push({
+                id: doc.id,
+                text,
+                username: data.username || 'Unknown',
+                createdAt: data.createdAt || null
+            });
+        });
+
+        memories.sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+        state.memories = memories.slice(0, 50);
+        renderMemories();
+    }, error => {
+        console.error('Memory listener error:', error);
+    });
+}
+
+function listenChatSessions() {
+    if (!isAiPage() || !window.db || !state.user || AI_PAGE_STATE.chatsUnsub) return;
+
+    AI_PAGE_STATE.chatsUnsub = db.collection('ai_chats')
+        .where('userId', '==', state.user.uid)
+        .onSnapshot(snapshot => {
+            const sessions = [];
+
+            snapshot.forEach(doc => {
+                const data = doc.data() || {};
+                sessions.push({
+                    id: doc.id,
+                    title: data.title || 'New Chat',
+                    modelId: data.modelId || DEFAULT_MODEL,
+                    createdAt: data.createdAt || null,
+                    updatedAt: data.updatedAt || null,
+                    messages: normalizeStoredMessages(data.messages)
+                });
+            });
+
+            sessions.sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
+            state.chatSessions = sessions;
+
+            if (!state.currentChatId && sessions.length) {
+                const latest = sessions[0];
+                state.currentChatId = latest.id;
+                state.chatCreatedAt = latest.createdAt || new Date().toISOString();
+                state.currentChatMessages = normalizeStoredMessages(latest.messages);
+            }
+
+            renderChatHistory();
+            renderCurrentChat();
+        }, error => {
+            console.error('Chat listener error:', error);
+        });
+}
+
+function bindAiPageEvents() {
+    if (dom.btnSend) dom.btnSend.addEventListener('click', sendAiMessage);
+
+    if (dom.aiInput) {
+        dom.aiInput.addEventListener('input', autoresizeInput);
+        dom.aiInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendAiMessage();
+            }
+        });
+    }
+
+    if (dom.btnNewChat) dom.btnNewChat.addEventListener('click', createNewChat);
+    if (dom.btnMemory) dom.btnMemory.addEventListener('click', () => setMemoryPanelOpen(!isMemoryPanelOpen()));
+    if (dom.btnCloseMemory) dom.btnCloseMemory.addEventListener('click', () => setMemoryPanelOpen(false));
+    if (dom.btnToggleSidebar) dom.btnToggleSidebar.addEventListener('click', () => toggleSidebar());
+    if (dom.sidebarOverlay) dom.sidebarOverlay.addEventListener('click', () => toggleSidebar(false));
+
+    if (dom.modelSelectorBtn) dom.modelSelectorBtn.addEventListener('click', toggleModelDropdown);
+    if (dom.modelSearch) dom.modelSearch.addEventListener('input', event => renderModelOptions(event.target.value));
+
+    document.addEventListener('click', event => {
+        if (!dom.modelSelector?.contains(event.target)) closeModelDropdown();
+
+        const modelOption = event.target.closest('[data-model-id]');
+        if (modelOption) {
+            const nextModel = modelOption.dataset.modelId;
+            if (AI_MODELS?.[nextModel]) {
+                state.selectedModel = nextModel;
+                try {
+                    localStorage.setItem('photon_selected_model', nextModel);
+                } catch {}
+                updateSelectedModelUi();
+                renderModelOptions(dom.modelSearch?.value || '');
+                closeModelDropdown();
+                showToast(`Using ${getModelName(nextModel)}.`, 'success');
+            }
+        }
+
+        const chatItem = event.target.closest('[data-chat-id]');
+        if (chatItem && !event.target.closest('[data-delete-chat]')) {
+            selectChat(chatItem.dataset.chatId);
+            if (window.matchMedia('(max-width: 1100px)').matches) toggleSidebar(false);
+        }
+
+        const deleteChatBtn = event.target.closest('[data-delete-chat]');
+        if (deleteChatBtn) {
+            event.stopPropagation();
+            deleteChat(deleteChatBtn.dataset.deleteChat).catch(error => {
+                console.error('Delete chat error:', error);
+                showToast('Could not delete chat.', 'error');
+            });
+        }
+
+        const deleteMemoryBtn = event.target.closest('[data-delete-memory]');
+        if (deleteMemoryBtn) {
+            deleteMemory(deleteMemoryBtn.dataset.deleteMemory).catch(error => {
+                console.error('Delete memory error:', error);
+                showToast('Could not delete memory.', 'error');
+            });
+        }
+
+        const dismissTipBtn = event.target.closest('#btn-dismiss-tip');
+        if (dismissTipBtn) {
+            const tip = document.getElementById('memory-tip');
+            if (tip) tip.classList.add('hidden');
+            try {
+                localStorage.setItem('photon_tip_dismissed', 'true');
+            } catch {}
+        }
+    });
+
+    document.querySelectorAll('.suggestion-chip').forEach(button => {
+        button.addEventListener('click', () => {
+            if (!dom.aiInput) return;
+            dom.aiInput.value = button.dataset.prompt || '';
+            autoresizeInput();
+            dom.aiInput.focus();
+        });
+    });
+
+    if (dom.btnActionRemember) {
+        dom.btnActionRemember.addEventListener('click', () => {
+            rememberCurrentInput().catch(error => {
+                console.error('Remember error:', error);
+                showToast('Could not save memory.', 'error');
+            });
+        });
+    }
+
+    if (dom.btnActionWebSearch) {
+        dom.btnActionWebSearch.addEventListener('click', () => {
+            AI_PAGE_STATE.webSearchEnabled = !AI_PAGE_STATE.webSearchEnabled;
+            dom.btnActionWebSearch.classList.toggle('active', AI_PAGE_STATE.webSearchEnabled);
+            const modeText = AI_PAGE_STATE.webSearchEnabled ? 'Web search is on.' : 'Web search is off.';
+            showToast(modeText, 'info');
+        });
+    }
+
+    ['btnActionListCloud', 'btnActionRemoveCloud', 'btnActionCreateCloud', 'btnActionAddCloud'].forEach(key => {
+        if (dom[key]) {
+            dom[key].addEventListener('click', () => {
+                showToast('Cloud file actions are not part of this fix yet.', 'info');
+            });
+        }
+    });
+
+    if (dom.btnAttach) dom.btnAttach.addEventListener('click', () => dom.aiFileInput?.click());
+    if (dom.aiFileInput) dom.aiFileInput.addEventListener('change', handleFileAttach);
+    if (dom.btnRemoveAttachment) dom.btnRemoveAttachment.addEventListener('click', clearAttachment);
+}
+
+async function handleFileAttach(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    state.attachedFile = file;
+    state.attachedFileName = file.name;
+    state.attachedFileContent = '';
+
+    if (dom.attachmentName) dom.attachmentName.textContent = file.name;
+    if (dom.attachmentSize) dom.attachmentSize.textContent = fmtSize(file.size || 0);
+    if (dom.attachmentIcon) dom.attachmentIcon.textContent = fileIcon(file.name, false);
+    if (dom.attachmentPreview) {
+        dom.attachmentPreview.classList.remove('hidden');
+        dom.attachmentPreview.classList.add('visible');
+    }
+    if (dom.btnActionAddCloud) dom.btnActionAddCloud.disabled = false;
+
+    const canReadAsText = file.type.startsWith('text/')
+        || /\.(txt|md|js|ts|json|html|css|py|java|cs|cpp|xml|yaml|yml)$/i.test(file.name);
+
+    if (canReadAsText) {
+        try {
+            state.attachedFileContent = await file.text();
+        } catch {
+            state.attachedFileContent = '';
+        }
+    }
+}
+
+function clearAttachment() {
+    state.attachedFile = null;
+    state.attachedFileName = '';
+    state.attachedFileContent = null;
+
+    if (dom.aiFileInput) dom.aiFileInput.value = '';
+    if (dom.attachmentPreview) {
+        dom.attachmentPreview.classList.remove('visible');
+        dom.attachmentPreview.classList.add('hidden');
+    }
+    if (dom.btnActionAddCloud) dom.btnActionAddCloud.disabled = true;
+}
+
+function initAiPage() {
+    if (!isAiPage() || AI_PAGE_STATE.initialized) return;
+    AI_PAGE_STATE.initialized = true;
+
+    if (typeof initDom === 'function' && !dom.btnSend) {
+        initDom();
+    }
+
+    try {
+        const savedModel = localStorage.getItem('photon_selected_model');
+        if (savedModel && AI_MODELS?.[savedModel]) {
+            state.selectedModel = savedModel;
+        }
+    } catch {}
+
+    if (!state.selectedModel || !AI_MODELS?.[state.selectedModel]) {
+        state.selectedModel = DEFAULT_MODEL;
+    }
+
+    renderModelOptions();
+    updateSelectedModelUi();
+    renderChatHistory();
+    renderMemories();
+    setMemoryPanelOpen(false);
+    bindAiPageEvents();
+    autoresizeInput();
+
+    const bootstrapData = () => {
+        if (!window.db || !state.user) return false;
+        listenMemories();
+        listenChatSessions();
+        return true;
+    };
+
+    if (!bootstrapData()) {
+        let attempts = 0;
+        const timer = setInterval(() => {
+            attempts += 1;
+            if (bootstrapData() || attempts > 100) clearInterval(timer);
+        }, 300);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAiPage);
+} else {
+    initAiPage();
+}
+
+window.createNewChat = createNewChat;
+window.listenMemories = listenMemories;
+window.listenChatSessions = listenChatSessions;
+window.sendAiMessage = sendAiMessage;
+window.clearAttachment = clearAttachment;

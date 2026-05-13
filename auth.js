@@ -470,6 +470,7 @@ function setupAuthListeners() {
 }
 
 window.initAuth = initAuth;
+window.handleSignIn = handleGoogleSignIn;
 window.handleSignOut = handleSignOut;
 window.handleGoogleSignIn = handleGoogleSignIn;
 window.setupAuthListeners = setupAuthListeners;
