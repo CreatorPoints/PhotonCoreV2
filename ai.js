@@ -238,7 +238,8 @@ const AUTO_MODEL_POOL = [
 const WEB_SEARCH_MODEL = 'gemini-2.5-flash';
 
 function isAiPage() {
-    return window.location.pathname.endsWith('/ai.html') || window.location.pathname.endsWith('ai.html');
+    const path = (window.location.pathname || '').replace(/\/+$/, '').toLowerCase();
+    return path.endsWith('/ai') || path.endsWith('/ai.html');
 }
 
 function getMessagesInner() {

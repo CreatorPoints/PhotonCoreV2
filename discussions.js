@@ -27,7 +27,8 @@ const discussionUiState = {
 };
 
 function isDiscussionsPage() {
-    return window.location.pathname.endsWith('/discussions.html') || window.location.pathname.endsWith('discussions.html');
+    const path = (window.location.pathname || '').replace(/\/+$/, '').toLowerCase();
+    return path.endsWith('/discussions') || path.endsWith('/discussions.html');
 }
 
 function discussionCategoryMeta(category) {

@@ -3,10 +3,12 @@
    Firebase Authentication
    ======================================== */
 
-const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-const isAuthPage = (currentPage === 'index.html' || currentPage === '');
-const appPages = ['dashboard.html', 'discussions.html', 'files.html', 'ai.html', 'members.html'];
-const isAppPage = appPages.includes(currentPage);
+const rawCurrentPage = window.location.pathname.split('/').pop() || 'index.html';
+const currentPage = rawCurrentPage.toLowerCase();
+const currentPageBase = currentPage.replace(/\.html$/, '');
+const isAuthPage = (currentPage === 'index.html' || currentPage === '' || currentPageBase === 'index');
+const appPages = ['dashboard', 'discussions', 'files', 'ai', 'members'];
+const isAppPage = appPages.includes(currentPageBase);
 
 let isSignUpMode = false;
 
