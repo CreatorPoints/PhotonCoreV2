@@ -705,6 +705,8 @@ function listenDiscussions() {
 function bindDiscussionUi() {
     if (discussionUiState.initialized || !isDiscussionsPage()) return;
     discussionUiState.initialized = true;
+    const feed = dom.discussionsList || document.getElementById('discussions-list');
+    const thread = dom.discussionThread || document.getElementById('discussion-thread');
 
     dom.discussionSearch?.addEventListener('input', event => {
         discussionUiState.searchQuery = event.target.value.trim();
@@ -751,7 +753,7 @@ function bindDiscussionUi() {
         renderDiscussions();
     });
 
-    document.addEventListener('click', event => {
+    const handleDiscussionClick = event => {
         const open = event.target.closest('[data-open-discussion], [data-discussion-id]');
         if (open) {
             const id = open.dataset.openDiscussion || open.dataset.discussionId;
@@ -842,7 +844,10 @@ function bindDiscussionUi() {
                 showToast('Could not post reply.', 'error');
             });
         }
-    });
+    };
+
+    feed?.addEventListener('click', handleDiscussionClick);
+    thread?.addEventListener('click', handleDiscussionClick);
 
     window.addEventListener('hashchange', () => {
         const hashId = selectedDiscussionFromHash();

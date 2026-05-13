@@ -894,11 +894,13 @@ function listenChatSessions() {
 }
 
 function bindAiPageEvents() {
+    const input = getAiInputElement();
+
     if (dom.btnSend) dom.btnSend.addEventListener('click', sendAiMessage);
 
-    if (dom.aiInput) {
-        dom.aiInput.addEventListener('input', autoresizeInput);
-        dom.aiInput.addEventListener('keydown', event => {
+    if (input) {
+        input.addEventListener('input', autoresizeInput);
+        input.addEventListener('keydown', event => {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 sendAiMessage();
@@ -970,12 +972,22 @@ function bindAiPageEvents() {
         }
     });
 
+    document.addEventListener('keydown', event => {
+        const activeInput = getAiInputElement();
+        if (!activeInput) return;
+        if (document.activeElement !== activeInput) return;
+        if (event.key !== 'Enter' || event.shiftKey) return;
+        event.preventDefault();
+        sendAiMessage();
+    });
+
     document.querySelectorAll('.suggestion-chip').forEach(button => {
         button.addEventListener('click', () => {
-            if (!dom.aiInput) return;
-            dom.aiInput.value = button.dataset.prompt || '';
+            const composer = getAiInputElement();
+            if (!composer) return;
+            composer.value = button.dataset.prompt || '';
             autoresizeInput();
-            dom.aiInput.focus();
+            composer.focus();
         });
     });
 
