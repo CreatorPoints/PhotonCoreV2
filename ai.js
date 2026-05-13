@@ -249,6 +249,10 @@ function scrollChatToBottom() {
     if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
 }
 
+function getAiInputElement() {
+    return dom.aiInput || document.getElementById('ai-input');
+}
+
 function generateId(prefix) {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -448,22 +452,25 @@ function toggleSidebar(forceOpen) {
 }
 
 function clearComposer() {
-    if (dom.aiInput) {
-        dom.aiInput.value = '';
-        dom.aiInput.style.height = 'auto';
+    const input = getAiInputElement();
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
     }
 }
 
 function autoresizeInput() {
-    if (!dom.aiInput) return;
-    dom.aiInput.style.height = 'auto';
-    dom.aiInput.style.height = `${Math.min(dom.aiInput.scrollHeight, 220)}px`;
+    const input = getAiInputElement();
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 220)}px`;
 }
 
 function setSendingState(isSending) {
     state.isSending = isSending;
     if (dom.btnSend) dom.btnSend.disabled = isSending;
-    if (dom.aiInput) dom.aiInput.disabled = isSending;
+    const input = getAiInputElement();
+    if (input) input.disabled = isSending;
     if (dom.typingIndicator) dom.typingIndicator.classList.toggle('hidden', !isSending);
 }
 
@@ -626,6 +633,27 @@ async function* streamAssistantReply(messages, requestModel) {
     yield* openRouterChatStream(messages, requestModel);
 }
 
+async function getAssistantReplyOnce(messages, requestModel) {
+    if (AI_PAGE_STATE.webSearchEnabled) {
+        const lastUserMessage = [...messages].reverse().find(message => message.role === 'user');
+        const query = normalizeTextChunk(lastUserMessage?.content);
+        const data = await geminiWebSearch(query, requestModel);
+        return normalizeTextChunk(
+            data?.choices?.[0]?.message?.content
+            || data?.message?.content
+            || data?.text
+            || data?.content
+            || ''
+        );
+    }
+
+    if (isGeminiModel(requestModel)) {
+        return normalizeTextChunk(await geminiChat(messages, requestModel));
+    }
+
+    return normalizeTextChunk(await openRouterChat(messages, requestModel));
+}
+
 function buildPromptWithAttachment(inputText) {
     const safeInput = normalizeTextChunk(inputText);
     if (!state.attachedFile) return safeInput;
@@ -641,7 +669,8 @@ function buildPromptWithAttachment(inputText) {
 async function sendAiMessage() {
     if (state.isSending) return;
 
-    const inputText = normalizeTextChunk(dom.aiInput?.value || '').trim();
+    const inputEl = getAiInputElement();
+    const inputText = normalizeTextChunk(inputEl?.value || '').trim();
     if (!inputText && !state.attachedFile) return;
 
     ensureCurrentChat();
@@ -689,6 +718,14 @@ async function sendAiMessage() {
             assistantView.renderer.appendChunk(safeChunk);
         }
 
+        if (!normalizeTextChunk(fullResponse).trim()) {
+            const fallbackReply = await getAssistantReplyOnce(requestMessages, requestModel);
+            if (fallbackReply) {
+                fullResponse = fallbackReply;
+                assistantView.renderer.appendChunk(fallbackReply);
+            }
+        }
+
         assistantView.renderer.finalize();
 
         const safeResponse = normalizeTextChunk(fullResponse).trim();
@@ -705,7 +742,22 @@ async function sendAiMessage() {
         await persistCurrentChat();
         showToast('Reply ready.', 'success');
     } catch (error) {
-        assistantMessage.content = `Sorry — the AI request failed.\n\n${normalizeTextChunk(error?.message || 'Unknown error')}`;
+        try {
+            const fallbackReply = await getAssistantReplyOnce(requestMessages, requestModel);
+            if (fallbackReply) {
+                assistantView.renderer.appendChunk(fallbackReply);
+                assistantView.renderer.finalize();
+                assistantMessage.content = fallbackReply;
+                state.currentChatMessages.push(assistantMessage);
+                await persistCurrentChat();
+                showToast('Reply ready.', 'success');
+                return;
+            }
+        } catch (fallbackError) {
+            console.error('AI fallback error:', fallbackError);
+        }
+
+        assistantMessage.content = `Sorry - the AI request failed.\n\n${normalizeTextChunk(error?.message || 'Unknown error')}`;
         renderMessageContent(assistantView.textEl, assistantMessage.content);
         state.currentChatMessages.push(assistantMessage);
         await persistCurrentChat();
@@ -911,6 +963,10 @@ function bindAiPageEvents() {
             try {
                 localStorage.setItem('photon_tip_dismissed', 'true');
             } catch {}
+        }
+
+        if (event.target.closest('#btn-send')) {
+            sendAiMessage();
         }
     });
 

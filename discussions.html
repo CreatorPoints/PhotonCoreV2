@@ -1,24 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     <!-- Secret Guard - MUST be first script, blocks rendering -->
     <script src="secret-guard.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discussions — Photon Core</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="Photon_Core.png">
-    <!-- Firebase - ALL 5 SCRIPTS -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div id="app" class="app">
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -62,35 +59,129 @@
                 <section id="tab-discussions" class="tab-content active">
                     <div class="tab-header">
                         <h2>💬 Discussions</h2>
-                        <p>Talk about games, ideas, projects — shared with all members in real-time.</p>
+                        <p>A Reddit-style team forum with live threads, voting, replies, and topic filters.</p>
                     </div>
-                    <div class="discussion-container">
-                        <div class="discussion-compose">
-                            <input type="text" id="discussion-title" placeholder="Topic title" class="input">
-                            <textarea id="discussion-body" placeholder="Share your thoughts..." class="textarea" rows="3"></textarea>
-                            <div class="compose-actions">
-                                <select id="discussion-category" class="select">
-                                    <option value="general">💭 General</option>
-                                    <option value="game-design">🎮 Game Design</option>
-                                    <option value="art">🎨 Art & Assets</option>
-                                    <option value="code">💻 Code & Tech</option>
-                                    <option value="marketing">📢 Marketing</option>
-                                    <option value="bugs">🐛 Bugs & Issues</option>
-                                </select>
-                                <button id="btn-post-discussion" class="btn btn-primary">Post</button>
+
+                    <div class="reddit-layout">
+                        <aside class="reddit-sidebar-card">
+                            <div class="reddit-sidebar-header">
+                                <div>
+                                    <div class="reddit-sidebar-kicker">Team Forum</div>
+                                    <h3>Photon Board</h3>
+                                </div>
+                                <div class="reddit-sidebar-icon">💬</div>
+                            </div>
+                            <p class="reddit-sidebar-copy">
+                                Share launches, bug reports, design feedback, code ideas, and project debates in one place.
+                            </p>
+                            <div class="reddit-sidebar-stats">
+                                <div class="reddit-stat-box">
+                                    <span class="reddit-stat-value" id="discussion-stat-posts">0</span>
+                                    <span class="reddit-stat-label">Threads</span>
+                                </div>
+                                <div class="reddit-stat-box">
+                                    <span class="reddit-stat-value" id="discussion-stat-comments">0</span>
+                                    <span class="reddit-stat-label">Replies</span>
+                                </div>
+                                <div class="reddit-stat-box">
+                                    <span class="reddit-stat-value" id="discussion-stat-active">0</span>
+                                    <span class="reddit-stat-label">Active Today</span>
+                                </div>
+                            </div>
+
+                            <div class="reddit-sidebar-section">
+                                <div class="reddit-sidebar-section-title">Board Rules</div>
+                                <ul class="reddit-rule-list">
+                                    <li>Use clear titles so threads are easy to scan.</li>
+                                    <li>Reply in-thread instead of starting duplicates.</li>
+                                    <li>Vote to surface the most useful updates.</li>
+                                </ul>
+                            </div>
+
+                            <div class="reddit-category-rail" id="discussion-category-rail">
+                                <button class="reddit-chip active" type="button" data-discussion-filter="all">All</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="general">💭 General</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="game-design">🎮 Game Design</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="art">🎨 Art</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="code">💻 Code</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="marketing">📢 Marketing</button>
+                                <button class="reddit-chip" type="button" data-discussion-filter="bugs">🐛 Bugs</button>
+                            </div>
+
+                            <div class="reddit-sidebar-section">
+                                <div class="reddit-sidebar-section-title">Quick Views</div>
+                                <div class="reddit-quick-links">
+                                    <button class="reddit-ghost-btn" id="discussion-saved-toggle" type="button">⭐ Saved only</button>
+                                    <button class="reddit-ghost-btn" id="discussion-jump-compose" type="button">✍️ New thread</button>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <div class="reddit-main-column">
+                            <div class="reddit-compose-card">
+                                <div class="reddit-compose-header">
+                                    <div>
+                                        <div class="reddit-compose-kicker">Create Thread</div>
+                                        <h3>Start a new discussion</h3>
+                                    </div>
+                                    <div class="reddit-compose-avatar" id="discussion-compose-avatar">PC</div>
+                                </div>
+
+                                <input type="text" id="discussion-title" placeholder="What do you want to talk about?" class="input reddit-input reddit-title-input">
+                                <textarea id="discussion-body" placeholder="Write the context, goals, blockers, or examples here..." class="textarea reddit-input" rows="5"></textarea>
+                                <div class="reddit-compose-meta">
+                                    <span>Markdown works here for code, bullets, and links.</span>
+                                    <span id="discussion-draft-state">Draft not saved</span>
+                                </div>
+
+                                <div class="reddit-compose-row">
+                                    <select id="discussion-category" class="select reddit-select">
+                                        <option value="general">💭 General</option>
+                                        <option value="game-design">🎮 Game Design</option>
+                                        <option value="art">🎨 Art & Assets</option>
+                                        <option value="code">💻 Code & Tech</option>
+                                        <option value="marketing">📢 Marketing</option>
+                                        <option value="bugs">🐛 Bugs & Issues</option>
+                                    </select>
+                                    <button id="btn-post-discussion" class="btn btn-primary reddit-post-btn">Post Thread</button>
+                                </div>
+                            </div>
+
+                            <div class="reddit-feed-toolbar">
+                                <div class="reddit-feed-toolbar-left">
+                                    <div class="reddit-toolbar-title">Threads</div>
+                                    <span class="reddit-feed-count" id="discussion-feed-count">0 threads</span>
+                                </div>
+                                <div class="reddit-feed-toolbar-right">
+                                    <input id="discussion-search" class="reddit-search" type="search" placeholder="Search threads...">
+                                    <select id="discussion-comment-sort" class="select reddit-select reddit-sort">
+                                        <option value="top">💬 Top Replies</option>
+                                        <option value="new">🆕 New Replies</option>
+                                        <option value="old">🕰️ Old Replies</option>
+                                    </select>
+                                    <select id="discussion-sort" class="select reddit-select reddit-sort">
+                                        <option value="hot">🔥 Hot</option>
+                                        <option value="new">🆕 New</option>
+                                        <option value="top">⬆️ Top</option>
+                                        <option value="active">⚡ Active</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="discussions-list" class="reddit-feed-list">
+                                <div class="empty-state"><span class="empty-icon">💬</span><p>No discussions yet.</p></div>
                             </div>
                         </div>
-                        <div class="discussion-filters">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="general">💭</button>
-                            <button class="filter-btn" data-filter="game-design">🎮</button>
-                            <button class="filter-btn" data-filter="art">🎨</button>
-                            <button class="filter-btn" data-filter="code">💻</button>
-                            <button class="filter-btn" data-filter="bugs">🐛</button>
-                        </div>
-                        <div id="discussions-list" class="discussions-list">
-                            <div class="empty-state"><span class="empty-icon">💬</span><p>No discussions yet.</p></div>
-                        </div>
+
+                        <aside class="reddit-thread-panel">
+                            <div id="discussion-thread" class="reddit-thread-shell">
+                                <div class="reddit-thread-empty" id="discussion-thread-empty">
+                                    <div class="reddit-thread-empty-icon">🧵</div>
+                                    <h3>Select a thread</h3>
+                                    <p>Open a post on the left to read the full discussion and reply like a proper thread.</p>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </section>
             </div>
@@ -98,9 +189,8 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
-     <script src="members-list.js"></script>
-<script src="auth-guard.js"></script>
-
+    <script src="members-list.js"></script>
+    <script src="auth-guard.js"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="presence.js"></script>
