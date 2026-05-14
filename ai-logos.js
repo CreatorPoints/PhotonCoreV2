@@ -48,6 +48,18 @@ const AI_LOGOS = {
     // Coder (code-focused models)
     coder: '&#x1F4BB;',
 
+    // Baidu
+    baidu: '&#x1F50D;',
+
+    // Poolside
+    poolside: '&#x1F3D6;',
+
+    // DeepSeek
+    deepseek: '&#x1F52E;',
+
+    // MiniMax
+    minimax: '&#x1F3AE;',
+
     // Default fallback
     default: '&#x1F916;'
 };
@@ -88,6 +100,11 @@ function getLogoKeyFromModel(modelId) {
     if (id.includes('nous') || id.includes('hermes')) return 'nous';
     if (id.includes('dolphin') || id.includes('cognitive')) return 'cognitive';
     if (id.includes('z-ai') || id.includes('glm')) return 'zai';
+    if (id.includes('baidu')) return 'baidu';
+    if (id.includes('poolside') || id.includes('laguna')) return 'poolside';
+    if (id.includes('deepseek')) return 'deepseek';
+    if (id.includes('minimax')) return 'minimax';
+    if (id.includes('inclusionai') || id.includes('ring-2')) return 'default';
 
     return 'default';
 }

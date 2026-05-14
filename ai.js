@@ -224,13 +224,13 @@ class StreamingMarkdownRenderer {
 
             let html = marked.parse(rawText);
             if (typeof DOMPurify !== 'undefined') {
-                html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style'] });
+                html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style', 'class'] });
             }
             if (isStreaming) html += '<span class="streaming-cursor"></span>';
-            return html;
+            return `<div class="ai-md">${html}</div>`;
         }
 
-        return this.escapeHtml(rawText).replace(/\n/g, '<br>');
+        return `<div class="ai-md">${this.escapeHtml(rawText).replace(/\n/g, '<br>')}</div>`;
     }
 
     renderCodeBlock(code, lang, isStreaming = false) {
@@ -301,8 +301,10 @@ const AI_PAGE_STATE = {
 const AUTO_MODEL_POOL = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'qwen/qwen3-coder:free',
-    'google/gemma-3-27b-it:free',
-    'mistralai/mistral-small-3.1-24b-instruct:free'
+    'google/gemma-4-31b-it:free',
+    'deepseek/deepseek-v4-flash:free',
+    'nvidia/nemotron-3-nano-30b-a3b:free',
+    'openai/gpt-oss-120b:free'
 ];
 
 const WEB_SEARCH_MODEL = 'gemini-2.5-flash';
@@ -316,14 +318,15 @@ const GEMINI_FALLBACK_ORDER = [
 const OPENROUTER_FALLBACK_ORDER = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'qwen/qwen3-coder:free',
-    'google/gemma-3-27b-it:free',
-    'mistralai/mistral-small-3.1-24b-instruct:free',
+    'google/gemma-4-31b-it:free',
+    'google/gemma-4-26b-a4b-it:free',
     'openai/gpt-oss-120b:free',
     'nvidia/nemotron-3-nano-30b-a3b:free',
     'qwen/qwen3-next-80b-a3b-instruct:free',
-    'stepfun/step-3.5-flash:free',
-    'google/gemma-3-12b-it:free',
-    'openai/gpt-oss-20b:free'
+    'deepseek/deepseek-v4-flash:free',
+    'openai/gpt-oss-20b:free',
+    'nvidia/nemotron-nano-9b-v2:free',
+    'z-ai/glm-4.5-air:free'
 ];
 
 function isAiPage() {
@@ -444,7 +447,10 @@ function renderModelOptions(filterText = '') {
             .includes(search);
     });
 
-    const providerPriority = ['OpenRouter', 'Google', 'Meta', 'OpenAI', 'Alibaba', 'NVIDIA', 'Mistral AI', 'Arcee AI', 'StepFun', 'Z AI', 'Liquid', 'Nous Research', 'Cognitive'];
+    const providerPriority = [
+        'OpenRouter', 'Google', 'Meta', 'OpenAI', 'Alibaba', 'NVIDIA', 'Baidu', 'DeepSeek',
+        'Poolside', 'MiniMax', 'Inclusion AI', 'Arcee AI', 'Z AI', 'Liquid', 'Nous Research', 'Cognitive', 'Mistral AI', 'StepFun'
+    ];
     const grouped = new Map();
 
     entries

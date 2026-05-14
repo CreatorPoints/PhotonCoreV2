@@ -1681,6 +1681,69 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     margin-bottom: 0;
 }
 
+/* Assistant markdown root — Chat-style readable prose */
+.message-text .ai-md {
+    font-size: 15px;
+    line-height: 1.75;
+    letter-spacing: -0.01em;
+    color: var(--ai-text-primary);
+}
+
+.message-text .ai-md > *:first-child {
+    margin-top: 0;
+}
+
+.message-text .ai-md > *:last-child {
+    margin-bottom: 0;
+}
+
+.message-text .ai-md p {
+    margin: 0 0 14px;
+}
+
+.message-text .ai-md p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text .ai-md ul,
+.message-text .ai-md ol {
+    margin: 10px 0 14px;
+    padding-left: 1.35em;
+}
+
+.message-text .ai-md li {
+    margin: 6px 0;
+    padding-left: 0.15em;
+}
+
+.message-text .ai-md li::marker {
+    color: rgba(196, 181, 253, 0.55);
+}
+
+.message-text .ai-md h1,
+.message-text .ai-md h2,
+.message-text .ai-md h3,
+.message-text .ai-md h4 {
+    margin: 22px 0 10px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: #f5f3ff;
+}
+
+.message-text .ai-md h1:first-child,
+.message-text .ai-md h2:first-child,
+.message-text .ai-md h3:first-child {
+    margin-top: 0;
+}
+
+.message-text .ai-md pre {
+    margin: 14px 0;
+}
+
+.message-text .ai-md blockquote {
+    margin: 12px 0;
+}
+
 .message-text p {
     margin: 0 0 12px 0;
 }
