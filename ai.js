@@ -302,10 +302,29 @@ const AUTO_MODEL_POOL = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'qwen/qwen3-coder:free',
     'google/gemma-3-27b-it:free',
-    'mistralai/mistral-small-3.2-24b-instruct:free'
+    'mistralai/mistral-small-3.1-24b-instruct:free'
 ];
 
 const WEB_SEARCH_MODEL = 'gemini-2.5-flash';
+const GEMINI_FALLBACK_ORDER = [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash-001',
+    'gemini-2.0-flash-lite-001'
+];
+const OPENROUTER_FALLBACK_ORDER = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'qwen/qwen3-coder:free',
+    'google/gemma-3-27b-it:free',
+    'mistralai/mistral-small-3.1-24b-instruct:free',
+    'openai/gpt-oss-120b:free',
+    'nvidia/nemotron-3-nano-30b-a3b:free',
+    'qwen/qwen3-next-80b-a3b-instruct:free',
+    'stepfun/step-3.5-flash:free',
+    'google/gemma-3-12b-it:free',
+    'openai/gpt-oss-20b:free'
+];
 
 function isAiPage() {
     const path = (window.location.pathname || '').replace(/\/+$/, '').toLowerCase();
@@ -381,6 +400,10 @@ function getModelMeta(modelId) {
     return AI_MODELS?.[modelId] || AI_MODELS?.[DEFAULT_MODEL] || null;
 }
 
+function getAllModelEntries() {
+    return Object.entries(AI_MODELS || {});
+}
+
 function getModelIcon(modelId) {
     const model = getModelMeta(modelId);
     const logoKey = model?.logoKey || (typeof getLogoKeyFromModel === 'function' ? getLogoKeyFromModel(modelId) : 'default');
@@ -412,7 +435,7 @@ function renderModelOptions(filterText = '') {
     if (!dom.modelDropdownBody) return;
 
     const search = String(filterText || '').trim().toLowerCase();
-    const entries = Object.entries(AI_MODELS || {}).filter(([id, meta]) => {
+    const entries = getAllModelEntries().filter(([id, meta]) => {
         if (!search) return true;
         return [id, meta.name, meta.provider, meta.desc, meta.badge]
             .filter(Boolean)
@@ -421,19 +444,45 @@ function renderModelOptions(filterText = '') {
             .includes(search);
     });
 
-    dom.modelDropdownBody.innerHTML = entries.map(([id, meta]) => {
-        const selectedClass = id === state.selectedModel ? ' selected' : '';
-        const icon = getModelIcon(id);
+    const providerPriority = ['OpenRouter', 'Google', 'Meta', 'OpenAI', 'Alibaba', 'NVIDIA', 'Mistral AI', 'Arcee AI', 'StepFun', 'Z AI', 'Liquid', 'Nous Research', 'Cognitive'];
+    const grouped = new Map();
 
-        return `<button class="model-option${selectedClass}" type="button" data-model-id="${esc(id)}">
-            <span class="model-option-icon">${esc(icon)}</span>
-            <span class="model-option-info">
-                <div class="model-option-name">${esc(meta.name)}</div>
-                <div class="model-option-desc">${esc(meta.provider)} • ${esc(meta.desc || '')}</div>
-            </span>
-            <span class="model-option-badge">${esc(meta.badge || 'AI')}</span>
-        </button>`;
-    }).join('');
+    entries
+        .sort((left, right) => {
+            const leftPriority = providerPriority.indexOf(left[1].provider);
+            const rightPriority = providerPriority.indexOf(right[1].provider);
+            const providerDelta = (leftPriority === -1 ? 999 : leftPriority) - (rightPriority === -1 ? 999 : rightPriority);
+            if (providerDelta !== 0) return providerDelta;
+            return left[1].name.localeCompare(right[1].name);
+        })
+        .forEach(([id, meta]) => {
+            const key = meta.provider || 'Other';
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key).push([id, meta]);
+        });
+
+    const totalLabel = `<div class="model-group-summary">${entries.length} model${entries.length === 1 ? '' : 's'} available</div>`;
+    const groupsHtml = [...grouped.entries()].map(([provider, models]) => `
+        <div class="model-group">
+            <div class="model-group-label">${esc(provider)} <span class="model-group-count">${models.length}</span></div>
+            ${models.map(([id, meta]) => {
+                const selectedClass = id === state.selectedModel ? ' selected' : '';
+                const icon = getModelIcon(id);
+                return `<button class="model-option${selectedClass}" type="button" data-model-id="${esc(id)}">
+                    <span class="model-option-icon">${esc(icon)}</span>
+                    <span class="model-option-info">
+                        <div class="model-option-name">${esc(meta.name)}</div>
+                        <div class="model-option-desc">${esc(meta.desc || '')}</div>
+                    </span>
+                    <span class="model-option-badge">${esc(meta.badge || 'AI')}</span>
+                </button>`;
+            }).join('')}
+        </div>
+    `).join('');
+
+    dom.modelDropdownBody.innerHTML = entries.length
+        ? `${totalLabel}${groupsHtml}`
+        : '<div class="model-empty-state">No models match that search.</div>';
 }
 
 function closeModelDropdown() {
@@ -733,6 +782,74 @@ function getSelectedModelForRequest() {
     return state.selectedModel;
 }
 
+function getModelFallbackCandidates(primaryModel) {
+    if (AI_PAGE_STATE.webSearchEnabled) {
+        return [WEB_SEARCH_MODEL];
+    }
+
+    if (primaryModel === DEFAULT_MODEL) {
+        return [...AUTO_MODEL_POOL];
+    }
+
+    const orderedPool = isGeminiModel(primaryModel)
+        ? GEMINI_FALLBACK_ORDER
+        : OPENROUTER_FALLBACK_ORDER;
+
+    const knownModels = getAllModelEntries()
+        .map(([id]) => id)
+        .filter(id => id !== DEFAULT_MODEL && (isGeminiModel(primaryModel) ? isGeminiModel(id) : !isGeminiModel(id)));
+
+    return [primaryModel, ...orderedPool, ...knownModels].filter((modelId, index, array) => {
+        return AI_MODELS?.[modelId] && array.indexOf(modelId) === index;
+    });
+}
+
+function extractModelErrorStatus(error) {
+    const message = normalizeTextChunk(error?.message || '');
+    const statusMatch = message.match(/\b(404|429|500|503)\b/);
+    return statusMatch ? Number(statusMatch[1]) : null;
+}
+
+function isRetryableModelError(error) {
+    const status = extractModelErrorStatus(error);
+    return status === 404 || status === 429;
+}
+
+async function requestAssistantReplyWithFallback(messages, preferredModel) {
+    const candidates = getModelFallbackCandidates(preferredModel);
+    let lastError = null;
+
+    for (let index = 0; index < candidates.length; index += 1) {
+        const candidate = candidates[index];
+        try {
+            let fullResponse = '';
+            for await (const chunk of streamAssistantReply(messages, candidate)) {
+                const safeChunk = normalizeTextChunk(chunk);
+                if (!safeChunk) continue;
+                fullResponse += safeChunk;
+            }
+
+            if (!normalizeTextChunk(fullResponse).trim()) {
+                fullResponse = await getAssistantReplyOnce(messages, candidate);
+            }
+
+            if (normalizeTextChunk(fullResponse).trim()) {
+                return {
+                    modelId: candidate,
+                    text: normalizeTextChunk(fullResponse)
+                };
+            }
+        } catch (error) {
+            lastError = error;
+            if (!isRetryableModelError(error) || index === candidates.length - 1) {
+                break;
+            }
+        }
+    }
+
+    throw lastError || new Error('No available AI model responded.');
+}
+
 function isGeminiModel(modelId) {
     return String(modelId || '').toLowerCase().includes('gemini');
 }
@@ -827,25 +944,13 @@ async function sendAiMessage() {
     insertMessageElement(assistantView.element);
 
     try {
-        let fullResponse = '';
-        for await (const chunk of streamAssistantReply(requestMessages, requestModel)) {
-            const safeChunk = normalizeTextChunk(chunk);
-            if (!safeChunk) continue;
-            fullResponse += safeChunk;
-            assistantView.renderer.appendChunk(safeChunk);
+        const result = await requestAssistantReplyWithFallback(requestMessages, requestModel);
+        const safeResponse = normalizeTextChunk(result?.text).trim();
+        assistantMessage.modelId = result?.modelId || requestModel;
+        if (safeResponse) {
+            assistantView.renderer.appendChunk(safeResponse);
         }
-
-        if (!normalizeTextChunk(fullResponse).trim()) {
-            const fallbackReply = await getAssistantReplyOnce(requestMessages, requestModel);
-            if (fallbackReply) {
-                fullResponse = fallbackReply;
-                assistantView.renderer.appendChunk(fallbackReply);
-            }
-        }
-
         assistantView.renderer.finalize();
-
-        const safeResponse = normalizeTextChunk(fullResponse).trim();
         assistantMessage.content = safeResponse || 'No response.';
 
         if (!safeResponse) {
@@ -857,23 +962,11 @@ async function sendAiMessage() {
         if (dom.statAi) dom.statAi.textContent = String(state.aiQueryCount);
 
         await persistCurrentChat();
+        if (assistantMessage.modelId !== requestModel) {
+            showToast(`Switched to ${getModelName(assistantMessage.modelId)} after ${getModelName(requestModel)} was unavailable.`, 'info');
+        }
         showToast('Reply ready.', 'success');
     } catch (error) {
-        try {
-            const fallbackReply = await getAssistantReplyOnce(requestMessages, requestModel);
-            if (fallbackReply) {
-                assistantView.renderer.appendChunk(fallbackReply);
-                assistantView.renderer.finalize();
-                assistantMessage.content = fallbackReply;
-                state.currentChatMessages.push(assistantMessage);
-                await persistCurrentChat();
-                showToast('Reply ready.', 'success');
-                return;
-            }
-        } catch (fallbackError) {
-            console.error('AI fallback error:', fallbackError);
-        }
-
         assistantMessage.content = `Sorry - the AI request failed.\n\n${normalizeTextChunk(error?.message || 'Unknown error')}`;
         renderMessageContent(assistantView.textEl, assistantMessage.content);
         state.currentChatMessages.push(assistantMessage);
