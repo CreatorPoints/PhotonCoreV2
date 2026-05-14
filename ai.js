@@ -1022,7 +1022,7 @@ function renderMemories() {
         dom.memoryList.innerHTML = `${tipHtml}<div class="memory-empty" id="memory-empty">
             <span class="memory-empty-icon">🧠</span>
             <p>No memories saved yet</p>
-            <p style="font-size: 12px; margin-top: 4px;">Use the Remember button to save team memories</p>
+            <p style="font-size: 12px; margin-top: 4px;">Remember saves your draft or your last user message</p>
         </div>`;
     } else {
         dom.memoryList.innerHTML = tipHtml + memories.map(memory => `
@@ -1043,17 +1043,29 @@ function renderMemories() {
     } catch {}
 }
 
+function getLastUserMessageText() {
+    if (!Array.isArray(state.currentChatMessages)) return '';
+    for (let i = state.currentChatMessages.length - 1; i >= 0; i -= 1) {
+        const message = state.currentChatMessages[i];
+        if (message && message.role === 'user') {
+            return normalizeTextChunk(message.content || '').trim();
+        }
+    }
+    return '';
+}
+
 async function rememberCurrentInput() {
     if (!window.db || !state.user) {
         showToast('Please wait for sign-in to finish.', 'info');
         return;
     }
 
-    const text = normalizeTextChunk(dom.aiInput?.value || '').trim()
-        || normalizeTextChunk(state.currentChatMessages[state.currentChatMessages.length - 1]?.content || '').trim();
+    const fromInput = normalizeTextChunk(dom.aiInput?.value || '').trim();
+    const fromLastUser = getLastUserMessageText();
+    const text = fromInput || fromLastUser;
 
     if (!text) {
-        showToast('Nothing to save yet.', 'info');
+        showToast('Nothing to save yet. Type what to remember, or send a message first.', 'info');
         return;
     }
 
