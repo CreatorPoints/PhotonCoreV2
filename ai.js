@@ -68,6 +68,15 @@ class StreamingMarkdownRenderer {
         this.processBuffer();
     }
 
+    /** Clear partial output when retrying another model after a failed stream. */
+    reset() {
+        this.buffer = '';
+        this.lastRenderTime = 0;
+        if (this.target) {
+            this.target.innerHTML = '';
+        }
+    }
+
     processBuffer() {
         const now = Date.now();
         if (now - this.lastRenderTime < this.renderThrottle) {
@@ -821,7 +830,16 @@ function isRetryableModelError(error) {
     return status === 404 || status === 429;
 }
 
-async function requestAssistantReplyWithFallback(messages, preferredModel) {
+/**
+ * @param {object} messages
+ * @param {string} preferredModel
+ * @param {{ onChunk?: (text: string) => void, onBeforeRetry?: () => void } | null} streamHooks
+ *        When onChunk is set, each streamed token is forwarded for live UI updates.
+ */
+async function requestAssistantReplyWithFallback(messages, preferredModel, streamHooks = null) {
+    const onChunk = typeof streamHooks?.onChunk === 'function' ? streamHooks.onChunk : null;
+    const onBeforeRetry = typeof streamHooks?.onBeforeRetry === 'function' ? streamHooks.onBeforeRetry : null;
+
     const candidates = getModelFallbackCandidates(preferredModel);
     let lastError = null;
 
@@ -833,10 +851,14 @@ async function requestAssistantReplyWithFallback(messages, preferredModel) {
                 const safeChunk = normalizeTextChunk(chunk);
                 if (!safeChunk) continue;
                 fullResponse += safeChunk;
+                if (onChunk) onChunk(safeChunk);
             }
 
             if (!normalizeTextChunk(fullResponse).trim()) {
-                fullResponse = await getAssistantReplyOnce(messages, candidate);
+                fullResponse = normalizeTextChunk(await getAssistantReplyOnce(messages, candidate));
+                if (fullResponse && onChunk) {
+                    onChunk(fullResponse);
+                }
             }
 
             if (normalizeTextChunk(fullResponse).trim()) {
@@ -847,6 +869,10 @@ async function requestAssistantReplyWithFallback(messages, preferredModel) {
             }
         } catch (error) {
             lastError = error;
+            const willRetry = isRetryableModelError(error) && index < candidates.length - 1;
+            if (willRetry && onBeforeRetry) {
+                onBeforeRetry();
+            }
             if (!isRetryableModelError(error) || index === candidates.length - 1) {
                 break;
             }
@@ -950,12 +976,12 @@ async function sendAiMessage() {
     insertMessageElement(assistantView.element);
 
     try {
-        const result = await requestAssistantReplyWithFallback(requestMessages, requestModel);
+        const result = await requestAssistantReplyWithFallback(requestMessages, requestModel, {
+            onChunk: (text) => assistantView.renderer.appendChunk(text),
+            onBeforeRetry: () => assistantView.renderer.reset()
+        });
         const safeResponse = normalizeTextChunk(result?.text).trim();
         assistantMessage.modelId = result?.modelId || requestModel;
-        if (safeResponse) {
-            assistantView.renderer.appendChunk(safeResponse);
-        }
         assistantView.renderer.finalize();
         assistantMessage.content = safeResponse || 'No response.';
 
