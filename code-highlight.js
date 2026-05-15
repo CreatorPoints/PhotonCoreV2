@@ -80,7 +80,11 @@ const HIGHLIGHT_LANG_ALIASES = {
     objc: 'objectivec',
     'objective-c': 'objectivec',
     diff: 'diff',
-    patch: 'diff'
+    patch: 'diff',
+    text: 'plaintext',
+    plaintext: 'plaintext',
+    txt: 'plaintext',
+    console: 'javascript'
 };
 
 function escapeCodeHtml(text) {
@@ -106,13 +110,18 @@ function hljsLanguageId(lang) {
     return '';
 }
 
-const HIGHLIGHT_AUTO_LANGUAGES = [
-    'javascript', 'typescript', 'python', 'ruby', 'xml', 'css',
-    'json', 'bash', 'sql', 'java', 'go', 'rust', 'php', 'csharp', 'cpp',
-    'c', 'kotlin', 'swift', 'yaml', 'markdown', 'dockerfile', 'graphql',
-    'lua', 'r', 'perl', 'scss', 'less', 'wasm', 'objectivec', 'vbnet',
-    'powershell', 'ini', 'diff', 'latex', 'makefile', 'dos'
-];
+function getHighlightAutoLanguages() {
+    if (typeof hljs !== 'undefined' && typeof hljs.listLanguages === 'function') {
+        return hljs.listLanguages();
+    }
+    return [
+        'javascript', 'typescript', 'python', 'ruby', 'xml', 'html', 'css',
+        'json', 'bash', 'sql', 'java', 'go', 'rust', 'php', 'csharp', 'cpp',
+        'c', 'kotlin', 'swift', 'yaml', 'markdown', 'dockerfile', 'graphql',
+        'lua', 'r', 'perl', 'scss', 'less', 'wasm', 'objectivec', 'vbnet',
+        'powershell', 'ini', 'diff', 'latex', 'makefile', 'dos', 'plaintext'
+    ];
+}
 
 function highlightCodeSource(code, lang) {
     const safeCode = String(code ?? '');
@@ -133,7 +142,7 @@ function highlightCodeSource(code, lang) {
             };
         }
 
-        const auto = hljs.highlightAuto(safeCode, HIGHLIGHT_AUTO_LANGUAGES);
+        const auto = hljs.highlightAuto(safeCode, getHighlightAutoLanguages());
         return {
             html: auto.value,
             language: auto.language || 'plaintext'

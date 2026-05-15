@@ -58,7 +58,6 @@ class StreamingMarkdownRenderer {
         this.buffer = '';
         this.renderThrottle = 16;
         this.lastRenderTime = 0;
-        this.markedRenderer = null;
     }
 
     appendChunk(chunk) {
@@ -89,6 +88,10 @@ class StreamingMarkdownRenderer {
 
     render(isFinal = false) {
         this.target.innerHTML = this.renderMarkdown(this.buffer, !isFinal);
+        const mdRoot = this.target.querySelector('.ai-md') || this.target;
+        if (typeof enhanceAiMarkdownDom === 'function') {
+            enhanceAiMarkdownDom(mdRoot);
+        }
         if (dom.aiChat) dom.aiChat.scrollTop = dom.aiChat.scrollHeight;
     }
 
@@ -96,146 +99,19 @@ class StreamingMarkdownRenderer {
         const rawText = normalizeTextChunk(text);
         if (!rawText) return isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
+        if (typeof parseAiMarkdown === 'function') {
+            return parseAiMarkdown(rawText, { isStreaming });
+        }
+
         if (typeof marked !== 'undefined') {
-            if (!this.markedRenderer) {
-                const renderer = new marked.Renderer();
-                const self = this;
-
-                renderer.code = function(codeOrToken, infostring) {
-                    let code;
-                    let lang;
-
-                    if (typeof codeOrToken === 'object' && codeOrToken !== null) {
-                        code = codeOrToken.text ?? codeOrToken.raw ?? '';
-                        lang = codeOrToken.lang ?? codeOrToken.language ?? '';
-                    } else {
-                        code = codeOrToken ?? '';
-                        lang = infostring ?? '';
-                    }
-
-                    return self.renderCodeBlock(normalizeTextChunk(code), String(lang || '').trim(), false);
-                };
-
-                renderer.codespan = function(codeOrToken) {
-                    const code = typeof codeOrToken === 'object' && codeOrToken !== null
-                        ? (codeOrToken.text ?? codeOrToken.raw ?? '')
-                        : (codeOrToken ?? '');
-                    return `<code class="inline-code">${self.escapeHtml(normalizeTextChunk(code))}</code>`;
-                };
-
-                renderer.link = function(hrefOrToken, title, textValue) {
-                    let href;
-                    let linkTitle;
-                    let linkText;
-
-                    if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
-                        href = hrefOrToken.href ?? '';
-                        linkTitle = hrefOrToken.title ?? '';
-                        linkText = hrefOrToken.text ?? '';
-                    } else {
-                        href = hrefOrToken ?? '';
-                        linkTitle = title ?? '';
-                        linkText = textValue ?? '';
-                    }
-
-                    const safeHref = self.escapeHtml(normalizeTextChunk(href));
-                    const safeTitle = linkTitle ? ` title="${self.escapeHtml(normalizeTextChunk(linkTitle))}"` : '';
-                    return `<a href="${safeHref}" target="_blank" rel="noopener"${safeTitle}>${normalizeTextChunk(linkText)}</a>`;
-                };
-
-                renderer.paragraph = function(textOrToken) {
-                    const paragraphText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    return `<p>${normalizeTextChunk(paragraphText)}</p>`;
-                };
-
-                renderer.heading = function(textOrToken, level) {
-                    const headingText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    const headingLevel = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.depth ?? level ?? 1)
-                        : (level ?? 1);
-                    return `<h${headingLevel}>${normalizeTextChunk(headingText)}</h${headingLevel}>`;
-                };
-
-                renderer.listitem = function(textOrToken) {
-                    const itemText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    return `<li>${normalizeTextChunk(itemText)}</li>`;
-                };
-
-                renderer.blockquote = function(quoteOrToken) {
-                    const quoteText = typeof quoteOrToken === 'object' && quoteOrToken !== null
-                        ? (quoteOrToken.text ?? quoteOrToken.raw ?? '')
-                        : (quoteOrToken ?? '');
-                    return `<blockquote>${normalizeTextChunk(quoteText)}</blockquote>`;
-                };
-
-                renderer.strong = function(textOrToken) {
-                    const strongText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    return `<strong>${normalizeTextChunk(strongText)}</strong>`;
-                };
-
-                renderer.em = function(textOrToken) {
-                    const emText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    return `<em>${normalizeTextChunk(emText)}</em>`;
-                };
-
-                renderer.del = function(textOrToken) {
-                    const delText = typeof textOrToken === 'object' && textOrToken !== null
-                        ? (textOrToken.text ?? textOrToken.raw ?? '')
-                        : (textOrToken ?? '');
-                    return `<del>${normalizeTextChunk(delText)}</del>`;
-                };
-
-                renderer.hr = function() {
-                    return '<hr>';
-                };
-
-                renderer.image = function(hrefOrToken, title, textValue) {
-                    let href;
-                    let imageTitle;
-                    let altText;
-
-                    if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
-                        href = hrefOrToken.href ?? '';
-                        imageTitle = hrefOrToken.title ?? '';
-                        altText = hrefOrToken.text ?? '';
-                    } else {
-                        href = hrefOrToken ?? '';
-                        imageTitle = title ?? '';
-                        altText = textValue ?? '';
-                    }
-
-                    const safeHref = self.escapeHtml(normalizeTextChunk(href));
-                    const safeAlt = self.escapeHtml(normalizeTextChunk(altText));
-                    const safeTitle = imageTitle ? ` title="${self.escapeHtml(normalizeTextChunk(imageTitle))}"` : '';
-                    return `<img src="${safeHref}" alt="${safeAlt}"${safeTitle}>`;
-                };
-
-                this.markedRenderer = renderer;
-            }
-
-            marked.setOptions({
-                renderer: this.markedRenderer,
-                gfm: true,
-                breaks: true,
-                headerIds: false,
-                mangle: false
-            });
-
+            marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false });
             let html = marked.parse(rawText);
-            if (typeof DOMPurify !== 'undefined') {
+            if (typeof sanitizeAiHtml === 'function') {
+                html = sanitizeAiHtml(html);
+            } else if (typeof DOMPurify !== 'undefined') {
                 html = DOMPurify.sanitize(html, {
-                    ADD_ATTR: ['target', 'rel', 'data-code', 'data-lang', 'style', 'class', 'type'],
-                    ADD_TAGS: ['button']
+                    ADD_ATTR: ['target', 'rel', 'data-code', 'data-table', 'data-lang', 'class', 'type', 'checked'],
+                    ADD_TAGS: ['button', 'input', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
                 });
             }
             if (isStreaming) html += '<span class="streaming-cursor"></span>';
@@ -250,41 +126,7 @@ class StreamingMarkdownRenderer {
             return renderAiCodeBlock(normalizeTextChunk(code), lang, { isStreaming });
         }
         const safeCode = normalizeTextChunk(code);
-        if (!safeCode) {
-            return '<div class="ai-code-block"><pre><code>Empty code block</code></pre></div>';
-        }
-
-        let highlighted;
-        let detectedLang = String(lang || '').trim().toLowerCase();
-
-        try {
-            if (typeof hljs !== 'undefined' && detectedLang && hljs.getLanguage(detectedLang)) {
-                highlighted = hljs.highlight(safeCode, { language: detectedLang }).value;
-            } else if (typeof hljs !== 'undefined') {
-                const auto = hljs.highlightAuto(safeCode);
-                highlighted = auto.value;
-                if (!detectedLang) detectedLang = auto.language || 'plaintext';
-            } else {
-                highlighted = this.escapeHtml(safeCode);
-            }
-        } catch {
-            highlighted = this.escapeHtml(safeCode);
-        }
-
-        const encodedCode = encodeURIComponent(safeCode);
-        const langLabel = detectedLang || 'plaintext';
-        const streamingCursor = isStreaming ? '<span class="streaming-cursor"></span>' : '';
-
-        return `<div class="ai-code-block" style="margin:20px 0;border-radius:12px;overflow:hidden;background:#0a0a12;border:1px solid rgba(108,92,231,0.2);">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(108,92,231,0.1);border-bottom:1px solid rgba(108,92,231,0.2);">
-                <span style="color:var(--ai-accent-light);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${langLabel}</span>
-                <button class="ai-copy-btn" data-code="${encodedCode}" style="background:rgba(108,92,231,0.2);border:1px solid rgba(108,92,231,0.3);color:var(--ai-text-secondary);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:all 0.2s ease;">
-                    <span class="copy-icon" aria-hidden="true">&#x1F4CB;</span>
-                    <span class="copy-text">Copy</span>
-                </button>
-            </div>
-            <pre style="margin:0;padding:18px;overflow-x:auto;background:transparent;"><code class="hljs" style="font-family:'JetBrains Mono',Consolas,monospace;font-size:13.5px;line-height:1.6;background:transparent;color:#e8e8f0;">${highlighted}${streamingCursor}</code></pre>
-        </div>`;
+        return `<pre class="ai-code-block-pre"><code>${this.escapeHtml(safeCode || '')}</code></pre>`;
     }
 
     escapeHtml(text) {

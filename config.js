@@ -544,17 +544,24 @@ function formatAi(text) {
         return tempDiv.innerHTML;
     }
 
-    // Use marked if available (other pages)
+    if (typeof parseAiMarkdown === 'function') {
+        const html = parseAiMarkdown(rawText, { isStreaming: false });
+        if (typeof enhanceAiMarkdownDom === 'function') {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            enhanceAiMarkdownDom(temp.querySelector('.ai-md') || temp);
+            return temp.innerHTML;
+        }
+        return html;
+    }
+
     if (typeof marked !== 'undefined') {
-        marked.setOptions({
-            gfm: true,
-            breaks: true,
-            headerIds: false,
-            mangle: false
-        });
+        marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false });
         let html = marked.parse(rawText);
-        if (typeof DOMPurify !== 'undefined') {
-            html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style', 'class'] });
+        if (typeof sanitizeAiHtml === 'function') {
+            html = sanitizeAiHtml(html);
+        } else if (typeof DOMPurify !== 'undefined') {
+            html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'data-table', 'class', 'type', 'checked'], ADD_TAGS: ['button', 'input'] });
         }
         return `<div class="ai-md">${html}</div>`;
     }
@@ -580,21 +587,30 @@ function formatAi(text) {
     return `<div class="ai-md">${f}</div>`;
 }
 // Copy code handler - called via event delegation
-function handleCodeCopy(btn) {
-    if (!btn || !btn.dataset.code) return;
-    
-    const code = decodeURIComponent(btn.dataset.code);
+function handleAiCopy(btn) {
+    if (!btn) return;
+
     const copyText = btn.querySelector('.copy-text');
-    
-    navigator.clipboard.writeText(code).then(() => {
+    const defaultLabel = btn.classList.contains('ai-table-copy-btn') ? 'Copy table' : 'Copy';
+    let payload = '';
+
+    if (btn.dataset.table) {
+        payload = decodeURIComponent(btn.dataset.table);
+    } else if (btn.dataset.code) {
+        payload = decodeURIComponent(btn.dataset.code);
+    } else {
+        return;
+    }
+
+    navigator.clipboard.writeText(payload).then(() => {
         if (copyText) {
             copyText.textContent = 'Copied!';
             btn.style.color = '#10b981';
         }
         setTimeout(() => {
             if (copyText) {
-                copyText.textContent = 'Copy code';
-                btn.style.color = '#a0a0a0';
+                copyText.textContent = defaultLabel;
+                btn.style.color = '';
             }
         }, 2000);
     }).catch(() => {
@@ -602,13 +618,12 @@ function handleCodeCopy(btn) {
     });
 }
 
-// Set up event delegation for copy buttons
 document.addEventListener('click', function(e) {
     const copyBtn = e.target.closest('.ai-copy-btn');
     if (copyBtn) {
         e.preventDefault();
         e.stopPropagation();
-        handleCodeCopy(copyBtn);
+        handleAiCopy(copyBtn);
     }
 });
 
