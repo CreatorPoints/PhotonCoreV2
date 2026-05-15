@@ -1836,10 +1836,10 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 }
 
 .message-text .ai-table-wrap {
-    margin: 16px 0;
-    border-radius: 12px;
+    margin: 20px 0;
+    border-radius: 10px;
     overflow: hidden;
-    border: 1px solid rgba(108, 92, 231, 0.2);
+    border: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -1847,17 +1847,16 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px;
-    background: rgba(108, 92, 231, 0.1);
-    border-bottom: 1px solid rgba(108, 92, 231, 0.2);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border);
 }
 
 .ai-table-label {
-    color: var(--ai-accent-light);
-    font-size: 12px;
+    color: var(--text-secondary);
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .ai-table-scroll {
@@ -1871,26 +1870,28 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     border-collapse: collapse;
     display: table;
     margin: 0;
+    font-size: 14px;
 }
 
 .message-text thead {
-    background: rgba(108, 92, 231, 0.15);
-}
-
-.message-text tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .message-text th,
 .message-text td {
-    padding: 10px 14px;
+    padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
 }
 
 .message-text th {
-    font-weight: 700;
-    color: #f5f3ff;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.message-text tbody tr:hover {
+    background: rgba(255, 255, 255, 0.01);
 }
 
 .message-text th[align="center"],
@@ -2097,60 +2098,62 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
 
 /* AI code blocks — language-specific highlight.js tokens */
 .ai-code-block {
-    margin: 20px 0;
+    margin: 16px 0;
     border-radius: 12px;
     overflow: hidden;
-    background: #0a0a12;
-    border: 1px solid rgba(108, 92, 231, 0.2);
+    background: #0d0d17;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .ai-code-block-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px;
-    background: rgba(108, 92, 231, 0.1);
-    border-bottom: 1px solid rgba(108, 92, 231, 0.2);
+    padding: 8px 16px;
+    background: #1e1e2e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .ai-code-block-lang {
-    color: var(--ai-accent-light);
-    font-size: 12px;
+    color: #a8a8b3;
+    font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    text-transform: lowercase;
+    font-family: var(--font-mono);
 }
 
-.ai-code-block .ai-copy-btn {
-    background: rgba(108, 92, 231, 0.2);
-    border: 1px solid rgba(108, 92, 231, 0.3);
-    color: var(--ai-text-secondary);
+.ai-copy-btn {
+    background: transparent;
+    border: none;
+    color: #a8a8b3;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 4px;
+    padding: 4px 8px;
     border-radius: 6px;
     transition: all 0.2s ease;
+    font-weight: 500;
 }
 
-.ai-code-block .ai-copy-btn:hover {
-    background: rgba(108, 92, 231, 0.35);
-    color: var(--ai-text-primary);
+.ai-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 
 .ai-code-block-pre {
     margin: 0;
-    padding: 18px;
+    padding: 16px;
     overflow-x: auto;
     background: transparent;
 }
 
 .ai-code-block-pre code.hljs {
-    font-family: 'JetBrains Mono', Consolas, monospace;
-    font-size: 13.5px;
-    line-height: 1.6;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.5;
     background: transparent;
     color: #e8e8f0;
     padding: 0;

@@ -403,6 +403,7 @@ async function initAppData() {
     if (typeof loadProfile === 'function') loadProfile();
     if (typeof setupPresenceListener === 'function') setupPresenceListener();
     if (typeof loadTipState === 'function') loadTipState();
+    if (typeof listenAiStats === 'function') listenAiStats();
     
     console.log('App data initialization complete');
 }

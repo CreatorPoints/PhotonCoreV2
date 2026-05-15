@@ -692,6 +692,7 @@ function listenDiscussions() {
 
             updateDiscussionHash(discussionUiState.selectedId);
 
+            updateDiscussionStats();
             renderDiscussions();
 
             if (discussionUiState.selectedId && !discussionUiState.commentsUnsub) {
