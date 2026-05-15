@@ -1871,6 +1871,73 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     line-height: 1;
 }
 
+/* AI code blocks — language-specific highlight.js tokens */
+.ai-code-block {
+    margin: 20px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0a0a12;
+    border: 1px solid rgba(108, 92, 231, 0.2);
+}
+
+.ai-code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(108, 92, 231, 0.1);
+    border-bottom: 1px solid rgba(108, 92, 231, 0.2);
+}
+
+.ai-code-block-lang {
+    color: var(--ai-accent-light);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-code-block .ai-copy-btn {
+    background: rgba(108, 92, 231, 0.2);
+    border: 1px solid rgba(108, 92, 231, 0.3);
+    color: var(--ai-text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.ai-code-block .ai-copy-btn:hover {
+    background: rgba(108, 92, 231, 0.35);
+    color: var(--ai-text-primary);
+}
+
+.ai-code-block-pre {
+    margin: 0;
+    padding: 18px;
+    overflow-x: auto;
+    background: transparent;
+}
+
+.ai-code-block-pre code.hljs {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    background: transparent;
+    color: #e8e8f0;
+    padding: 0;
+}
+
+.message-text .ai-code-block,
+.ai-md .ai-code-block,
+.reddit-thread-body .ai-code-block {
+    margin: 16px 0;
+}
+
 .streaming-cursor {
     display: inline-block;
     width: 2px;

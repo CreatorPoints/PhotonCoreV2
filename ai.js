@@ -233,7 +233,10 @@ class StreamingMarkdownRenderer {
 
             let html = marked.parse(rawText);
             if (typeof DOMPurify !== 'undefined') {
-                html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'data-code', 'style', 'class'] });
+                html = DOMPurify.sanitize(html, {
+                    ADD_ATTR: ['target', 'rel', 'data-code', 'data-lang', 'style', 'class', 'type'],
+                    ADD_TAGS: ['button']
+                });
             }
             if (isStreaming) html += '<span class="streaming-cursor"></span>';
             return `<div class="ai-md">${html}</div>`;
@@ -243,6 +246,9 @@ class StreamingMarkdownRenderer {
     }
 
     renderCodeBlock(code, lang, isStreaming = false) {
+        if (typeof renderAiCodeBlock === 'function') {
+            return renderAiCodeBlock(normalizeTextChunk(code), lang, { isStreaming });
+        }
         const safeCode = normalizeTextChunk(code);
         if (!safeCode) {
             return '<div class="ai-code-block"><pre><code>Empty code block</code></pre></div>';
