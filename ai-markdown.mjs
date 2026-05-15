@@ -19,19 +19,7 @@ const md = new MarkdownIt({
     linkify: true,
     typographer: true,
     highlight: function (str, lang) {
-        const languageClass = lang ? `language-${lang}` : '';
-        if (typeof hljs !== 'undefined') {
-            if (lang && hljs.getLanguage(lang)) {
-                try {
-                    return `<pre class="hljs"><code class="${languageClass}">${hljs.highlight(str, { language: lang, ignoreIllegals: true }).value}</code></pre>`;
-                } catch (__) { }
-            } else {
-                try {
-                    return `<pre class="hljs"><code class="${languageClass}">${hljs.highlightAuto(str).value}</code></pre>`;
-                } catch (__) { }
-            }
-        }
-        return `<pre class="hljs"><code class="${languageClass}">${md.utils.escapeHtml(str)}</code></pre>`;
+        return ''; // We handle highlighting in custom rules to wrap in our container
     }
 });
 
@@ -134,7 +122,6 @@ md.renderer.rules.math_block = (tokens, idx) => {
 
 // --- Custom Callout Rules ---
 
-// GFM-style: > [!TYPE]
 md.core.ruler.after('block', 'gfm_callouts', (state) => {
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i++) {
@@ -190,7 +177,6 @@ md.core.ruler.after('block', 'gfm_callouts', (state) => {
     }
 });
 
-// Custom-style: ::: type
 md.block.ruler.after('blockquote', 'custom_callouts', (state, startLine, endLine, silent) => {
     let pos = state.bMarks[startLine] + state.tShift[startLine];
     let max = state.eMarks[startLine];
@@ -237,8 +223,22 @@ md.block.ruler.after('blockquote', 'custom_callouts', (state, startLine, endLine
 
 // --- Table and Link Post-processing ---
 
-md.renderer.rules.table_open = () => '<div class="table-wrapper"><table>';
-md.renderer.rules.table_close = () => '</table></div><button class="copy-table-btn">Copy Table</button>';
+md.renderer.rules.table_open = () => `
+<div class="ai-table-wrap">
+    <div class="ai-table-toolbar">
+        <span class="ai-table-label">Table</span>
+        <button class="ai-copy-btn ai-table-copy-btn">
+            <span class="copy-icon">📋</span>
+            <span class="copy-text">Copy table</span>
+        </button>
+    </div>
+    <div class="ai-table-scroll">
+        <table class="ai-table">`;
+
+md.renderer.rules.table_close = () => `
+        </table>
+    </div>
+</div>`;
 
 const defaultLinkRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
     return self.renderToken(tokens, idx, options);
@@ -255,31 +255,63 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
     return defaultLinkRender(tokens, idx, options, env, self);
 };
 
+function renderCodeContainer(content, lang) {
+    const safeContent = md.utils.escapeHtml(content);
+    const displayLang = lang || 'text';
+    let highlighted = safeContent;
+
+    if (typeof hljs !== 'undefined') {
+        try {
+            if (lang && hljs.getLanguage(lang)) {
+                highlighted = hljs.highlight(content, { language: lang, ignoreIllegals: true }).value;
+            } else {
+                highlighted = hljs.highlightAuto(content).value;
+            }
+        } catch (__) { }
+    }
+
+    return `
+<div class="ai-code-block">
+    <div class="ai-code-block-header">
+        <span class="ai-code-block-lang">${displayLang}</span>
+        <button class="ai-copy-btn" data-code="${encodeURIComponent(content)}">
+            <span class="copy-icon">📋</span>
+            <span class="copy-text">Copy</span>
+        </button>
+    </div>
+    <pre class="ai-code-block-pre"><code class="hljs language-${displayLang}">${highlighted}</code></pre>
+</div>`;
+}
+
+md.renderer.rules.fence = (tokens, idx) => {
+    const token = tokens[idx];
+    const info = token.info ? token.info.trim() : '';
+    const lang = info.split(/\s+/)[0];
+    const content = token.content;
+    return renderCodeContainer(content, lang);
+};
+
 md.renderer.rules.code_block = (tokens, idx) => {
     const content = tokens[idx].content;
-    if (typeof hljs !== 'undefined') {
-        const highlighted = hljs.highlightAuto(content).value;
-        return `<pre class="hljs"><code>${highlighted}</code></pre>`;
-    }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(content)}</code></pre>`;
+    return renderCodeContainer(content, '');
 };
 
 /**
  * Parses markdown string to HTML.
  * Includes sanitization to prevent XSS.
  */
-export function parseAiMarkdown(markdown, isStreaming = false) {
+export function parseAiMarkdown(markdown, options = {}) {
     if (!markdown) return "";
 
     let html = md.render(markdown);
 
-    if (isStreaming) {
+    if (options.isStreaming) {
         html += '<span class="streaming-cursor"></span>';
     }
 
     if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
         return DOMPurify.sanitize(html, {
-            ADD_ATTR: ['target', 'rel', 'data-math'],
+            ADD_ATTR: ['target', 'rel', 'data-math', 'data-code'],
             ADD_TAGS: ['use', 'svg', 'foreignobject', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'ellipse', 'text', 'tspan', 'defs', 'style']
         });
     }
@@ -311,7 +343,7 @@ export function enhanceAiMarkdownDom(dom, options = {}) {
     }
 
     // 2. Mermaid Diagrams
-    const mermaidBlocks = dom.querySelectorAll('pre.hljs code.language-mermaid');
+    const mermaidBlocks = dom.querySelectorAll('.ai-code-block-pre code.language-mermaid');
     if (mermaidBlocks.length > 0 && typeof mermaid !== 'undefined') {
         if (!options.isStreaming) {
             if (typeof mermaid.initialize === 'function') {
@@ -319,37 +351,43 @@ export function enhanceAiMarkdownDom(dom, options = {}) {
             }
 
             mermaidBlocks.forEach((block, index) => {
+                const container = block.closest('.ai-code-block');
+                if (!container) return;
+
                 const rawCode = block.textContent.trim();
                 const id = 'm' + Math.random().toString(36).substr(2, 9);
-                const container = document.createElement('div');
-                container.className = 'mermaid';
-                block.parentElement.parentElement.replaceChild(container, block.parentElement);
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                container.parentElement.replaceChild(mermaidDiv, container);
 
                 try {
                     mermaid.render(id, rawCode).then(({ svg }) => {
-                        container.innerHTML = svg;
+                        mermaidDiv.innerHTML = svg;
                     }).catch(err => {
                         console.error('Mermaid render error:', err);
-                        container.innerHTML = `<pre class="mermaid-error">${md.utils.escapeHtml(rawCode)}</pre>`;
+                        mermaidDiv.innerHTML = `<pre class="mermaid-error">${md.utils.escapeHtml(rawCode)}</pre>`;
                     });
                 } catch (e) {
                     console.error('Mermaid exception:', e);
-                    container.innerHTML = `<pre class="mermaid-error">${md.utils.escapeHtml(rawCode)}</pre>`;
+                    mermaidDiv.innerHTML = `<pre class="mermaid-error">${md.utils.escapeHtml(rawCode)}</pre>`;
                 }
             });
         }
     }
 
     // 3. Copy Table Feature
-    dom.querySelectorAll('.copy-table-btn').forEach(btn => {
+    dom.querySelectorAll('.ai-table-copy-btn').forEach(btn => {
         btn.onclick = () => {
-            const table = btn.previousElementSibling.querySelector('table');
+            const table = btn.closest('.ai-table-wrap').querySelector('table');
             if (table) {
                 const tsv = tableToTsv(table);
                 navigator.clipboard.writeText(tsv).then(() => {
-                    const originalText = btn.innerText;
-                    btn.innerText = 'Copied!';
-                    setTimeout(() => btn.innerText = originalText, 2000);
+                    const copyText = btn.querySelector('.copy-text');
+                    if (copyText) {
+                        const original = copyText.textContent;
+                        copyText.textContent = 'Copied!';
+                        setTimeout(() => copyText.textContent = original, 2000);
+                    }
                 });
             }
         };

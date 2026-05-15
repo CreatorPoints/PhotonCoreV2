@@ -785,6 +785,27 @@ function buildPromptWithAttachment(inputText) {
     return `${safeInput}\n\n${attachmentLabel}\n\n${fileText}`;
 }
 
+function listenAiStats() {
+    if (!window.db) return;
+
+    // Listen to all chats to count total queries
+    // In a real app, you'd store this counter in a separate doc, but we'll count docs for now
+    db.collection('ai_chats').onSnapshot(snapshot => {
+        let totalQueries = 0;
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (Array.isArray(data.messages)) {
+                // Count assistant messages as queries/responses
+                totalQueries += data.messages.filter(m => m.role === 'assistant').length;
+            }
+        });
+        state.aiQueryCount = totalQueries;
+        if (dom.statAi) dom.statAi.textContent = String(totalQueries);
+    }, error => {
+        console.error('AI stats listener error:', error);
+    });
+}
+
 async function sendAiMessage() {
     if (state.isSending) return;
 
@@ -1220,5 +1241,6 @@ if (document.readyState === 'loading') {
 window.createNewChat = createNewChat;
 window.listenMemories = listenMemories;
 window.listenChatSessions = listenChatSessions;
+window.listenAiStats = listenAiStats;
 window.sendAiMessage = sendAiMessage;
 window.clearAttachment = clearAttachment;
