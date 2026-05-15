@@ -535,15 +535,7 @@ function formatAi(text) {
     if (!text) return '';
     const rawText = coerceText(text);
 
-    // Use StreamingMarkdownRenderer if available (from ai.js)
-    if (typeof StreamingMarkdownRenderer !== 'undefined') {
-        const tempDiv = document.createElement('div');
-        const renderer = new StreamingMarkdownRenderer(tempDiv);
-        renderer.appendChunk(rawText);
-        renderer.finalize();
-        return tempDiv.innerHTML;
-    }
-
+    // Prioritize the enhanced parseAiMarkdown
     if (typeof parseAiMarkdown === 'function') {
         const html = parseAiMarkdown(rawText, { isStreaming: false });
         if (typeof enhanceAiMarkdownDom === 'function') {
@@ -553,6 +545,15 @@ function formatAi(text) {
             return temp.innerHTML;
         }
         return html;
+    }
+
+    // Use StreamingMarkdownRenderer if available (from ai.js)
+    if (typeof StreamingMarkdownRenderer !== 'undefined') {
+        const tempDiv = document.createElement('div');
+        const renderer = new StreamingMarkdownRenderer(tempDiv);
+        renderer.appendChunk(rawText);
+        renderer.finalize();
+        return tempDiv.innerHTML;
     }
 
     if (typeof marked !== 'undefined') {

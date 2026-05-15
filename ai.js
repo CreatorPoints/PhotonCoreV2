@@ -97,11 +97,13 @@ class StreamingMarkdownRenderer {
 
     renderMarkdown(text, isStreaming) {
         const rawText = normalizeTextChunk(text);
-        if (!rawText) return isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
+        // Strictly use parseAiMarkdown if available
         if (typeof parseAiMarkdown === 'function') {
             return parseAiMarkdown(rawText, { isStreaming });
         }
+
+        if (!rawText) return isStreaming ? '<span class="streaming-cursor"></span>' : '';
 
         if (typeof marked !== 'undefined') {
             marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false });
