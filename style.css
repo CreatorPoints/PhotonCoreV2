@@ -1944,6 +1944,99 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     padding-left: 1.5em;
 }
 
+/* Advanced Markdown — Callouts */
+.ai-callout {
+    margin: 16px 0;
+    border-radius: 12px;
+    border-left: 4px solid var(--ai-accent);
+    background: rgba(108, 92, 231, 0.05);
+    overflow: hidden;
+}
+
+.ai-callout-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(108, 92, 231, 0.1);
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-callout-icon::before {
+    content: '💡';
+}
+
+.ai-callout-content {
+    padding: 14px 16px;
+    font-size: 14.5px;
+    line-height: 1.6;
+}
+
+.ai-callout-content > *:first-child { margin-top: 0; }
+.ai-callout-content > *:last-child { margin-bottom: 0; }
+
+.ai-callout-info { border-left-color: var(--info); background: rgba(0, 180, 216, 0.05); }
+.ai-callout-info .ai-callout-header { background: rgba(0, 180, 216, 0.1); color: var(--info); }
+.ai-callout-info .ai-callout-icon::before { content: 'ℹ️'; }
+
+.ai-callout-warning, .ai-callout-caution { border-left-color: var(--warning); background: rgba(255, 170, 0, 0.05); }
+.ai-callout-warning .ai-callout-header, .ai-callout-caution .ai-callout-header { background: rgba(255, 170, 0, 0.1); color: var(--warning); }
+.ai-callout-warning .ai-callout-icon::before, .ai-callout-caution .ai-callout-icon::before { content: '⚠️'; }
+
+.ai-callout-danger, .ai-callout-important { border-left-color: var(--danger); background: rgba(255, 107, 107, 0.05); }
+.ai-callout-danger .ai-callout-header, .ai-callout-important .ai-callout-header { background: rgba(255, 107, 107, 0.1); color: var(--danger); }
+.ai-callout-danger .ai-callout-icon::before, .ai-callout-important .ai-callout-icon::before { content: '🚫'; }
+
+.ai-callout-success, .ai-callout-tip { border-left-color: var(--success); background: rgba(0, 214, 143, 0.05); }
+.ai-callout-success .ai-callout-header, .ai-callout-tip .ai-callout-header { background: rgba(0, 214, 143, 0.1); color: var(--success); }
+.ai-callout-success .ai-callout-icon::before, .ai-callout-tip .ai-callout-icon::before { content: '✅'; }
+
+.ai-callout-note { border-left-color: var(--ai-text-secondary); background: rgba(160, 160, 184, 0.05); }
+.ai-callout-note .ai-callout-header { background: rgba(160, 160, 184, 0.1); color: var(--ai-text-secondary); }
+.ai-callout-note .ai-callout-icon::before { content: '📝'; }
+
+/* KaTeX Math Styling */
+.katex-display {
+    margin: 1.2em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 0;
+}
+
+.katex {
+    font-size: 1.1em;
+    color: #f5f3ff;
+}
+
+/* Mermaid Diagrams */
+.mermaid {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: center;
+    border: 1px solid var(--ai-border);
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto !important;
+}
+
+.mermaid-error {
+    color: var(--danger);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 12px;
+    background: rgba(255, 107, 107, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
 /* Definition lists */
 .ai-md dl,
 .message-text dl {
@@ -2092,6 +2185,7 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
     font-size: 11px;
     font-weight: 600;
     color: var(--ai-accent-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .ai-model-tag span {
