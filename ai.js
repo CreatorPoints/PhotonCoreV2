@@ -1018,6 +1018,24 @@ function listenChatSessions() {
         });
 }
 
+async function addSystemMessage(content) {
+    if (!content) return;
+    ensureCurrentChat();
+    const msg = {
+        id: generateId('msg'),
+        role: 'assistant',
+        content: content,
+        createdAt: new Date().toISOString(),
+        modelId: 'system'
+    };
+    state.currentChatMessages.push(msg);
+    const view = createMessageElement(msg);
+    insertMessageElement(view.element);
+    updateWelcomeVisibility();
+    scrollChatToBottom();
+    await persistCurrentChat();
+}
+
 function bindAiPageEvents() {
     const input = getAiInputElement();
 
@@ -1134,13 +1152,56 @@ function bindAiPageEvents() {
         });
     }
 
-    ['btnActionListCloud', 'btnActionRemoveCloud', 'btnActionCreateCloud', 'btnActionAddCloud'].forEach(key => {
-        if (dom[key]) {
-            dom[key].addEventListener('click', () => {
-                showToast('Cloud file actions are not part of this fix yet.', 'info');
-            });
-        }
-    });
+    if (dom.btnActionListCloud) {
+        dom.btnActionListCloud.addEventListener('click', async () => {
+            showToast('Listing cloud files...', 'info');
+            const result = await aiListFiles();
+            addSystemMessage(result);
+        });
+    }
+
+    if (dom.btnActionCreateCloud) {
+        dom.btnActionCreateCloud.addEventListener('click', async () => {
+            const content = normalizeTextChunk(getAiInputElement()?.value || '').trim();
+            if (!content) {
+                showToast('Please type some content in the input box first.', 'info');
+                return;
+            }
+            const name = prompt('Enter file name for the new cloud file:');
+            if (!name) return;
+            showToast('Creating file...', 'info');
+            const result = await aiWriteFile(name, content);
+            addSystemMessage(result);
+            clearComposer();
+        });
+    }
+
+    if (dom.btnActionRemoveCloud) {
+        dom.btnActionRemoveCloud.addEventListener('click', async () => {
+            const name = prompt('Enter the exact name of the cloud file to remove:');
+            if (!name) return;
+            showToast('Removing file...', 'info');
+            const result = await aiDeleteFile(name);
+            addSystemMessage(result);
+        });
+    }
+
+    if (dom.btnActionAddCloud) {
+        dom.btnActionAddCloud.addEventListener('click', async () => {
+            if (!state.attachedFile) {
+                showToast('No file attached.', 'error');
+                return;
+            }
+            showToast('Uploading to cloud...', 'info');
+            const url = await aiUploadFile(state.attachedFile);
+            if (url) {
+                addSystemMessage(`✅ Uploaded **${state.attachedFile.name}** successfully to cloud storage.\n\nDownload URL: [${state.attachedFile.name}](${url})`);
+                clearAttachment();
+            } else {
+                showToast('Upload failed. Please try again.', 'error');
+            }
+        });
+    }
 
     if (dom.btnAttach) dom.btnAttach.addEventListener('click', () => dom.aiFileInput?.click());
     if (dom.aiFileInput) dom.aiFileInput.addEventListener('change', handleFileAttach);
